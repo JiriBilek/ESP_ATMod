@@ -1,0 +1,70 @@
+/*
+ * command.h *
+ * Part of ESP_ATMod: modified AT command processor for ESP8266
+ *
+ * Copyright 2020, Jiri Bilek, https://github.com/JiriBilek
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this library; if not, see <https://www.gnu.org/licenses/>.
+ */
+
+#ifndef COMMAND_H_
+#define COMMAND_H_
+
+/*
+ * Constants for implemented commands
+ */
+enum commands_t {
+	CMD_ERROR = 0,
+	CMD_AT,
+	CMD_ATE,
+	CMD_AT_GMR,
+	CMD_AT_RST,
+	CMD_AT_CWAUTOCONN,
+	CMD_AT_CWMODE,
+	CMD_AT_CWMODE_CUR,
+	CMD_AT_CWMODE_DEF,
+	CMD_AT_CWDHCP,
+	CMD_AT_CWDHCP_CUR,
+	CMD_AT_CWDHCP_DEF,
+	CMD_AT_CIPMUX,
+	CMD_AT_CIPDINFO,
+	CMD_AT_CIPSTATUS,
+	CMD_AT_CIPSTA_CUR,
+	CMD_AT_CIPSTA,
+	CMD_AT_CIPSTART,
+	CMD_AT_CIPCLOSE,
+	CMD_AT_CIPSEND,
+	CMD_AT_CIPSSLSIZE,
+	CMD_AT_CWJAP,
+	CMD_AT_CWJAP_CUR,
+	CMD_AT_CWJAP_DEF,
+	CMD_AT_CWQAP,
+	CMD_AT_SYSRAM,
+	CMD_AT_RFMODE,  // New command
+	CMD_AT_CIFSR,
+	CMD_AT_UART_CUR,
+	CMD_AT_UART_DEF,
+	CMD_AT_UART,
+	CMD_AT_RESTORE,
+};
+
+/*
+ * Public functions
+ */
+
+void processCommandBuffer();
+
+
+
+#endif /* COMMAND_H_ */
