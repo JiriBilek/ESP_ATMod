@@ -44,10 +44,12 @@ typedef struct
 
 extern client_t clients[5];
 
-const uint16_t INPUT_BUFFER_LEN = 80;
+const uint16_t INPUT_BUFFER_LEN = 100;
 
 extern uint8_t inputBuffer[INPUT_BUFFER_LEN];  // Input buffer
 extern uint16_t inputBufferCnt;  // Number of bytes in inputBuffer
+extern uint8_t fingerprint[20];  // SHA-1 certificate fingerprint for TLS connections
+extern bool fingerprintValid;
 
 extern uint16_t dataRead;  // Number of bytes read from the input to a send buffer
 
@@ -62,6 +64,7 @@ extern uint8_t gsCwDhcp;  // command AT+CWDHCP
 extern bool gsFlag_Connecting;  // Connecting in progress (CWJAP) - other commands ignored
 extern int8_t gsLinkIdReading;  // Link id for which are the data read
 extern bool gsWasConnected;  // Connection flag for AT+CIPSTATUS
+extern uint8_t gsCipSslAuth;  // command AT+CIPSSLAUTH: 0 = none, 1 = fingerprint, 2 = certificate chain
 
 extern const char APP_VERSION[];
 extern const char MSG_OK[] PROGMEM;

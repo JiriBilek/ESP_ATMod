@@ -74,7 +74,10 @@ static const commandDef_t commandList[] = {
 		{ "+CIPSTART", MODE_NO_CHECKING, CMD_AT_CIPSTART },
 		{ "+CIPSTA_CUR", MODE_QUERY_SET, CMD_AT_CIPSTA_CUR },
 		{ "+CIPSTA", MODE_QUERY_SET, CMD_AT_CIPSTA },
-		{ "+CIPSSLSIZE", MODE_QUERY_SET, CMD_AT_CIPSSLSIZE }
+		{ "+CIPSSLSIZE", MODE_QUERY_SET, CMD_AT_CIPSSLSIZE },
+		{ "+CIPSSLAUTH", MODE_QUERY_SET, CMD_AT_CIPSSLAUTH },
+		{ "+CIPSSLFP", MODE_QUERY_SET, CMD_AT_CIPSSLFP }
+
 };
 
 /*
@@ -84,6 +87,7 @@ static const commandDef_t commandList[] = {
 commands_t findCommand(uint8_t* input, uint16_t inpLen);
 String readStringFromBuffer(unsigned char *inpBuf, uint16_t &offset, bool escape);
 bool readNumber(unsigned char *inpBuf, uint16_t &offset, uint32_t &output);
+uint8_t readHex(char c);
 
 /*
  * Commands
@@ -111,6 +115,8 @@ static void cmd_AT_CIPCLOSE();
 static void cmd_AT_UART(commands_t cmd);
 static void cmd_AT_RESTORE();
 static void cmd_AT_CIPSSLSIZE();
+static void cmd_AT_CIPSSLAUTH();
+static void cmd_AT_CIPSSLFP();
 
 /*
  * Processes the command buffer
@@ -213,6 +219,14 @@ void processCommandBuffer(void)
 	else if (cmd == CMD_AT_CIPSSLSIZE)
 		// AT+CIPSSLSIZE - Sets the Size of SSL Buffer - the command is parsed but ignored
 		cmd_AT_CIPSSLSIZE();
+
+	// ------------------------------------------------------------------------------------ AT+CIPSSLAUTH
+	else if (cmd == CMD_AT_CIPSSLAUTH)  // AT+CIPSSLAUTH - Authentication type
+		cmd_AT_CIPSSLAUTH();
+
+	// ------------------------------------------------------------------------------------ AT+CIPSSLFP
+	else if (cmd == CMD_AT_CIPSSLFP)  // AT+CIPSSLFP - Shows or stores certificate fingerprint
+		cmd_AT_CIPSSLFP();
 
 	else
 	{
@@ -919,26 +933,46 @@ void cmd_AT_CIPSTART()
 			else if (type == 2)  // SSL
 			{
 				cli = new BearSSL::WiFiClientSecure();
-				((BearSSL::WiFiClientSecure*)cli)->setInsecure();  // TODO: implement TLS security
+
+				if (gsCipSslAuth == 0)
+				{
+					((BearSSL::WiFiClientSecure*)cli)->setInsecure();
+				}
+				else if (gsCipSslAuth == 1 && fingerprintValid)
+				{
+					((BearSSL::WiFiClientSecure*)cli)->setFingerprint(fingerprint);
+				}
+				else  // TODO: certificate chain verification
+				{
+					delete cli;
+					break;  // error
+				}
 			}
 
 			// Check OOM
 			if (cli == nullptr)
 				break;
 
+			// Test if the remode host exists
 		    IPAddress remoteIP;
 		    uint16_t _timeout = 5000;
 		    if (!WiFi.hostByName(remoteAddr, remoteIP, _timeout))
 		    {
+		    	delete cli;
 		    	error = 100;
+
 		    	Serial.println(F("DNS Fail"));
 		    	break;
 		    }
 
-			if (!cli->connect(remoteIP, remotePort))
+		    // Connect using remote host name, not ip address (necessary for TLS)
+			if (!cli->connect(remoteAddr, remotePort))
 			{
-				free(cli);
+				Serial.println("connect fail");
+
+				delete cli;
 				error = 100;
+
 				break;
 			}
 
@@ -1291,6 +1325,113 @@ void cmd_AT_CIPSSLSIZE()
 	}
 }
 
+/*
+ * AT+CIPSSLAUTH - Authentication type
+ *                 0 = none
+ *                 1 = fingerprint
+ *                 2 = certificate chain
+ */
+void cmd_AT_CIPSSLAUTH()
+{
+	if (inputBuffer[13] == '?' && inputBufferCnt == 16)
+	{
+		Serial.printf_P(PSTR("+CIPSSLAUTH:%d\r\n\r\nOK\r\n"), gsCipSslAuth);
+	}
+	else if (inputBuffer[13] == '=')
+	{
+		uint16_t offset = 14;
+		uint32_t sslAuth;
+
+		if (readNumber(inputBuffer, offset, sslAuth) && sslAuth <= 2 && inputBufferCnt == offset + 2)
+		{
+			if (sslAuth == 1 && !fingerprintValid)
+			{
+				Serial.println(F("not valid"));
+				Serial.printf_P(MSG_ERROR);
+			}
+			else
+			{
+				gsCipSslAuth = sslAuth;
+
+				Serial.printf_P(MSG_OK);
+			}
+		}
+		else
+		{
+			Serial.printf_P(MSG_ERROR);
+		}
+	}
+	else
+	{
+		Serial.printf_P(MSG_ERROR);
+	}
+}
+
+/*
+ * AT+CIPSSLFP - Shows or stores certificate SHA-1 fingerprint
+ *               Fingerprint format: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+ *                                or "xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx"
+ */
+void cmd_AT_CIPSSLFP()
+{
+	if (inputBuffer[11] == '?' && inputBufferCnt == 14)
+	{
+		if (fingerprintValid)
+		{
+			Serial.print(F("+CIPSSLFP:\""));
+
+			for (int i = 0; i < 20; ++i)
+			{
+				if (i > 0)
+					Serial.print(':');
+
+				Serial.printf("%02x", fingerprint[i]);
+			}
+
+			Serial.println(F("\"\r\n\r\nOK"));
+		}
+		else
+		{
+			Serial.println("not valid");
+			Serial.printf_P(MSG_ERROR);
+		}
+	}
+	else if (inputBuffer[11] == '=' && inputBuffer[12] == '"' && (inputBufferCnt == 56 || inputBufferCnt == 75)) // count = 16 + 2*20 (+ 19)
+	{
+		uint8_t fp[20];
+		uint16_t offset = 13;
+		int i;
+
+		for (i = 0; i < 20; ++i)
+		{
+			if (!isxdigit(inputBuffer[offset]) || !isxdigit(inputBuffer[offset + 1]))
+				break;
+
+			fp[i] = readHex(inputBuffer[offset]) << 4 | readHex(inputBuffer[offset + 1]);
+			offset += 2;
+
+			if (i < 19 && inputBufferCnt == 75 && inputBuffer[offset++] != ':')
+				break;
+		}
+
+		if (i == 20 && inputBuffer[offset] == '"')
+		{
+			memcpy(fingerprint, fp, sizeof(fingerprint));
+			fingerprintValid = true;
+
+			Serial.printf_P(MSG_OK);
+		}
+		else
+		{
+			Serial.printf_P(MSG_ERROR);
+		}
+	}
+	else
+	{
+		Serial.printf_P(MSG_ERROR);
+	}
+}
+
 /*********************************************************************************************
  * Searches the input buffer for a command. Returns command code or CMD_ERROR
  */
@@ -1405,4 +1546,19 @@ bool readNumber(unsigned char *inpBuf, uint16_t &offset, uint32_t &output)
 		output = out;
 
 	return ret;
+}
+
+/*
+ * Translates ASCII to 1 nibble hex
+ */
+uint8_t readHex(char c)
+{
+	if (c >= 'a')
+		c -= 'a' - 10;
+	else if (c >= 'A')
+		c -= 'A' - 10;
+	else
+		c -= '0';
+
+	return c;
 }

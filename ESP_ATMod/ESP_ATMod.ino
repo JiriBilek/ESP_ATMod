@@ -25,12 +25,13 @@
  * Version history:
  *
  * 0.1.0: First version for testing
+ * 0.1.1: TLS fingerprint authentication (AT+CIPSSLAUTH, AT+CIPSSLFP)
  *
  * TODO:
  * - Implement AT+CWLAP
  * - Implement AT+CIPSTA=, AT+CIPSTA_DEF, persistent data
- * - TLS Security - fingerprint, ad hoc certificate, list of certificates in FS
- * 		AT+CIPSSLAUTH
+ * - TLS Security - root CA certificate, list of certificates in FS
+ * 		AT+CIPSSLAUTH, AT+CIPSSLFP, AT+CIPSSLCERT
  * - Implement AT+CIPDNS_CUR, AT+CIPDNS_DEF
  * - Implement AT+CIPRECVMODE, AT+CIPRECVLEN, AT+CIPRECVDATA
  * - Implement AT+CIPSNTPCFG, AT+CIPSNTPTIME
@@ -56,7 +57,7 @@ extern "C" {
  * Defines
  */
 
-const char APP_VERSION[] = "0.1.0";
+const char APP_VERSION[] = "0.1.1";
 
 /*
  * Constants
@@ -85,6 +86,9 @@ client_t clients[5] = { { nullptr, TYPE_NONE, 0 },
 uint8_t sendBuffer[2048];
 uint16_t dataRead = 0;  // Number of bytes read from the input to a send buffer
 
+uint8_t fingerprint[20];  // SHA-1 certificate fingerprint for TLS connections
+bool fingerprintValid;
+
 /*
  *  Global settings
  */
@@ -95,6 +99,7 @@ uint8_t gsCwDhcp = 3;  // command AT+CWDHCP
 bool gsFlag_Connecting = false;  // Connecting in progress (CWJAP) - other commands ignored
 int8_t gsLinkIdReading = -1;  // Link id where the data is read
 bool gsWasConnected = false;  // Connection flag for AT+CIPSTATUS
+uint8_t gsCipSslAuth = 0;  // command AT+CIPSSLAUTH: 0 = none, 1 = fingerprint, 2 = certificate chain
 
 /*
  *  The setup function is called once at startup of the sketch
@@ -110,7 +115,10 @@ void setup()
 	SerialConfig config = Settings::getUartConfig();
 	Serial.begin(baudrate, config);
 
+	// Initialization of variables
 	inputBufferCnt = 0;
+	memset(fingerprint, 0, sizeof(fingerprint));
+	fingerprintValid = false;
 
     // Register event handlers.
     // Call "onStationConnected" each time a station connects
@@ -120,6 +128,7 @@ void setup()
     // Call "onStationDisconnected" each time a station disconnects
 	onDisconnectedHandler = WiFi.onStationModeDisconnected(&onStationDisconnected);
 
+	// Set the WiFi defaults
 	WiFi.mode(WIFI_STA);
 	WiFi.persistent(false);
 	WiFi.setAutoReconnect(false);
