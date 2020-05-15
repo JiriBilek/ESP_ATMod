@@ -20,11 +20,11 @@ My testing environment uses the built-in [Arduino WifiEsp library](https://githu
 First you have to install Arduino IDE and the core for the ESP8266 chip (see [https://github.com/esp8266/Arduino](https://github.com/esp8266/Arduino)).
 Next get all source files from this repository, place them in a folder named **ESP_ATMod** and compile and upload to your ESP module.
 
-After flashing, the application will open serial connection on RX and TX pins with 115200 Bd, 8 bits, no parity. You can talk with the module using a serial terminal of your choice.
+After flashing, the module will open serial connection on RX and TX pins with 115200 Bd, 8 bits, no parity. You can talk with the module using a serial terminal of your choice.
 
 ## Description
 
-The firmware does not implement the whole set of AT commands defined in Espressif's documentation.
+The firmware does not (and likely will not) implement the whole set of AT commands defined in Espressif's documentation.
 
 The major differences are:
 
@@ -38,7 +38,7 @@ The major differences are:
 
 5. In multiplex mode (AT+CWMODE=1), 5 simultaneous connections are available. Due to memory constraints, there can be only one TLS (SSL) connection at a time.
 
-6. Implemented simple TLS security: certificate fingerprint checking. I hope more will come soon. 
+6. Implemented TLS security: certificate fingerprint checking or certificate chain verification (only one CA certificate can be used).
 
 ## AT Command List
 
@@ -76,6 +76,7 @@ In the following table, the list of supported AT commands is given. In the comme
 | | |
 | AT+CIPSSLAUTH | Set and query the TLS authentication mode - see below |
 | AT+CIPSSLFP | Load or print the TLS server certificate fingerprint - see below |
+| AT+CIPSSLCERT | Load, query or delete TLS CA certificate - see below |
 
 ## New and Changed Commands
 
@@ -139,8 +140,12 @@ The allowed values of &lt;mode&gt; are:
 | - | - |
 | 0 | No authentication. Default. Insecure |
 | 1 | Server certificate fingerprint checking |
+| 2 | Certificate chain checking |
 
 Switching to mode 1 succeeds only when the certificate SHA-1 fingerprint is preloaded (see AT+CIPSSLFP).
+
+Switching to mode 2 succeeds only when the CA certificate preloaded (see AT+CIPSSLCERT).
+
 
 ### **AT+CIPSSLFP - Load or Print TLS Server Certificate SHA-1 Fingerprint**
 
@@ -173,3 +178,55 @@ OK
 ```
 
 The fingerprint consists of exactly 20 bytes. They are set as hex values and may be divided with ':'.
+
+### **AT+CIPSSLCERT - Load, Query or Delete TLS CA Certificate**
+
+Load, query or delete CA certificate for TLS certificate chain verification. ONly one certificate at a time can be loaded. The certificate must be in PEM structure.
+
+**Syntax:**
+
+Query:
+
+```
+AT+CIPSSLCERT?
++CIPSSLCERT:no cert
+
+OK
+```
+
+```
+AT+CIPSSLCERT?
++CIPSSLCERT:DST Root CA X3
+
+OK
+```
+
+Set:
+
+```
+AT+CIPSSLCERT
+
+OK
+>
+```
+
+You can now send the certificate (PEM encoding), no echo is given. After the last line (`-----END CERTIFICATE-----`), the certificate is parsed and loaded. The application responds with
+
+```
+Read 1216 bytes
+
+OK
+```
+or with an error message. In case of a successful loading, the certificate is ready to use and you can turn the certificate checking on (`AT+CIPSSLAUTH=2`). 
+
+The limit for the PEM certificate is 4096 characters total.
+
+Delete:
+
+```
+AT+CIPSSLCERT=DELETE
++CIPSSLCERT:deleted
+
+OK
+```
+The certificate is deleted from the memory. 
