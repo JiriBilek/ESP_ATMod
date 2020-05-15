@@ -26,6 +26,7 @@
 #include "ESP_ATMod.h"
 #include "command.h"
 #include "settings.h"
+#include "asnDecode.h"
 #include "debug.h"
 
 /*
@@ -76,8 +77,8 @@ static const commandDef_t commandList[] = {
 		{ "+CIPSTA", MODE_QUERY_SET, CMD_AT_CIPSTA },
 		{ "+CIPSSLSIZE", MODE_QUERY_SET, CMD_AT_CIPSSLSIZE },
 		{ "+CIPSSLAUTH", MODE_QUERY_SET, CMD_AT_CIPSSLAUTH },
-		{ "+CIPSSLFP", MODE_QUERY_SET, CMD_AT_CIPSSLFP }
-
+		{ "+CIPSSLFP", MODE_QUERY_SET, CMD_AT_CIPSSLFP },
+		{ "+CIPSSLCERT", MODE_NO_CHECKING, CMD_AT_CIPSSLCERT }
 };
 
 /*
@@ -117,6 +118,7 @@ static void cmd_AT_RESTORE();
 static void cmd_AT_CIPSSLSIZE();
 static void cmd_AT_CIPSSLAUTH();
 static void cmd_AT_CIPSSLFP();
+static void cmd_AT_CIPSSLCERT();
 
 /*
  * Processes the command buffer
@@ -227,6 +229,10 @@ void processCommandBuffer(void)
 	// ------------------------------------------------------------------------------------ AT+CIPSSLFP
 	else if (cmd == CMD_AT_CIPSSLFP)  // AT+CIPSSLFP - Shows or stores certificate fingerprint
 		cmd_AT_CIPSSLFP();
+
+	// ------------------------------------------------------------------------------------ AT+CIPSSLFP
+	else if (cmd == CMD_AT_CIPSSLCERT)  // AT+CIPSSLCERT - Load CA certificate in PEM format
+		cmd_AT_CIPSSLCERT();
 
 	else
 	{
@@ -942,7 +948,11 @@ void cmd_AT_CIPSTART()
 				{
 					((BearSSL::WiFiClientSecure*)cli)->setFingerprint(fingerprint);
 				}
-				else  // TODO: certificate chain verification
+				else if (gsCipSslAuth == 2 && CAcert != nullptr) // certificate chain verification
+				{
+					((BearSSL::WiFiClientSecure*)cli)->setTrustAnchors(CAcert);
+				}
+				else
 				{
 					delete cli;
 					break;  // error
@@ -953,7 +963,7 @@ void cmd_AT_CIPSTART()
 			if (cli == nullptr)
 				break;
 
-			// Test if the remode host exists
+			// Test if the remote host exists
 		    IPAddress remoteIP;
 		    uint16_t _timeout = 5000;
 		    if (!WiFi.hostByName(remoteAddr, remoteIP, _timeout))
@@ -1333,9 +1343,12 @@ void cmd_AT_CIPSSLSIZE()
  */
 void cmd_AT_CIPSSLAUTH()
 {
+	bool error = true;
+
 	if (inputBuffer[13] == '?' && inputBufferCnt == 16)
 	{
-		Serial.printf_P(PSTR("+CIPSSLAUTH:%d\r\n\r\nOK\r\n"), gsCipSslAuth);
+		Serial.printf_P(PSTR("+CIPSSLAUTH:%d\r\n"), gsCipSslAuth);
+		error = false;
 	}
 	else if (inputBuffer[13] == '=')
 	{
@@ -1346,20 +1359,24 @@ void cmd_AT_CIPSSLAUTH()
 		{
 			if (sslAuth == 1 && !fingerprintValid)
 			{
-				Serial.println(F("not valid"));
-				Serial.printf_P(MSG_ERROR);
+				Serial.println(F("fp not valid"));
+			}
+			else if (sslAuth == 2 && CAcert == nullptr)
+			{
+				Serial.println(F("CA cert not loaded"));
 			}
 			else
 			{
 				gsCipSslAuth = sslAuth;
 
-				Serial.printf_P(MSG_OK);
+				error = false;
 			}
 		}
-		else
-		{
-			Serial.printf_P(MSG_ERROR);
-		}
+	}
+
+	if (! error)
+	{
+		Serial.printf_P(MSG_OK);
 	}
 	else
 	{
@@ -1430,6 +1447,88 @@ void cmd_AT_CIPSSLFP()
 	{
 		Serial.printf_P(MSG_ERROR);
 	}
+}
+
+/*
+ * AT+CIPSSLCERT - Load CA certificate in PEM format
+ */
+void cmd_AT_CIPSSLCERT()
+{
+	if (inputBufferCnt == 15)
+	{
+		PemCertificate = new char[MAX_PEM_CERT_LENGTH];
+		PemCertificatePos = 0;
+		PemCertificateCount = 0;
+
+		if (PemCertificate != nullptr)
+		{
+			gsCertLoading = true;
+
+			Serial.printf_P(MSG_OK);
+			Serial.print('>');
+		}
+		else  // OOM
+		{
+			Serial.printf_P(MSG_ERROR);
+		}
+	}
+	else if (inputBuffer[13] == '?' && inputBufferCnt == 16)
+	{
+		if (CAcert == nullptr)
+		{
+			Serial.println(F("+CIPSSLCERT:no cert"));
+		}
+		else
+		{
+			Serial.print(F("+CIPSSLCERT:"));
+
+			const br_x509_certificate *cert = &(CAcert->getX509Certs()[0]);
+
+			uint8_t *cnBytes = getCnFromDer(cert->data, cert->data_len);
+
+			if (cnBytes != nullptr)
+			{
+				char *cn = new char[cnBytes[0] + 1];
+
+				if (cn != nullptr)
+				{
+					memcpy(cn, &(cnBytes[1]), cnBytes[0]);
+					cn[cnBytes[0]] = '\0';
+
+					Serial.println(cn);
+
+					delete cn;
+				}
+				else
+				{
+					Serial.println(F("cert ok"));
+				}
+			}
+			else
+			{
+				Serial.println(F("cert ok"));
+			}
+		}
+
+		Serial.printf_P(MSG_OK);
+	}
+	else if (!memcmp_P(&(inputBuffer[13]), PSTR("=DELETE"), 7) && inputBufferCnt == 22)
+	{
+		if (CAcert == nullptr)
+		{
+			Serial.println(F("+CIPSSLCERT:no cert"));
+		}
+		else
+		{
+			delete CAcert;
+			CAcert = nullptr;
+
+			Serial.print(F("+CIPSSLCERT:deleted"));
+		}
+
+		Serial.printf_P(MSG_OK);
+	}
+
 }
 
 /*********************************************************************************************

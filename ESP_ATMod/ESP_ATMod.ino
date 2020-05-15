@@ -26,12 +26,12 @@
  *
  * 0.1.0: First version for testing
  * 0.1.1: TLS fingerprint authentication (AT+CIPSSLAUTH, AT+CIPSSLFP)
+ * 0.1.2: TLS CA certificate checking (AT+CIPSSLCERT)
  *
  * TODO:
  * - Implement AT+CWLAP
  * - Implement AT+CIPSTA=, AT+CIPSTA_DEF, persistent data
- * - TLS Security - root CA certificate, list of certificates in FS
- * 		AT+CIPSSLAUTH, AT+CIPSSLFP, AT+CIPSSLCERT
+ * - TLS Security - list of certificates in FS
  * - Implement AT+CIPDNS_CUR, AT+CIPDNS_DEF
  * - Implement AT+CIPRECVMODE, AT+CIPRECVLEN, AT+CIPRECVDATA
  * - Implement AT+CIPSNTPCFG, AT+CIPSNTPTIME
@@ -57,7 +57,7 @@ extern "C" {
  * Defines
  */
 
-const char APP_VERSION[] = "0.1.1";
+const char APP_VERSION[] = "0.1.2";
 
 /*
  * Constants
@@ -65,6 +65,8 @@ const char APP_VERSION[] = "0.1.1";
 
 const char MSG_OK[] PROGMEM = "\r\nOK\r\n";
 const char MSG_ERROR[] PROGMEM = "\r\nERROR\r\n";
+
+const uint16_t MAX_PEM_CERT_LENGTH = 4096;  // Maximum size of a certificate loaded by AT+CIPSSLCERT
 
 /*
  * Global variables
@@ -86,8 +88,15 @@ client_t clients[5] = { { nullptr, TYPE_NONE, 0 },
 uint8_t sendBuffer[2048];
 uint16_t dataRead = 0;  // Number of bytes read from the input to a send buffer
 
+// TLS specific variables
+
 uint8_t fingerprint[20];  // SHA-1 certificate fingerprint for TLS connections
 bool fingerprintValid;
+BearSSL::X509List *CAcert = nullptr;  // CA certificate for TLS validation
+
+char *PemCertificate = nullptr;  // Buffer for loading a certificate
+uint16_t PemCertificatePos;  // Position in buffer while loading
+uint16_t PemCertificateCount;  // Number of chars read
 
 /*
  *  Global settings
@@ -98,6 +107,7 @@ uint8_t gsCipdInfo = 0;  // command AT+CIPDINFO
 uint8_t gsCwDhcp = 3;  // command AT+CWDHCP
 bool gsFlag_Connecting = false;  // Connecting in progress (CWJAP) - other commands ignored
 int8_t gsLinkIdReading = -1;  // Link id where the data is read
+bool gsCertLoading = false;  // AT+CIPSSLCERT in progress
 bool gsWasConnected = false;  // Connection flag for AT+CIPSTATUS
 uint8_t gsCipSslAuth = 0;  // command AT+CIPSSLAUTH: 0 = none, 1 = fingerprint, 2 = certificate chain
 
@@ -275,17 +285,89 @@ void loop()
 				dataRead = 0;
 			}
 		}
+		else if (gsCertLoading)
+		{
+			++PemCertificateCount;
+
+			// base 64 characters and hyphen for header and footer
+			if (isAlphaNumeric(c) || strchr("/+= -\r\n", c) != nullptr)
+			{
+				// Check newlines - the header and footer must be separated by at least one '\n' from the base64 certificate data
+				if (c == '\r')
+					c = '\n';
+
+				// Ignore multiple newlines, save space in the buffer
+				if (c != '\n' || (PemCertificatePos > 0 && PemCertificate[PemCertificatePos - 1] != '\n'))
+				{
+					PemCertificate[PemCertificatePos++] = c;
+
+					// Check the end
+					if (c == '-' && PemCertificatePos > 100)
+					{
+						if (! memcmp_P(PemCertificate + PemCertificatePos - 25, PSTR("-----END CERTIFICATE-----"), 25))
+						{
+							Serial.printf_P(PSTR("\r\nRead %d bytes\r\n"), PemCertificateCount);
+
+							// Process the certificate
+
+							PemCertificate[PemCertificatePos] = '\0';
+							// Serial.print(PemCertificate);
+
+							BearSSL::X509List *certList = new BearSSL::X509List(PemCertificate);
+
+							delete PemCertificate;
+							PemCertificate = nullptr;
+							PemCertificatePos = 0;
+
+							gsCertLoading = false;
+
+							if (certList->getCount() == 1)
+							{
+								if (CAcert != nullptr)
+									delete CAcert;
+
+								CAcert = certList;
+
+								Serial.printf_P(MSG_OK);
+							}
+							else
+							{
+								Serial.println(F("no certificate"));
+								Serial.printf_P(MSG_ERROR);
+							}
+						}
+					}
+					if (PemCertificatePos > MAX_PEM_CERT_LENGTH - 1)
+					{
+						gsCertLoading = false;
+						Serial.printf_P(MSG_ERROR);  // Invalid data
+					}
+				}
+			}
+			else if (c < ' ')
+			{}
+			else  // illegal character in certificate
+			{
+				gsCertLoading = false;
+				Serial.printf_P(MSG_ERROR);  // Invalid data
+			}
+		}
 		else if (inputBufferCnt < INPUT_BUFFER_LEN)
 		{
-			inputBuffer[inputBufferCnt++] = c;
-
 			if (gsEchoEnabled)
 				Serial.write(c);
 
-			if (c == '\n')  // LF (0x0a)
+			if (inputBufferCnt == 0 && c != 'A')  // Wait for 'A' as the start of the command
+			{}
+			else
 			{
-				lineCompleted = true;
-				break;
+				inputBuffer[inputBufferCnt++] = c;
+
+				if (c == '\n')  // LF (0x0a)
+				{
+					lineCompleted = true;
+					break;
+				}
 			}
 		}
 		else
