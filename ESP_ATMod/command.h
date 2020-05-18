@@ -49,6 +49,9 @@ enum commands_t {
 	CMD_AT_CIPSSLAUTH,  // New command
 	CMD_AT_CIPSSLFP,  // New command
 	CMD_AT_CIPSSLCERT,  // New command
+	CMD_AT_CIPRECVMODE,  // v 1.7
+	CMD_AT_CIPRECVLEN,  // v 1.7
+	CMD_AT_CIPRECVDATA,  // v 1.7
 	CMD_AT_CWJAP,
 	CMD_AT_CWJAP_CUR,
 	CMD_AT_CWJAP_DEF,

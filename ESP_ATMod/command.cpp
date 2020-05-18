@@ -78,7 +78,10 @@ static const commandDef_t commandList[] = {
 		{ "+CIPSSLSIZE", MODE_QUERY_SET, CMD_AT_CIPSSLSIZE },
 		{ "+CIPSSLAUTH", MODE_QUERY_SET, CMD_AT_CIPSSLAUTH },
 		{ "+CIPSSLFP", MODE_QUERY_SET, CMD_AT_CIPSSLFP },
-		{ "+CIPSSLCERT", MODE_NO_CHECKING, CMD_AT_CIPSSLCERT }
+		{ "+CIPSSLCERT", MODE_NO_CHECKING, CMD_AT_CIPSSLCERT },
+		{ "+CIPRECVMODE", MODE_QUERY_SET, CMD_AT_CIPRECVMODE },
+		{ "+CIPRECVLEN", MODE_QUERY_SET, CMD_AT_CIPRECVLEN },
+		{ "+CIPRECVDATA", MODE_QUERY_SET, CMD_AT_CIPRECVDATA }
 };
 
 /*
@@ -119,6 +122,9 @@ static void cmd_AT_CIPSSLSIZE();
 static void cmd_AT_CIPSSLAUTH();
 static void cmd_AT_CIPSSLFP();
 static void cmd_AT_CIPSSLCERT();
+static void cmd_AT_CIPRECVMODE();
+static void cmd_AT_CIPRECVLEN();
+static void cmd_AT_CIPRECVDATA();
 
 /*
  * Processes the command buffer
@@ -230,9 +236,21 @@ void processCommandBuffer(void)
 	else if (cmd == CMD_AT_CIPSSLFP)  // AT+CIPSSLFP - Shows or stores certificate fingerprint
 		cmd_AT_CIPSSLFP();
 
-	// ------------------------------------------------------------------------------------ AT+CIPSSLFP
+	// ------------------------------------------------------------------------------------ AT+CIPSSLCERT
 	else if (cmd == CMD_AT_CIPSSLCERT)  // AT+CIPSSLCERT - Load CA certificate in PEM format
 		cmd_AT_CIPSSLCERT();
+
+	// ------------------------------------------------------------------------------------ AT+CIPRECVMODE
+	else if (cmd == CMD_AT_CIPRECVMODE)  // AT+CIPRECVMODE - Set TCP Receive Mode
+		cmd_AT_CIPRECVMODE();
+
+	// ------------------------------------------------------------------------------------ AT+CIPRECVLEN
+	else if (cmd == CMD_AT_CIPRECVLEN)  // AT+CIPRECVLEN - Get TCP Data Length in Passive Receive Mode
+		cmd_AT_CIPRECVLEN();
+
+	// ------------------------------------------------------------------------------------ AT+CIPRECVDATA
+	else if (cmd == CMD_AT_CIPRECVDATA)  // AT+CIPRECVDATA - Get TCP Data in Passive Receive Mode
+		cmd_AT_CIPRECVDATA();
 
 	else
 	{
@@ -277,7 +295,7 @@ void cmd_ATE()
  */
 void cmd_AT_GMR()
 {
-	Serial.println(F("AT version:1.6.0.0 (partial)"));
+	Serial.println(F("AT version:1.7.0.0 (partial)"));
 	Serial.printf_P(PSTR("SDK version:%s\r\n"), system_get_sdk_version());
 	Serial.printf_P(PSTR("Compile time:%s %s\r\n"), __DATE__, __TIME__);
 	Serial.printf_P(PSTR("Version ESP_ATMod:%s\r\n"), APP_VERSION);
@@ -993,6 +1011,7 @@ void cmd_AT_CIPSTART()
 
 			clients[linkID].client = cli;
 			clients[linkID].type = type;
+			clients[linkID].lastAvailableBytes = 0;
 
 			gsWasConnected = true;  // Flag for CIPSTATUS command
 
@@ -1047,7 +1066,7 @@ void cmd_AT_CIPSEND()
 		{
 			if (gsCipMux == 0)
 			{
-				Serial.println("MUX=0\r\n\r\n");
+				Serial.println("MUX=0");
 				break;
 			}
 
@@ -1063,7 +1082,7 @@ void cmd_AT_CIPSEND()
 		// Test the link
 		if (cli->client == nullptr || !cli->client->connected())
 		{
-			Serial.println(F("link is not valid\r\n"));
+			Serial.println(F("link is not valid"));
 			break;
 		}
 
@@ -1072,7 +1091,7 @@ void cmd_AT_CIPSEND()
 
 		if (size > 2048)
 		{
-			Serial.println(F("too long\r\n"));
+			Serial.println(F("too long"));
 			break;
 		}
 
@@ -1529,6 +1548,143 @@ void cmd_AT_CIPSSLCERT()
 		Serial.printf_P(MSG_OK);
 	}
 
+}
+
+/*
+ * AT+CIPRECVMODE - Set TCP Receive Mode
+ */
+void cmd_AT_CIPRECVMODE()
+{
+	if (inputBuffer[14] == '?' && inputBufferCnt == 17)
+	{
+		Serial.printf_P(PSTR("+CIPRECVMODE:%d\r\n\r\nOK\r\n"), gsCipRecvMode);
+	}
+	else if (inputBuffer[14] == '=')
+	{
+		uint32_t recvMode;
+		uint16_t offset = 15;
+
+		if (readNumber(inputBuffer, offset, recvMode) && recvMode <= 1 && inputBufferCnt == offset + 2)
+		{
+			gsCipRecvMode = recvMode;
+			Serial.printf_P(MSG_OK);
+		}
+		else
+		{
+			Serial.printf_P(MSG_ERROR);
+		}
+	}
+	else
+	{
+		Serial.printf_P(MSG_ERROR);
+	}
+}
+
+/*
+ * AT+CIPRECVLEN - Get TCP Data Length in Passive Receive Mode
+ */
+void cmd_AT_CIPRECVLEN()
+{
+	if (inputBuffer[13] == '?' && inputBufferCnt == 16)
+	{
+		Serial.print(F("+CIPRECVLEN:"));
+
+		for (uint8_t i = 0; i <= 4; ++i)
+		{
+			int avail = 0;
+
+			if (i > 0)
+				Serial.print(',');
+
+			if (clients[i].client != nullptr)
+			{
+				avail = clients[i].client->available();
+			}
+
+			Serial.print(avail);
+		}
+
+		Serial.println();
+		Serial.printf_P(MSG_OK);
+	}
+}
+
+/*
+ * AT+CIPRECVDATA - Get TCP Data in Passive Receive Mode
+ */
+void cmd_AT_CIPRECVDATA()
+{
+	uint8_t error = 1;
+
+	do
+	{
+		uint8_t linkId = 0;
+		uint16_t offset;
+		uint32_t size = 0;
+
+		// Test the input
+
+		if (inputBuffer[14] != '=')
+			break;
+
+		// Read linkId
+		if (inputBuffer[15] >= '0' && inputBuffer[15] <= '5' && inputBuffer[16] == ',')
+		{
+			if (gsCipMux == 0)
+			{
+				Serial.println("MUX=0");
+				break;
+			}
+
+			linkId = inputBuffer[15] - '0';
+
+			offset = 17;
+		}
+		else
+			offset = 15;
+
+		client_t *cli = &(clients[linkId]);
+
+		// Test the link
+		if (cli->client == nullptr)
+		{
+			Serial.println(F("link is not valid"));
+			break;
+		}
+
+		if (!readNumber(inputBuffer, offset, size) || offset + 2 != inputBufferCnt)
+			break;
+
+		if (size > 2048)
+		{
+			Serial.println(F("too long"));
+			break;
+		}
+
+		AT_DEBUG_PRINTF("--- linkId: %d, size: %d\r\n", linkId, size);
+
+		// Send the data
+
+		int bytes = SendData(linkId, size);
+
+		if (bytes > 0)
+		{
+			cli->lastAvailableBytes -= bytes;
+			error = 0;
+
+			// Check if the recv mode changed to 0. If so, then close the client.
+			if (gsCipRecvMode == 0)
+			{
+				DeleteClient(linkId);
+			}
+		}
+
+	} while (0);
+
+	if (error > 0)
+		Serial.printf_P(MSG_ERROR);
+	else
+		Serial.printf_P(MSG_OK);
 }
 
 /*********************************************************************************************

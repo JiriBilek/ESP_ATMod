@@ -27,13 +27,13 @@
  * 0.1.0: First version for testing
  * 0.1.1: TLS fingerprint authentication (AT+CIPSSLAUTH, AT+CIPSSLFP)
  * 0.1.2: TLS CA certificate checking (AT+CIPSSLCERT)
+ * 0.2.0: AT Version 1.7 - AT+CIPRECVMODE, AT+CIPRECVLEN, AT+CIPRECVDATA
  *
  * TODO:
  * - Implement AT+CWLAP
  * - Implement AT+CIPSTA=, AT+CIPSTA_DEF, persistent data
  * - TLS Security - list of certificates in FS
  * - Implement AT+CIPDNS_CUR, AT+CIPDNS_DEF
- * - Implement AT+CIPRECVMODE, AT+CIPRECVLEN, AT+CIPRECVDATA
  * - Implement AT+CIPSNTPCFG, AT+CIPSNTPTIME
  */
 
@@ -57,7 +57,7 @@ extern "C" {
  * Defines
  */
 
-const char APP_VERSION[] = "0.1.2";
+const char APP_VERSION[] = "0.2.0";
 
 /*
  * Constants
@@ -79,11 +79,11 @@ WiFiEventHandler onConnectedHandler;
 WiFiEventHandler onGotIPHandler;
 WiFiEventHandler onDisconnectedHandler;
 
-client_t clients[5] = { { nullptr, TYPE_NONE, 0 },
-						{ nullptr, TYPE_NONE, 0 },
-						{ nullptr, TYPE_NONE, 0 },
-						{ nullptr, TYPE_NONE, 0 },
-						{ nullptr, TYPE_NONE, 0 } };
+client_t clients[5] = { { nullptr, TYPE_NONE, 0, 0 },
+						{ nullptr, TYPE_NONE, 0, 0 },
+						{ nullptr, TYPE_NONE, 0, 0 },
+						{ nullptr, TYPE_NONE, 0, 0 },
+						{ nullptr, TYPE_NONE, 0, 0 } };
 
 uint8_t sendBuffer[2048];
 uint16_t dataRead = 0;  // Number of bytes read from the input to a send buffer
@@ -110,6 +110,7 @@ int8_t gsLinkIdReading = -1;  // Link id where the data is read
 bool gsCertLoading = false;  // AT+CIPSSLCERT in progress
 bool gsWasConnected = false;  // Connection flag for AT+CIPSTATUS
 uint8_t gsCipSslAuth = 0;  // command AT+CIPSSLAUTH: 0 = none, 1 = fingerprint, 2 = certificate chain
+uint8_t gsCipRecvMode = 0;  // command AT+CIPRECVMODE
 
 /*
  *  The setup function is called once at startup of the sketch
@@ -167,76 +168,31 @@ void loop()
 
 			if (cli != nullptr)
 			{
-				if (cli->available())
+				int avail = cli->available();
+
+				if (avail > clients[i].lastAvailableBytes)  // For RECVMODE it is every non zero avail
 				{
-					int avail = cli->available();
-
-					uint8_t *buf = new uint8_t[avail];
-
-					if (buf != nullptr)
+					if (gsCipRecvMode == 0)
 					{
-						Serial.print(F("\r\n+IPD"));
+						SendData(i, 0);
+					}
+					else  // CIPRECVMODE = 1
+					{
+						clients[i].lastAvailableBytes = avail;
+
+						Serial.print(F("\r\n+IPD,"));
 
 						if (gsCipMux == 1)
-							Serial.printf_P(PSTR(",%d"), i);
-
-						Serial.printf_P(PSTR(",%d"), avail);
-
-						if (gsCipdInfo == 1)
 						{
-							IPAddress ip = cli->remoteIP();
-
-							Serial.printf_P(PSTR(",%s,%d"), ip.toString().c_str(), cli->remotePort());
+							Serial.print(i);
+							Serial.print(',');
 						}
 
-						Serial.print(':');
-
-						int bytes = cli->readBytes(buf, avail);
-						int bytesToSend = bytes;
-						uint8_t *bufPtr = buf;
-
-						while (bytesToSend > 0)
-						{
-							// Send data in chunks of 100 bytes to avoid wdt reset
-							int txBytes = bytesToSend;
-							if (bytesToSend > 100)
-								txBytes = 100;
-
-							// Wait for tx empty
-							esp8266::polledTimeout::oneShot waitForTxReadyTimeout(500);
-
-							while (!Serial.availableForWrite() && !waitForTxReadyTimeout)
-							{
-							}
-
-							// In case of a timeout stop the transmission with an error
-							if (waitForTxReadyTimeout)
-								break;
-
-							Serial.write(bufPtr, txBytes);
-
-							bufPtr += txBytes;
-							bytesToSend -= txBytes;
-
-							yield();
-						}
-
-						delete buf;
-
-						if (bytes < avail)
-							Serial.printf_P(MSG_ERROR);
-					}
-					else
-					{
-						// Out of memory
-						if (gsCipMux == 0)
-							Serial.printf_P(PSTR("\r\n+IPD,out of mem"));
-						else
-							Serial.printf_P(PSTR("\r\n+IPD,%d,out of mem"), i);
+						Serial.println(avail);
 					}
 				}
 
-				if (!cli->available() && !cli->connected())
+				if (cli->available() == 0 && !cli->connected())
 				{
 					if (gsCipMux == 1)
 						Serial.printf_P(PSTR("%d,"), i);
@@ -357,9 +313,9 @@ void loop()
 			if (gsEchoEnabled)
 				Serial.write(c);
 
-			if (inputBufferCnt == 0 && c != 'A')  // Wait for 'A' as the start of the command
+/*			if (inputBufferCnt == 0 && c != 'A')  // Wait for 'A' as the start of the command
 			{}
-			else
+			else*/  // FIXME
 			{
 				inputBuffer[inputBufferCnt++] = c;
 
@@ -433,18 +389,22 @@ void loop()
 	}
 
 	// Check for a new command while connecting
-	else if (lineCompleted && gsFlag_Connecting)
+	if (lineCompleted)
 	{
-		Serial.println(F("\r\nbusy p..."));
+		// Check for busy condition
+		if (gsFlag_Connecting)
+		{
+			Serial.println(F("\r\nbusy p..."));
 
-		// Discard the input buffer
-		inputBufferCnt = 0;
-	}
+			// Discard the input buffer
+			inputBufferCnt = 0;
+		}
 
-	// Check for a new command
-	else if (lineCompleted)
-	{
-		processCommandBuffer();
+		// Check for a new command
+		else
+		{
+			processCommandBuffer();
+		}
 	}
 }
 
@@ -486,4 +446,102 @@ void setDhcpMode()
 	{
 		wifi_station_dhcpc_stop();
 	}
+}
+
+/*
+ * Send data in a +IPD message (for AT+CIPRECVMODE=0) or +CIPRECVDATA (for AT+CIPRECVMODE=1)
+ * Returns number of bytes sent or 0 (error)
+ */
+int SendData(int clientIndex, int maxSize)
+{
+	const char *respText[2] = { "+IPD", "+CIPRECVMODE" };
+
+	WiFiClient *cli = clients[clientIndex].client;
+	int bytes;
+
+	if (cli == nullptr)
+		return 0;
+
+	int avail = cli->available();
+
+	if (avail == 0)
+		return 0;
+
+	if (maxSize > 0 && maxSize < avail)
+		avail = maxSize;
+
+	uint8_t *buf = new uint8_t[avail];
+
+	if (buf != nullptr)
+	{
+		Serial.println();
+		Serial.print(respText[gsCipRecvMode]);
+
+		/* FIXME: Weird behaviour of the original firmware when CIPRECVMODE=1:
+		 * It responds +CIPRECVDATA,<size> regardless of CIPMUX setting. It doesn't
+		 * return the link id.
+		 */
+		if (gsCipMux == 1 && gsCipRecvMode == 0)
+		{
+			Serial.printf_P(PSTR(",%d"), clientIndex);
+		}
+
+		Serial.printf_P(PSTR(",%d"), avail);
+
+		if (gsCipdInfo == 1 && gsCipRecvMode == 0)  // No CIPDINFO for CIPRECVDATA
+		{
+			IPAddress ip = cli->remoteIP();
+
+			Serial.printf_P(PSTR(",%s,%d"), ip.toString().c_str(), cli->remotePort());
+		}
+
+		Serial.print(':');
+
+		bytes = cli->readBytes(buf, avail);
+		int bytesToSend = bytes;
+		uint8_t *bufPtr = buf;
+
+		while (bytesToSend > 0)
+		{
+			// Send data in chunks of 100 bytes to avoid wdt reset
+			int txBytes = bytesToSend;
+			if (bytesToSend > 100)
+				txBytes = 100;
+
+			// Wait for tx empty
+			esp8266::polledTimeout::oneShot waitForTxReadyTimeout(500);
+
+			while (!Serial.availableForWrite() && !waitForTxReadyTimeout)
+			{
+			}
+
+			// In case of a timeout stop the transmission with an error
+			if (waitForTxReadyTimeout)
+				break;
+
+			Serial.write(bufPtr, txBytes);
+
+			bufPtr += txBytes;
+			bytesToSend -= txBytes;
+
+			yield();
+		}
+
+		delete buf;
+
+		if (bytes < avail)
+			Serial.printf_P(MSG_ERROR);
+	}
+	else
+	{
+		// Out of memory
+		if (gsCipMux == 0 || gsCipRecvMode == 1)
+			Serial.printf_P(PSTR("\r\n%s,out of mem"), respText[gsCipRecvMode]);
+		else
+			Serial.printf_P(PSTR("\r\n%s,%d,out of mem"), respText[gsCipRecvMode], clientIndex);
+
+		return 0;
+	}
+
+	return bytes;
 }

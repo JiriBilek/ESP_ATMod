@@ -36,6 +36,7 @@ typedef struct
 	WiFiClient *client;
 	clientTypes_t type;
 	uint16_t sendLength;
+	uint16_t lastAvailableBytes;
 } client_t;
 
 /*
@@ -71,16 +72,20 @@ extern int8_t gsLinkIdReading;  // Link id for which are the data read
 extern bool gsCertLoading;  // AT+CIPSSLCERT in progress
 extern bool gsWasConnected;  // Connection flag for AT+CIPSTATUS
 extern uint8_t gsCipSslAuth;  // command AT+CIPSSLAUTH: 0 = none, 1 = fingerprint, 2 = certificate chain
+extern uint8_t gsCipRecvMode;  // command AT+CIPRECVMODE
 
 extern const char APP_VERSION[];
 extern const char MSG_OK[] PROGMEM;
 extern const char MSG_ERROR[] PROGMEM;
 extern const uint16_t MAX_PEM_CERT_LENGTH;
+
 /*
  * Public functions
  */
 
 void DeleteClient(uint8_t index);
 void setDhcpMode();
+int SendData(int clientIndex, int maxSize);
+
 
 #endif /* ESP_ATMOD_H_ */
