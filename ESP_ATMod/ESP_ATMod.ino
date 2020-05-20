@@ -28,6 +28,7 @@
  * 0.1.1: TLS fingerprint authentication (AT+CIPSSLAUTH, AT+CIPSSLFP)
  * 0.1.2: TLS CA certificate checking (AT+CIPSSLCERT)
  * 0.2.0: AT Version 1.7 - AT+CIPRECVMODE, AT+CIPRECVLEN, AT+CIPRECVDATA
+ * 0.2.1: Fix the _CUR and _DEF command suffixes: no suffix is equivalent to _DEF
  *
  * TODO:
  * - Implement AT+CWLAP
@@ -57,7 +58,7 @@ extern "C" {
  * Defines
  */
 
-const char APP_VERSION[] = "0.2.0";
+const char APP_VERSION[] = "0.2.1";
 
 /*
  * Constants
@@ -454,7 +455,7 @@ void setDhcpMode()
  */
 int SendData(int clientIndex, int maxSize)
 {
-	const char *respText[2] = { "+IPD", "+CIPRECVMODE" };
+	const char *respText[2] = { "+IPD", "+CIPRECVDATA" };
 
 	WiFiClient *cli = clients[clientIndex].client;
 	int bytes;

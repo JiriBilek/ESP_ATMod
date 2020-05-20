@@ -479,17 +479,19 @@ void cmd_AT_CWDHCP(commands_t cmd)
 	{
 		Serial.print(F("+CWDHCP"));
 
-		if (cmd == CMD_AT_CWDHCP_DEF)
+		if (cmd == CMD_AT_CWDHCP_CUR)
 		{
-			Serial.printf_P(PSTR("_DEF:%d"), Settings::getDhcpMode());
+			Serial.print(F("_CUR:"));
+			Serial.println(gsCwDhcp);
 		}
 		else
 		{
-			if (cmd == CMD_AT_CWDHCP_CUR)
-				Serial.print(F("_CUR"));
-			Serial.print(':');
+			if (cmd == CMD_AT_CWDHCP_DEF)
+				Serial.print(F("_DEF:"));
+			else
+				Serial.print(':');
 
-			Serial.println(gsCwDhcp);
+			Serial.println(Settings::getDhcpMode());
 		}
 
 		Serial.printf_P(MSG_OK);
@@ -516,7 +518,7 @@ void cmd_AT_CWDHCP(commands_t cmd)
 
 					setDhcpMode();
 
-					if (cmd == CMD_AT_CWDHCP_DEF)
+					if (cmd != CMD_AT_CWDHCP_CUR)
 						Settings::setDhcpMode(gsCwDhcp);
 
 					Serial.printf_P(MSG_OK);
@@ -551,7 +553,7 @@ void cmd_AT_CWJAP(commands_t cmd)
 		{
 			struct station_config conf;
 
-			if (cmd == CMD_AT_CWJAP_DEF)
+			if (cmd != CMD_AT_CWJAP_CUR)
 		        wifi_station_get_config_default(&conf);
 			else
 			    wifi_station_get_config(&conf);
@@ -615,7 +617,7 @@ void cmd_AT_CWJAP(commands_t cmd)
 			if (inputBufferCnt != offset + 2)
 				break;
 
-			if (cmd == CMD_AT_CWJAP_DEF)
+			if (cmd != CMD_AT_CWJAP_CUR)
 				WiFi.persistent(true);
 
 			// If connected, disconnect first
@@ -1220,7 +1222,7 @@ void cmd_AT_UART(commands_t cmd)
 		uint32_t uartConfig;
 		uint32_t baudRate;
 
-		if (cmd == CMD_AT_UART_DEF)
+		if (cmd != CMD_AT_UART_CUR)
 		{
 			uartConfig = Settings::getUartConfig();
 			baudRate = Settings::getUartBaudRate();
@@ -1294,7 +1296,7 @@ void cmd_AT_UART(commands_t cmd)
 			Serial.begin(baudRate, uartConfig);
 			delay(250);  // To let the line settle
 
-			if (cmd == CMD_AT_UART_DEF)
+			if (cmd != CMD_AT_UART_CUR)
 			{
 				Settings::setUartBaudRate(baudRate);
 				Settings::setUartConfig(uartConfig);
