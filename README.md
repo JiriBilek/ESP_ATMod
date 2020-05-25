@@ -15,7 +15,7 @@ The firmware fits into 1024 KB flash and can be run even on ESP-01 module with 8
 ## Status
 
 The firmware is still in work-in-progress state. It has been tested and is running on my devices but there might be deviations from the expected behaviour.
-My testing environment uses the built-in [Arduino WifiEsp library](https://github.com/bportaluri/WiFiEsp).
+My testing environment uses the built-in [Arduino WifiEsp library](https://github.com/bportaluri/WiFiEsp) and also the newer [WiFiEspAT library](https://github.com/jandrassy/WiFiEspAT).
 
 ## Installation
 
