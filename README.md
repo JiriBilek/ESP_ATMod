@@ -2,6 +2,8 @@
 
 This firmware comes as an [Arduino esp8266](https://github.com/esp8266/Arduino) sketch.
 
+This file refers to version 0.2.2 of the firmware.
+
 ## Purpose
 
 The AT firmware provided by Espressif comes with basic TLS ciphersuites only. Especially, the lack of GCM-based ciphersuites makes the SSL part of the Espressif's firmware unusable on more and more web sites. This firmware addresses this issue.
@@ -30,15 +32,22 @@ The major differences are:
 
 1. Only the station mode (AT+CWMODE=1) is supported, no AP or mixed mode.
 
-2. Only DHCP mode is implemented for now.
+2. Only TCP mode (with or without TLS) is supported, no UDP.
 
-3. Only active transmission of received data is implemented (AT+CIPRECVMODE=0)
+3. In multiplex mode (AT+CWMODE=1), 5 simultaneous connections are available. Due to memory constraints, there can be **only one TLS (SSL) connection** at a time.
 
-4. Only TCP mode (with or without TLS) is supported, no UDP.
+New features:
 
-5. In multiplex mode (AT+CWMODE=1), 5 simultaneous connections are available. Due to memory constraints, there can be only one TLS (SSL) connection at a time.
+1. Implemented TLS security with state-of-the-art ciphersuites: certificate fingerprint checking or certificate chain verification (only one CA certificate can be used).
 
-6. Implemented TLS security: certificate fingerprint checking or certificate chain verification (only one CA certificate can be used).
+## The Future
+
+Next development will be focused on
+
+1. Enabling LittleFS and storing certificates there, the idea is to validate TLS connection against the list of common CA certificates stored locally. No CRL though.
+
+2. More complete AT command implementation.
+
 
 ## AT Command List
 
@@ -52,7 +61,7 @@ In the following table, the list of supported AT commands is given. In the comme
 | ATE | AT commands echoing |
 | AT+RESTORE | Restore initial settings |
 | AT+UART, AT+UART_CUR | Current UART configuration |
-| AT+UART_DEF | Default UART configuration |
+| AT+UART_DEF | Default UART configuration, stored in flash |
 | AT+SYSRAM | Print remaining RAM space |
 | AT+RFMODE | Set the physical wifi mode - see below |
 |  |  |
@@ -63,7 +72,10 @@ In the following table, the list of supported AT commands is given. In the comme
 | AT+CWDHCP, AT+CWDHCP_CUR | Enable/disable DHCP - only station mode enabling works |
 | AT+CWDHCP_DEF | Enable/disable DHCP saved to flash - only station mode enabling works |
 | AT+CWAUTOCONN | Enable/disable auto connecting to AP on start |
-| AT+CIPSTA_CUR | Print current IP address, gateway and network mask. Setting is not implemented |
+| AT+CIPSTA, AT+CIPSTA_CUR | Set and/or print current IP address, gateway and network mask |
+| AT+CIPSTA_DEF | Set and/or print current IP address, gateway and network mask, stored in flash |
+| AT+CIPDNS, AT+CIPDNS_CUR | Enable and disable static DNS, set and/or print the DNS server addresses |
+| AT+CIPDNS_DEF | Default DNS setting, stored in flash |
 | | |
 | AT+CIPSTATUS | Get the connection status |
 | AT+CIPSTART | Establish TCP or SSL (TLS) connection. Only one TLS connection at a time |
@@ -72,6 +84,9 @@ In the following table, the list of supported AT commands is given. In the comme
 | AT+CIPCLOSE | Close the TCP or SSL (TLS) connection |
 | AT+CIFSR | Get the local IP address |
 | AT+CIPMUX | Enable/disable multiple connections. Max. 5 conections, only one of them can be TLS |
+| AT+CIPRECVMODE | Set TCP or SSL Receive Mode |
+| AT+CIPRECVLEN | Get TCP or SSL Data Length in Passive Receive Mode |
+| AT+CIPRECVDATA | Get TCP or SSL Data in Passive Receive Mode |
 | +IPD | Receive network data |
 | | |
 | AT+CIPSSLAUTH | Set and query the TLS authentication mode - see below |
@@ -230,3 +245,13 @@ AT+CIPSSLCERT=DELETE
 OK
 ```
 The certificate is deleted from the memory. 
+
+### **AT+CIPRECVMODE, AT+CIPRECVLEN, AT+CIPRECVDATA in SSL mode**
+
+Commands 
+
+- AT+CIPRECVMODE (Set TCP or SSL Receive Mode), 
+- AT+CIPRECVLEN (Get TCP or SSL Data Length in Passive Receive Mode)
+- AT+CIPRECVDATA (Get TCP or SSL Data in Passive Receive Mode) 
+
+work in SSL mode in the same way as in TCP mode.
