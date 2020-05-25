@@ -24,6 +24,8 @@
 
 #include "Arduino.h"
 
+#include "ESP_ATMod.h"
+
 /*
  * Defines
  */
@@ -39,6 +41,8 @@ typedef struct
 	uint32_t uartBaudRate;
 	uint16_t uartConfig;
 	uint8_t dhcpMode;
+	ipConfig_t netConfig;
+	dnsConfig_t dnsConfig;
 
 	uint32_t crc32;
 } eepromData_t;
@@ -53,10 +57,14 @@ public:
 	static uint32_t getUartBaudRate();
 	static SerialConfig getUartConfig();
 	static uint8_t getDhcpMode();
+	static ipConfig_t getNetConfig();
+	static dnsConfig_t getDnsConfig();
 
 	static void setUartBaudRate(uint32_t baudRate);
 	static void setUartConfig(SerialConfig config);
 	static void setDhcpMode(uint8_t mode);
+	static void setNetConfig(ipConfig_t netCfg);
+	static void setDnsConfig(dnsConfig_t dnsCfg);
 
 	static void reset();
 
@@ -76,10 +84,14 @@ protected:
 		uint32_t getUartBaudRate() { return data.uartBaudRate; }
 		SerialConfig getUartConfig() { return (SerialConfig)(data.uartConfig); }
 		uint8_t getDhcpMode() { return data.dhcpMode; }
+		ipConfig_t getNetConfig() { return data.netConfig; }
+		dnsConfig_t getDnsConfig() { return data.dnsConfig; }
 
 		void setUartBaudRate(uint32_t baudRate) { data.uartBaudRate = baudRate; }
 		void setUartConfig(SerialConfig config) { data.uartConfig = config; }
 		void setDhcpMode(uint8_t mode) { data.dhcpMode = mode; }
+		void setNetConfig(ipConfig_t netCfg) { data.netConfig = netCfg; }
+		void setDnsConfig(dnsConfig_t dnsCfg) { data.dnsConfig = dnsCfg; }
 
 		eepromData_t *getDataPtr() { return &data; }
 	};

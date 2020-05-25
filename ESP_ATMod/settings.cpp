@@ -24,6 +24,7 @@
 
 #include <EEPROM.h>
 
+#include "ESP_ATMod.h"
 #include "settings.h"
 #include "debug.h"
 
@@ -77,6 +78,34 @@ uint8_t Settings::getDhcpMode()
 	return eeprom.getDhcpMode();
 }
 
+void Settings::setNetConfig(ipConfig_t netCfg)
+{
+	EEPROMData eeprom;
+
+	eeprom.setNetConfig(netCfg);
+}
+
+ipConfig_t Settings::getNetConfig()
+{
+	EEPROMData eeprom;
+
+	return eeprom.getNetConfig();
+}
+
+void Settings::setDnsConfig(dnsConfig_t dnsCfg)
+{
+	EEPROMData eeprom;
+
+	eeprom.setDnsConfig(dnsCfg);
+}
+
+dnsConfig_t Settings::getDnsConfig()
+{
+	EEPROMData eeprom;
+
+	return eeprom.getDnsConfig();
+}
+
 /*
  * Other functions
  */
@@ -93,6 +122,8 @@ void Settings::resetData(eepromData_t *dataPtr)
 	dataPtr->uartBaudRate = 115200;
 	dataPtr->uartConfig = SERIAL_8N1;
 	dataPtr->dhcpMode = 3;  // for AT+CWDHCP command
+	dataPtr->netConfig = ipConfig_t({0, 0, 0});
+	dataPtr->dnsConfig = dnsConfig_t({0, 0});
 }
 
 /*

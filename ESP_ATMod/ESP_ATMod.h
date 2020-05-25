@@ -20,6 +20,9 @@
 #ifndef ESP_ATMOD_H_
 #define ESP_ATMOD_H_
 
+
+#include <ESP8266WiFi.h>
+
 /*
  * Types
  */
@@ -38,6 +41,19 @@ typedef struct
 	uint16_t sendLength;
 	uint16_t lastAvailableBytes;
 } client_t;
+
+typedef struct
+{
+	uint32_t ip;
+	uint32_t gw;
+	uint32_t mask;
+} ipConfig_t;
+
+typedef struct
+{
+	uint32_t dns1;
+	uint32_t dns2;
+} dnsConfig_t;
 
 /*
  * Globals
@@ -73,6 +89,8 @@ extern bool gsCertLoading;  // AT+CIPSSLCERT in progress
 extern bool gsWasConnected;  // Connection flag for AT+CIPSTATUS
 extern uint8_t gsCipSslAuth;  // command AT+CIPSSLAUTH: 0 = none, 1 = fingerprint, 2 = certificate chain
 extern uint8_t gsCipRecvMode;  // command AT+CIPRECVMODE
+extern ipConfig_t gsCipStaCfg;  // command AT+CIPSTA_CUR
+extern dnsConfig_t gsCipDnsCfg;  // command AT+CIPDNS
 
 extern const char APP_VERSION[];
 extern const char MSG_OK[] PROGMEM;
@@ -85,6 +103,7 @@ extern const uint16_t MAX_PEM_CERT_LENGTH;
 
 void DeleteClient(uint8_t index);
 void setDhcpMode();
+void setDns();
 int SendData(int clientIndex, int maxSize);
 
 

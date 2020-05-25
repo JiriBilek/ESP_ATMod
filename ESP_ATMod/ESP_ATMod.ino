@@ -29,12 +29,11 @@
  * 0.1.2: TLS CA certificate checking (AT+CIPSSLCERT)
  * 0.2.0: AT Version 1.7 - AT+CIPRECVMODE, AT+CIPRECVLEN, AT+CIPRECVDATA
  * 0.2.1: Fix the _CUR and _DEF command suffixes: no suffix is equivalent to _DEF
+ * 0.2.2: Full commands AT+CWDHCP (for station mode), AT+CIPSTA and AT+CIPDNS
  *
  * TODO:
  * - Implement AT+CWLAP
- * - Implement AT+CIPSTA=, AT+CIPSTA_DEF, persistent data
- * - TLS Security - list of certificates in FS
- * - Implement AT+CIPDNS_CUR, AT+CIPDNS_DEF
+ * - TLS Security - list of certificates in FS, persistent fingerprint and single certificate, AT+CIPSSLAUTH_DEF
  * - Implement AT+CIPSNTPCFG, AT+CIPSNTPTIME
  */
 
@@ -46,6 +45,8 @@
 
 extern "C" {
 #include "user_interface.h"
+
+#include "lwip/dns.h"
 }
 
 #include "ESP_ATMod.h"
@@ -58,7 +59,7 @@ extern "C" {
  * Defines
  */
 
-const char APP_VERSION[] = "0.2.1";
+const char APP_VERSION[] = "0.2.2";
 
 /*
  * Constants
@@ -105,19 +106,28 @@ uint16_t PemCertificateCount;  // Number of chars read
 bool gsEchoEnabled = true;  // command ATE
 uint8_t gsCipMux = 0;  // command AT+CIPMUX
 uint8_t gsCipdInfo = 0;  // command AT+CIPDINFO
-uint8_t gsCwDhcp = 3;  // command AT+CWDHCP
+uint8_t gsCwDhcp = 3;  // command AT+CWDHCP_CUR
 bool gsFlag_Connecting = false;  // Connecting in progress (CWJAP) - other commands ignored
 int8_t gsLinkIdReading = -1;  // Link id where the data is read
 bool gsCertLoading = false;  // AT+CIPSSLCERT in progress
 bool gsWasConnected = false;  // Connection flag for AT+CIPSTATUS
 uint8_t gsCipSslAuth = 0;  // command AT+CIPSSLAUTH: 0 = none, 1 = fingerprint, 2 = certificate chain
 uint8_t gsCipRecvMode = 0;  // command AT+CIPRECVMODE
+ipConfig_t gsCipStaCfg = { 0, 0, 0 };  // command AT+CIPSTA
+dnsConfig_t gsCipDnsCfg = { 0, 0 };  // command AT+CIPDNS
 
 /*
  *  The setup function is called once at startup of the sketch
  */
 void setup()
 {
+	// Default static net configuration
+	gsCipStaCfg = Settings::getNetConfig();
+
+	// Default DNS configuration
+	gsCipDnsCfg = Settings::getDnsConfig();
+	setDns();
+
 	// Default DHCP configuration
 	gsCwDhcp = Settings::getDhcpMode();
 	setDhcpMode();
@@ -316,7 +326,7 @@ void loop()
 
 /*			if (inputBufferCnt == 0 && c != 'A')  // Wait for 'A' as the start of the command
 			{}
-			else*/  // FIXME
+			else*/  // FIXME: problematic, some libraries send garbage to check if the module is alive
 			{
 				inputBuffer[inputBufferCnt++] = c;
 
@@ -360,6 +370,10 @@ void loop()
 			// Set up time to allow for certificate validation
 			if (time(nullptr) < 8 * 3600 * 2)
 				configTime(3 * 3600, 0, "pool.ntp.org", "time.nist.gov");
+
+			// Redefine dns to the static ones
+			if (gsCipDnsCfg.dns1 != 0)
+				setDns();
 
 			break;
 
@@ -436,6 +450,7 @@ void DeleteClient(uint8_t index)
 
 /*
  * Set DHCP Mode
+ * On stopping client DHCP, sets the network configuration
  */
 void setDhcpMode()
 {
@@ -445,7 +460,39 @@ void setDhcpMode()
 	}
 	else
 	{
-		wifi_station_dhcpc_stop();
+		if (gsCipStaCfg.ip != 0 && gsCipStaCfg.gw != 0 && gsCipStaCfg.mask != 0)
+		{
+			// Configure the network
+			WiFi.config(gsCipStaCfg.ip, gsCipStaCfg.gw, gsCipStaCfg.mask);
+			setDns();
+		}
+		else
+		{
+			// Manually stop as WiFi.config performs tests on ip addresses
+			wifi_station_dhcpc_stop();
+		}
+	}
+}
+
+/*
+ * Set DNS servers
+ */
+void setDns()
+{
+	if (gsCipDnsCfg.dns1 != 0)
+	{
+		dns_setserver(0, IPAddress(gsCipDnsCfg.dns1));
+
+		if (gsCipDnsCfg.dns2 != 0)
+			dns_setserver(1, IPAddress(gsCipDnsCfg.dns2));
+		else
+			dns_setserver(1, nullptr);
+	}
+	else
+	{
+		// Default DNS server 8.8.8.8
+		dns_setserver(0, IPAddress(8,8,8,8));
+		dns_setserver(1, nullptr);
 	}
 }
 

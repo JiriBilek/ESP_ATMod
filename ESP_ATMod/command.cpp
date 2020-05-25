@@ -30,6 +30,13 @@
 #include "debug.h"
 
 /*
+ * Constants
+ */
+
+const char * suffix_CUR = "_CUR";
+const char * suffix_DEF = "_DEF";
+
+/*
  * Command list
  */
 
@@ -74,6 +81,7 @@ static const commandDef_t commandList[] = {
 		{ "+CIPSTATUS", MODE_EXACT_MATCH, CMD_AT_CIPSTATUS },
 		{ "+CIPSTART", MODE_NO_CHECKING, CMD_AT_CIPSTART },
 		{ "+CIPSTA_CUR", MODE_QUERY_SET, CMD_AT_CIPSTA_CUR },
+		{ "+CIPSTA_DEF", MODE_QUERY_SET, CMD_AT_CIPSTA_DEF },
 		{ "+CIPSTA", MODE_QUERY_SET, CMD_AT_CIPSTA },
 		{ "+CIPSSLSIZE", MODE_QUERY_SET, CMD_AT_CIPSSLSIZE },
 		{ "+CIPSSLAUTH", MODE_QUERY_SET, CMD_AT_CIPSSLAUTH },
@@ -81,7 +89,10 @@ static const commandDef_t commandList[] = {
 		{ "+CIPSSLCERT", MODE_NO_CHECKING, CMD_AT_CIPSSLCERT },
 		{ "+CIPRECVMODE", MODE_QUERY_SET, CMD_AT_CIPRECVMODE },
 		{ "+CIPRECVLEN", MODE_QUERY_SET, CMD_AT_CIPRECVLEN },
-		{ "+CIPRECVDATA", MODE_QUERY_SET, CMD_AT_CIPRECVDATA }
+		{ "+CIPRECVDATA", MODE_QUERY_SET, CMD_AT_CIPRECVDATA },
+		{ "+CIPDNS_CUR", MODE_QUERY_SET, CMD_AT_CIPDNS_CUR },
+		{ "+CIPDNS_DEF", MODE_QUERY_SET, CMD_AT_CIPDNS_DEF },
+		{ "+CIPDNS", MODE_QUERY_SET, CMD_AT_CIPDNS }
 };
 
 /*
@@ -91,6 +102,7 @@ static const commandDef_t commandList[] = {
 commands_t findCommand(uint8_t* input, uint16_t inpLen);
 String readStringFromBuffer(unsigned char *inpBuf, uint16_t &offset, bool escape);
 bool readNumber(unsigned char *inpBuf, uint16_t &offset, uint32_t &output);
+bool readIpAddress(unsigned char *inpBuf, uint16_t &offset, uint32_t &output);
 uint8_t readHex(char c);
 
 /*
@@ -102,7 +114,7 @@ static void cmd_ATE();
 static void cmd_AT_GMR();
 static void cmd_AT_RST();
 static void cmd_AT_CWAUTOCONN();
-static void cmd_AT_MODE(commands_t cmd);
+static void cmd_AT_CWMODE(commands_t cmd);
 static void cmd_AT_CIPMUX();
 static void cmd_AT_CIPDINFO();
 static void cmd_AT_CWDHCP(commands_t cmd);
@@ -125,6 +137,7 @@ static void cmd_AT_CIPSSLCERT();
 static void cmd_AT_CIPRECVMODE();
 static void cmd_AT_CIPRECVLEN();
 static void cmd_AT_CIPRECVDATA();
+static void cmd_AT_CIPDNS(commands_t cmd);
 
 /*
  * Processes the command buffer
@@ -156,7 +169,7 @@ void processCommandBuffer(void)
 	// ------------------------------------------------------------------------------------ AT+CWMODE
 	else if (cmd == CMD_AT_CWMODE || cmd == CMD_AT_CWMODE_CUR || cmd == CMD_AT_CWMODE_DEF)
 		// AT+CWMODE - Sets the Current Wi-Fi mode (only mode 1 implemented)
-		cmd_AT_MODE(cmd);
+		cmd_AT_CWMODE(cmd);
 
 	// ------------------------------------------------------------------------------------ AT+CIPMUX
 	else if (cmd == CMD_AT_CIPMUX)  // AT+CIPMUX - Enable or Disable Multiple Connections
@@ -197,8 +210,8 @@ void processCommandBuffer(void)
 		cmd_AT_CIFSR();
 
 	// ------------------------------------------------------------------------------------ AT+CIPSTA
-	else if (cmd == CMD_AT_CIPSTA || cmd == CMD_AT_CIPSTA_CUR)
-		// AT+CIPSTA?, AT+CIPSTA_CUR? -  Obtains the current IP address
+	else if (cmd == CMD_AT_CIPSTA || cmd == CMD_AT_CIPSTA_CUR || cmd == CMD_AT_CIPSTA_DEF)
+		// AT+CIPSTA - Sets or prints the network configuration
 		cmd_AT_CIPSTA(cmd);
 
 	// ------------------------------------------------------------------------------------ AT+CIPSTART
@@ -251,6 +264,11 @@ void processCommandBuffer(void)
 	// ------------------------------------------------------------------------------------ AT+CIPRECVDATA
 	else if (cmd == CMD_AT_CIPRECVDATA)  // AT+CIPRECVDATA - Get TCP Data in Passive Receive Mode
 		cmd_AT_CIPRECVDATA();
+
+	// ------------------------------------------------------------------------------------ AT+CIPDNS
+	else if (cmd == CMD_AT_CIPDNS || cmd == CMD_AT_CIPDNS_CUR || cmd == CMD_AT_CIPDNS_DEF)
+		// AT+CIPDNS - Sets User-defined DNS Servers
+		cmd_AT_CIPDNS(cmd);
 
 	else
 	{
@@ -348,7 +366,7 @@ void cmd_AT_CWAUTOCONN()
 /*
  * AT+CWMODE - Sets the Current Wi-Fi mode (only mode 1 implemented)
  */
-void cmd_AT_MODE(commands_t cmd)
+void cmd_AT_CWMODE(commands_t cmd)
 {
 	uint16_t offset = 9;  // offset to ? or =
 	if (cmd != CMD_AT_CWMODE)
@@ -356,14 +374,13 @@ void cmd_AT_MODE(commands_t cmd)
 
 	if (inputBuffer[offset] == '?' && inputBufferCnt == offset + 3)
 	{
-		Serial.print(F("+CWMODE"));
+		const char *cmdSuffix = "";
 		if (cmd == CMD_AT_CWMODE_CUR)
-			Serial.print(F("_CUR"));
+			cmdSuffix = suffix_CUR;
 		else if (cmd == CMD_AT_CWMODE_DEF)
-			Serial.print(F("_DEF"));
-		Serial.print(':');
+			cmdSuffix = suffix_DEF;
 
-		Serial.println(WiFi.getMode());
+		Serial.printf_P(PSTR("+CWMODE%s:%d\r\n"), cmdSuffix, WiFi.getMode());
 		Serial.printf_P(MSG_OK);
 	}
 	else if (inputBuffer[offset] == '=')
@@ -477,22 +494,20 @@ void cmd_AT_CWDHCP(commands_t cmd)
 
 	if (inputBuffer[offset] == '?' && inputBufferCnt == offset + 3)
 	{
-		Serial.print(F("+CWDHCP"));
-
+		const char *cmdSuffix = "";
 		if (cmd == CMD_AT_CWDHCP_CUR)
-		{
-			Serial.print(F("_CUR:"));
-			Serial.println(gsCwDhcp);
-		}
-		else
-		{
-			if (cmd == CMD_AT_CWDHCP_DEF)
-				Serial.print(F("_DEF:"));
-			else
-				Serial.print(':');
+			cmdSuffix = suffix_CUR;
+		else if (cmd == CMD_AT_CWDHCP_DEF)
+			cmdSuffix = suffix_DEF;
 
-			Serial.println(Settings::getDhcpMode());
-		}
+		uint8_t dhcp;
+
+		if (cmd == CMD_AT_CWDHCP_DEF)
+			dhcp = Settings::getDhcpMode();
+		else
+			dhcp = gsCwDhcp;
+
+		Serial.printf_P(PSTR("+CWDHCP%s:%d\r\n"), cmdSuffix, dhcp);
 
 		Serial.printf_P(MSG_OK);
 		error = false;
@@ -553,7 +568,7 @@ void cmd_AT_CWJAP(commands_t cmd)
 		{
 			struct station_config conf;
 
-			if (cmd != CMD_AT_CWJAP_CUR)
+			if (cmd == CMD_AT_CWJAP_DEF)
 		        wifi_station_get_config_default(&conf);
 			else
 			    wifi_station_get_config(&conf);
@@ -563,14 +578,16 @@ void cmd_AT_CWJAP(commands_t cmd)
 			memcpy(ssid, conf.ssid, sizeof(conf.ssid));
 			ssid[32] = 0;  // Nullterm in case of 32 char ssid
 
-			Serial.print(F("+CWJAP"));
+			const char *cmdSuffix = "";
 			if (cmd == CMD_AT_CWJAP_CUR)
-				Serial.print(F("_CUR"));
+				cmdSuffix = suffix_CUR;
 			else if (cmd == CMD_AT_CWJAP_DEF)
-				Serial.print(F("_DEF"));
+				cmdSuffix = suffix_DEF;
+
+			Serial.printf_P(PSTR("+CWJAP%s:"), cmdSuffix);
 
 			// +CWJAP_CUR:<ssid>,<bssid>,<channel>,<rssi>
-			Serial.printf_P(PSTR(":\"%s\",\"%02x:%02x:%02x:%02x:%02x:%02x\",%d,%d\r\n"), ssid,
+			Serial.printf_P(PSTR("\"%s\",\"%02x:%02x:%02x:%02x:%02x:%02x\",%d,%d\r\n"), ssid,
 					conf.bssid[0], conf.bssid[1], conf.bssid[2], conf.bssid[3], conf.bssid[4], conf.bssid[5],
 					WiFi.channel(), WiFi.RSSI());
 		}
@@ -783,42 +800,116 @@ void cmd_AT_CIFSR()
 }
 
 /*
- * AT+CIPSTA?, AT+CIPSTA_CUR? -  Obtains the current IP address
+ * AT+CIPSTA - Sets or prints the network configuration
  */
 void cmd_AT_CIPSTA(commands_t cmd)
 {
-	int offset = 9;
+	uint16_t offset = 9;
 
-	if (cmd == CMD_AT_CIPSTA_CUR)
+	if (cmd != CMD_AT_CIPSTA)
 		offset += 4;
 
 	if (inputBuffer[offset] == '?' && inputBufferCnt == offset + 3)
 	{
-		IPAddress ip = WiFi.localIP();
-		if (! ip.isSet())
+		ipConfig_t cfg;
+
+		if (cmd == CMD_AT_CIPSTA_DEF)
 		{
-			Serial.println(F("+CIPSTA:ip:\"0.0.0.0\""));
-			Serial.println(F("+CIPSTA:gateway:\"0.0.0.0\""));
-			Serial.println(F("+CIPSTA:netmask:\"0.0.0.0\""));
+			cfg = Settings::getNetConfig();
 		}
 		else
 		{
-			Serial.printf_P(PSTR("+CIPSTA:ip:\"%s\"\r\n"), ip.toString().c_str());
-			Serial.printf_P(PSTR("+CIPSTA:gateway:\"%s\"\r\n"), WiFi.gatewayIP().toString().c_str());
-			Serial.printf_P(PSTR("+CIPSTA:netmask:\"%s\"\r\n"), WiFi.subnetMask().toString().c_str());
+			cfg = { WiFi.localIP(), WiFi.gatewayIP(), WiFi.subnetMask() };
+		}
+
+		const char *cmdSuffix = "";
+		if (cmd == CMD_AT_CIPSTA_CUR)
+			cmdSuffix = suffix_CUR;
+		else if (cmd == CMD_AT_CIPSTA_DEF)
+			cmdSuffix = suffix_DEF;
+
+		if (WiFi.status() != WL_CONNECTED || cfg.ip == 0)
+		{
+			Serial.printf_P(PSTR("+CIPSTA%s:ip:\"0.0.0.0\"\r\n"), cmdSuffix);
+			Serial.printf_P(PSTR("+CIPSTA%s:gateway:\"0.0.0.0\"\r\n"), cmdSuffix);
+			Serial.printf_P(PSTR("+CIPSTA%s:netmask:\"0.0.0.0\"\r\n"), cmdSuffix);
+		}
+		else
+		{
+			Serial.printf_P(PSTR("+CIPSTA%s:ip:\"%s\"\r\n"), cmdSuffix, IPAddress(cfg.ip).toString().c_str());
+			Serial.printf_P(PSTR("+CIPSTA%s:gateway:\"%s\"\r\n"), cmdSuffix, IPAddress(cfg.gw).toString().c_str());
+			Serial.printf_P(PSTR("+CIPSTA%s:netmask:\"%s\"\r\n"), cmdSuffix, IPAddress(cfg.mask).toString().c_str());
 		}
 		Serial.printf_P(MSG_OK);
 	}
 	else if (inputBuffer[offset] == '=')
 	{
-		// TODO: parameter setting (ip, gateway, mask)
-		Serial.println(F("ERROR NOT IMPLEMENTED"));
+		uint8_t error = 1;
+
+		++offset;
+
+		do
+		{
+			ipConfig_t cfg;
+
+			if (!readIpAddress(inputBuffer, offset, cfg.ip))
+				break;
+
+			if (inputBuffer[offset] != ',')
+			{
+				if (inputBufferCnt != offset + 2)
+					break;
+
+				// Only IP address is given, derive gateway and subnet /24
+				if (cfg.ip != 0)
+				{
+					cfg.gw = (cfg.ip & 0x00ffffff) | 0x01000000;
+					cfg.mask = 0x00ffffff;
+				}
+
+				error = 0;
+			}
+			else  // read gateway and mask
+			{
+				++offset;
+
+				if (!readIpAddress(inputBuffer, offset, cfg.gw) || inputBuffer[offset] != ',')
+					break;
+
+				++offset;
+
+				if (!readIpAddress(inputBuffer, offset, cfg.mask) || inputBufferCnt != offset + 2)
+					break;
+
+				error = 0;
+			}
+
+			// We got the network configuration
+
+			if (cmd != CMD_AT_CIPSTA_CUR)
+			{
+				// Save the network configuration
+				Settings::setNetConfig(cfg);
+				Settings::setDhcpMode(1);  // Stop DHCP
+			}
+
+			gsCipStaCfg = cfg;
+			gsCwDhcp = 1;  // Stop DHCP
+
+			// Reconfigure (stop DHCP and set the static addresses)
+			setDhcpMode();
+
+		} while (0);
+
+		if (error == 0)
+			Serial.printf_P(MSG_OK);
+		else if (error == 1)
+			Serial.printf_P(MSG_ERROR);
 	}
 	else
 	{
 		Serial.printf_P(MSG_ERROR);
 	}
-
 }
 
 /*
@@ -1205,11 +1296,13 @@ void cmd_AT_UART(commands_t cmd)
 
 	if (inputBuffer[offset] == '?' && inputBufferCnt == offset+3)
 	{
-		Serial.print(F("+UART"));
+		const char *cmdSuffix = "";
 		if (cmd == CMD_AT_UART_CUR)
-			Serial.print(F("_CUR"));
+			cmdSuffix = suffix_CUR;
 		else if (cmd == CMD_AT_UART_DEF)
-			Serial.print(F("_DEF"));
+			cmdSuffix = suffix_DEF;
+
+		Serial.printf_P(PSTR("+UART%s:"), cmdSuffix);
 
 		/*
 		 * UART Register USC0:
@@ -1222,7 +1315,7 @@ void cmd_AT_UART(commands_t cmd)
 		uint32_t uartConfig;
 		uint32_t baudRate;
 
-		if (cmd != CMD_AT_UART_CUR)
+		if (cmd == CMD_AT_UART_DEF)
 		{
 			uartConfig = Settings::getUartConfig();
 			baudRate = Settings::getUartBaudRate();
@@ -1237,7 +1330,7 @@ void cmd_AT_UART(commands_t cmd)
 		uint8_t stopbits = (uartConfig >> UCSBN) & 3;
 		uint8_t parity = uartConfig & 3;
 
-		Serial.printf(":%d,%d,%d,%d,0\r\nOK\r\n", baudRate, databits, stopbits, parity);
+		Serial.printf("%d,%d,%d,%d,0\r\nOK\r\n", baudRate, databits, stopbits, parity);
 	}
 	else if (inputBuffer[offset] == '=')
 	{
@@ -1689,6 +1782,123 @@ void cmd_AT_CIPRECVDATA()
 		Serial.printf_P(MSG_OK);
 }
 
+/*
+ * AT+CIPDNS - Sets User-defined DNS Servers
+ */
+void cmd_AT_CIPDNS(commands_t cmd)
+{
+	uint16_t offset = 9;
+
+	if (cmd != CMD_AT_CIPDNS)
+		offset += 4;
+
+	if (inputBuffer[offset] == '?' && inputBufferCnt == offset + 3)
+	{
+		dnsConfig_t cfg;
+
+		if (cmd == CMD_AT_CIPDNS_DEF)
+		{
+			cfg = Settings::getDnsConfig();
+		}
+		else
+		{
+			cfg = { WiFi.dnsIP(0), WiFi.dnsIP(1) };
+		}
+
+		const char *cmdSuffix = "";
+		if (cmd == CMD_AT_CIPDNS_CUR)
+			cmdSuffix = suffix_CUR;
+		else if (cmd == CMD_AT_CIPDNS_DEF)
+			cmdSuffix = suffix_DEF;
+
+		if (cfg.dns1 != 0)
+		{
+			Serial.printf_P(PSTR("+CIPDNS%s:%s\r\n"), cmdSuffix, IPAddress(cfg.dns1).toString().c_str());
+
+			if (cfg.dns2 != 0 && cfg.dns1 != cfg.dns2)
+			{
+				Serial.printf_P(PSTR("+CIPDNS%s:%s\r\n"), cmdSuffix, IPAddress(cfg.dns2).toString().c_str());
+			}
+		}
+		Serial.printf_P(MSG_OK);
+	}
+	else if (inputBuffer[offset] == '=')
+	{
+		uint8_t error = 1;
+
+		dnsConfig_t cfg = { 0, 0 };
+		uint32_t dnsEnable;
+
+		++offset;
+
+		do
+		{
+			if (!readNumber(inputBuffer, offset, dnsEnable) || dnsEnable > 1)
+				break;
+
+			// enable = 0 ... no dns data, enable = 1 ... one or two ip addresses
+			if ((dnsEnable == 0 && inputBufferCnt != offset + 2) ||
+					(dnsEnable == 1 && inputBuffer[offset] != ','))
+				break;
+
+			if (dnsEnable == 1)
+			{
+				++offset;
+
+				if (!readIpAddress(inputBuffer, offset, cfg.dns1))
+					break;
+
+				if (cfg.dns1 == 0)
+				{
+					Serial.println(F("IP1 invalid"));
+					break;
+				}
+
+				if (inputBufferCnt != offset + 2)
+				{
+					if (inputBuffer[offset] != ',')
+						break;
+
+					++offset;
+
+					if (!readIpAddress(inputBuffer, offset, cfg.dns2) || inputBufferCnt != offset + 2)
+						break;
+
+					if (cfg.dns2 == 0)
+					{
+						Serial.println(F("IP2 invalid"));
+						break;
+					}
+				}
+			}
+
+			// We got the dns configuration
+
+			if (cmd != CMD_AT_CIPDNS_CUR)
+			{
+				Settings::setDnsConfig(cfg);
+			}
+
+			gsCipDnsCfg = cfg;
+
+			setDns();
+
+			error = 0;
+
+		} while (0);
+
+		if (error == 0)
+			Serial.printf_P(MSG_OK);
+		else if (error == 1)
+			Serial.printf_P(MSG_ERROR);
+	}
+	else
+	{
+		Serial.printf_P(MSG_ERROR);
+	}
+}
+
+
 /*********************************************************************************************
  * Searches the input buffer for a command. Returns command code or CMD_ERROR
  */
@@ -1798,6 +2008,49 @@ bool readNumber(unsigned char *inpBuf, uint16_t &offset, uint32_t &output)
 		out = out * 10 + inpBuf[offset++] - '0';
 		ret = true;
 	}
+
+	if (ret)
+		output = out;
+
+	return ret;
+}
+
+/*
+ * Reads a IPv4 address from buffer, returns a 32 bit integer
+ * The address is enclosed in double quotes
+ */
+bool readIpAddress(unsigned char *inpBuf, uint16_t &offset, uint32_t &output)
+{
+	bool ret = false;
+	uint32_t out = 0;
+
+	if (inpBuf[offset] != '"')
+		return false;
+
+	++offset;
+
+	for (int i = 1; i <= 4; ++i)
+	{
+		uint32_t addrByte = 0;
+
+		if (!readNumber(inpBuf, offset, addrByte) || addrByte > 255)
+			break;
+
+		out = (out >> 8) | (addrByte << 24);
+
+		// Check the separator
+		if (i == 4)
+			ret = true;
+		else if (i < 4 && inpBuf[offset] != '.')
+			break;
+		else
+			++offset;
+	}
+
+	if (inpBuf[offset] != '"')
+		return false;
+
+	++offset;
 
 	if (ret)
 		output = out;
