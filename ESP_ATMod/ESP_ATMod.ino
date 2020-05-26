@@ -28,7 +28,7 @@
  * 0.1.1: TLS fingerprint authentication (AT+CIPSSLAUTH, AT+CIPSSLFP)
  * 0.1.2: TLS CA certificate checking (AT+CIPSSLCERT)
  * 0.2.0: AT Version 1.7 - AT+CIPRECVMODE, AT+CIPRECVLEN, AT+CIPRECVDATA
- * 0.2.1: Fix the _CUR and _DEF command suffixes: no suffix is equivalent to _DEF
+ * 0.2.1: Fix the _CUR and _DEF command suffixes: empty suffix is equivalent to _DEF
  * 0.2.2: Full commands AT+CWDHCP (for station mode), AT+CIPSTA and AT+CIPDNS
  *
  * TODO:
@@ -490,8 +490,8 @@ void setDns()
 	}
 	else
 	{
-		// Default DNS server 8.8.8.8
-		dns_setserver(0, IPAddress(8,8,8,8));
+		// Default DNS server 64.6.64.6 (Verisign Free DNS)
+		dns_setserver(0, IPAddress(64,6,64,6));
 		dns_setserver(1, nullptr);
 	}
 }
