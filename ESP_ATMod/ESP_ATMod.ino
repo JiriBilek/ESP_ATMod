@@ -30,11 +30,14 @@
  * 0.2.0: AT Version 1.7 - AT+CIPRECVMODE, AT+CIPRECVLEN, AT+CIPRECVDATA
  * 0.2.1: Fix the _CUR and _DEF command suffixes: empty suffix is equivalent to _DEF
  * 0.2.2: Full commands AT+CWDHCP (for station mode), AT+CIPSTA and AT+CIPDNS
+ * 0.2.3: AT+SYSCPUFREQ (80 or 160) - inspired by LoBo AT, useful for TLS connections
  *
  * TODO:
  * - Implement AT+CWLAP
  * - TLS Security - list of certificates in FS, persistent fingerprint and single certificate, AT+CIPSSLAUTH_DEF
  * - Implement AT+CIPSNTPCFG, AT+CIPSNTPTIME
+ * - Try to enable fragmentation and resize the SSL buffer (AT+CIPSSLSIZE) according to
+ *   https://github.com/esp8266/Arduino/tree/master/libraries/ESP8266WiFi/examples/BearSSL_MaxFragmentLength
  */
 
 #include "Arduino.h"
@@ -59,7 +62,7 @@ extern "C" {
  * Defines
  */
 
-const char APP_VERSION[] = "0.2.2";
+const char APP_VERSION[] = "0.2.3";
 
 /*
  * Constants

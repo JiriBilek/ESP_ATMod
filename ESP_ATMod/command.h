@@ -67,6 +67,7 @@ enum commands_t {
 	CMD_AT_UART_DEF,
 	CMD_AT_UART,
 	CMD_AT_RESTORE,
+	CMD_AT_SYSCPUFREQ,  // New command
 };
 
 /*

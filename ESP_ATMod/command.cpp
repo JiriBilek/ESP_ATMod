@@ -92,7 +92,8 @@ static const commandDef_t commandList[] = {
 		{ "+CIPRECVDATA", MODE_QUERY_SET, CMD_AT_CIPRECVDATA },
 		{ "+CIPDNS_CUR", MODE_QUERY_SET, CMD_AT_CIPDNS_CUR },
 		{ "+CIPDNS_DEF", MODE_QUERY_SET, CMD_AT_CIPDNS_DEF },
-		{ "+CIPDNS", MODE_QUERY_SET, CMD_AT_CIPDNS }
+		{ "+CIPDNS", MODE_QUERY_SET, CMD_AT_CIPDNS },
+		{ "+SYSCPUFREQ", MODE_QUERY_SET, CMD_AT_SYSCPUFREQ }
 };
 
 /*
@@ -138,6 +139,7 @@ static void cmd_AT_CIPRECVMODE();
 static void cmd_AT_CIPRECVLEN();
 static void cmd_AT_CIPRECVDATA();
 static void cmd_AT_CIPDNS(commands_t cmd);
+static void cmd_AT_SYSCPUFREQ();
 
 /*
  * Processes the command buffer
@@ -269,6 +271,10 @@ void processCommandBuffer(void)
 	else if (cmd == CMD_AT_CIPDNS || cmd == CMD_AT_CIPDNS_CUR || cmd == CMD_AT_CIPDNS_DEF)
 		// AT+CIPDNS - Sets User-defined DNS Servers
 		cmd_AT_CIPDNS(cmd);
+
+	// ------------------------------------------------------------------------------------ AT+SYSCPUFREQ
+	else if (cmd == CMD_AT_SYSCPUFREQ)  // AT+SYSCPUFREQ - Set or Get the Current CPU Frequency
+		cmd_AT_SYSCPUFREQ();
 
 	else
 	{
@@ -1891,6 +1897,43 @@ void cmd_AT_CIPDNS(commands_t cmd)
 			Serial.printf_P(MSG_OK);
 		else if (error == 1)
 			Serial.printf_P(MSG_ERROR);
+	}
+	else
+	{
+		Serial.printf_P(MSG_ERROR);
+	}
+}
+
+/*
+ * AT+SYSCPUFREQ - Set or Get the Current CPU Frequency
+ */
+void cmd_AT_SYSCPUFREQ()
+{
+	uint8_t error = 1;
+
+	if (inputBuffer[13] == '?' && inputBufferCnt == 16)
+	{
+		uint8_t freq = system_get_cpu_freq();
+
+		Serial.printf("+SYSCPUFREQ:%d\r\n", freq);
+		error = 0;
+	}
+
+	else if (inputBuffer[13] == '=')
+	{
+		uint16_t offset = 14;
+		uint32_t freq;
+
+		if (readNumber(inputBuffer, offset, freq) && (freq == 80 || freq == 160))
+		{
+			if (system_update_cpu_freq(freq) != 0)
+				error = 0;  // Success
+		}
+	}
+
+	if (error == 0)
+	{
+		Serial.printf_P(MSG_OK);
 	}
 	else
 	{
