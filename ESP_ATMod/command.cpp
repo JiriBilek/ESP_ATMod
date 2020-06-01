@@ -87,6 +87,8 @@ static const commandDef_t commandList[] = {
 		{ "+CIPSSLAUTH", MODE_QUERY_SET, CMD_AT_CIPSSLAUTH },
 		{ "+CIPSSLFP", MODE_QUERY_SET, CMD_AT_CIPSSLFP },
 		{ "+CIPSSLCERT", MODE_NO_CHECKING, CMD_AT_CIPSSLCERT },
+		{ "+CIPSSLMFLN", MODE_QUERY_SET, CMD_AT_CIPSSLMFLN },
+		{ "+CIPSSLSTA", MODE_NO_CHECKING, CMD_AT_CIPSSLSTA },
 		{ "+CIPRECVMODE", MODE_QUERY_SET, CMD_AT_CIPRECVMODE },
 		{ "+CIPRECVLEN", MODE_QUERY_SET, CMD_AT_CIPRECVLEN },
 		{ "+CIPRECVDATA", MODE_QUERY_SET, CMD_AT_CIPRECVDATA },
@@ -140,6 +142,8 @@ static void cmd_AT_CIPRECVLEN();
 static void cmd_AT_CIPRECVDATA();
 static void cmd_AT_CIPDNS(commands_t cmd);
 static void cmd_AT_SYSCPUFREQ();
+static void cmd_AT_CIPSSLMFLN();
+static void cmd_AT_CIPSSLSTA();
 
 /*
  * Processes the command buffer
@@ -275,6 +279,14 @@ void processCommandBuffer(void)
 	// ------------------------------------------------------------------------------------ AT+SYSCPUFREQ
 	else if (cmd == CMD_AT_SYSCPUFREQ)  // AT+SYSCPUFREQ - Set or Get the Current CPU Frequency
 		cmd_AT_SYSCPUFREQ();
+
+	// ------------------------------------------------------------------------------------ AT+CIPSSLMFLN
+	else if (cmd == CMD_AT_CIPSSLMFLN)  // AT+CIPSSLMFLN - Check the capability of MFLN for a site
+		cmd_AT_CIPSSLMFLN();
+
+	// ------------------------------------------------------------------------------------ AT+CIPSSLSTA
+	else if (cmd == CMD_AT_CIPSSLSTA)  // AT+CIPSSLSTA - Check the MFLN status for a connection
+		cmd_AT_CIPSSLSTA();
 
 	else
 	{
@@ -1057,17 +1069,20 @@ void cmd_AT_CIPSTART()
 			{
 				cli = new BearSSL::WiFiClientSecure();
 
+				if (gsCipSslSize != 16384)
+					static_cast<BearSSL::WiFiClientSecure*>(cli)->setBufferSizes(gsCipSslSize, 512);
+
 				if (gsCipSslAuth == 0)
 				{
-					((BearSSL::WiFiClientSecure*)cli)->setInsecure();
+					static_cast<BearSSL::WiFiClientSecure*>(cli)->setInsecure();
 				}
 				else if (gsCipSslAuth == 1 && fingerprintValid)
 				{
-					((BearSSL::WiFiClientSecure*)cli)->setFingerprint(fingerprint);
+					static_cast<BearSSL::WiFiClientSecure*>(cli)->setFingerprint(fingerprint);
 				}
 				else if (gsCipSslAuth == 2 && CAcert != nullptr) // certificate chain verification
 				{
-					((BearSSL::WiFiClientSecure*)cli)->setTrustAnchors(CAcert);
+					static_cast<BearSSL::WiFiClientSecure*>(cli)->setTrustAnchors(CAcert);
 				}
 				else
 				{
@@ -1428,7 +1443,7 @@ void cmd_AT_RESTORE()
 }
 
 /*
- * AT+CIPSSLSIZE - Sets the Size of SSL Buffer - the command is parsed but ignored
+ * AT+CIPSSLSIZE - Sets the Size of SSL Buffer - only sizes 512, 1024, 2048 and 4096 are supported
  */
 void cmd_AT_CIPSSLSIZE()
 {
@@ -1440,8 +1455,11 @@ void cmd_AT_CIPSSLSIZE()
 
 		++offset;
 
-		if (readNumber(inputBuffer, offset, sslSize) && inputBufferCnt == offset + 2 && sslSize >= 2048)
+		if (readNumber(inputBuffer, offset, sslSize) && inputBufferCnt == offset + 2
+				&& (sslSize == 512 || sslSize == 1024 || sslSize == 2048 || sslSize == 4096))
 		{
+			gsCipSslSize = sslSize;
+
 			Serial.printf_P(MSG_OK);
 		}
 		else
@@ -1939,6 +1957,176 @@ void cmd_AT_SYSCPUFREQ()
 	{
 		Serial.printf_P(MSG_ERROR);
 	}
+}
+
+/*
+ * AT+CIPSSLMFLN - Check the capability of MFLN for a site
+ * Format: AT+CIPSSLMFLN=site,port,length
+ * Example: AT+CIPSSLMFLN="tls.mbed.org",443,512
+ */
+void cmd_AT_CIPSSLMFLN()
+{
+	uint8_t error = 1;
+	char remoteSite[41];
+	uint32_t remotePort;
+	uint32_t maxLen;
+
+	do
+	{
+		if (inputBuffer[13] != '=' || inputBuffer[14] != '"')
+			break;
+
+		uint16_t offset = 15;
+
+		// Read remote address
+
+		uint8_t pos = 0;
+		error = 4;
+
+		while (pos < sizeof(remoteSite)-1 && inputBuffer[offset] != '"' && inputBuffer[offset] >= ' ')
+		{
+			remoteSite[pos++] = inputBuffer[offset++];
+		}
+		remoteSite[pos] = 0;
+
+		if (inputBuffer[offset] != '"' || inputBuffer[offset + 1] != ',')
+			break;
+
+		offset += 2;
+
+		// Read remote port
+
+		error = 100;  // Unspecified error
+
+		if (!readNumber(inputBuffer, offset, remotePort) || remotePort > 65535)
+			break;
+
+		// Buffer length
+
+		error = 7;
+
+		if (inputBuffer[offset] != ',')
+			break;
+
+		++offset;
+
+		if (!readNumber(inputBuffer, offset, maxLen) || (maxLen != 512 && maxLen != 1024 && maxLen != 2048 && maxLen != 4096))
+			break;
+
+		if (offset + 2 != inputBufferCnt)
+			break;
+
+		// Check if connected to an AP
+		if (!WiFi.isConnected())
+		{
+			error = 6;
+			break;
+		}
+
+		error = 0;
+
+		// Read the MFLN status
+		bool mfln = BearSSL::WiFiClientSecure::probeMaxFragmentLength(remoteSite, remotePort, maxLen);
+
+		Serial.printf_P(PSTR("+CIPSSLMFLN:%s"), mfln ? "TRUE" : "FALSE");
+
+	} while (0);
+
+	if (error == 0)
+		Serial.printf_P(MSG_OK);
+	else
+	{
+		if (error == 4)
+			Serial.println(F("HOSTNAME ERROR\r\n"));
+		else if (error == 6)
+			Serial.println(F("NO AP"));
+		else if (error == 7)
+			Serial.println(F("SIZE ERROR\r\n"));
+
+		Serial.printf_P(MSG_ERROR);
+	}
+}
+
+/*
+ * AT+CIPSSLSTA - Check the MFLN status for a connection
+ */
+void cmd_AT_CIPSSLSTA()
+{
+	uint8_t error = 1;
+
+	do
+	{
+		wl_status_t status = WiFi.status();
+
+		if (status != WL_CONNECTED)
+		{
+			error = 2;
+			break;
+		}
+
+		uint16_t offset = 13;
+		uint32_t linkId = 0;
+
+		// Read the input
+
+		if (inputBuffer[12] == '=')
+		{
+			if (!readNumber(inputBuffer, offset, linkId) || linkId > 4 || inputBufferCnt != offset + 2)
+				break;
+
+			if (gsCipMux == 0)
+			{
+				Serial.println(F("MUX=0"));
+				break;
+			}
+		}
+		else if (inputBufferCnt != 14)
+			break;
+		else if (gsCipMux != 0)
+		{
+			Serial.println(F("MUX=1"));
+			break;
+		}
+
+		// Check the client
+		WiFiClient *cli = clients[linkId].client;
+
+		if (cli == nullptr || !cli->connected())
+		{
+			error = 3;
+			break;
+		}
+
+		if (clients[linkId].type != 2)
+		{
+			error = 4;
+			break;
+		}
+
+		error = 0;
+
+		// Print the status
+
+		bool mfln = static_cast<WiFiClientSecure *>(cli)->getMFLNStatus();
+
+		Serial.printf_P(PSTR("+CIPSSLSTA:%d\r\n"), mfln);
+
+	} while (0);
+
+	if (error == 0)
+		Serial.printf_P(MSG_OK);
+	else
+	{
+		if (error == 2)
+			Serial.println(F("NOT CONNECTED"));
+		else if (error == 3)
+			Serial.println(F("NOT OPENED"));
+		else if (error == 4)
+			Serial.println(F("NOT A SSL"));
+
+		Serial.printf_P(MSG_ERROR);
+	}
+
 }
 
 

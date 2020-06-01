@@ -91,6 +91,7 @@ extern uint8_t gsCipSslAuth;  // command AT+CIPSSLAUTH: 0 = none, 1 = fingerprin
 extern uint8_t gsCipRecvMode;  // command AT+CIPRECVMODE
 extern ipConfig_t gsCipStaCfg;  // command AT+CIPSTA_CUR
 extern dnsConfig_t gsCipDnsCfg;  // command AT+CIPDNS
+extern uint16_t gsCipSslSize;  // command AT+CIPSSLSIZE
 
 extern const char APP_VERSION[];
 extern const char MSG_OK[] PROGMEM;

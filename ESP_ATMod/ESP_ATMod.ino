@@ -31,13 +31,13 @@
  * 0.2.1: Fix the _CUR and _DEF command suffixes: empty suffix is equivalent to _DEF
  * 0.2.2: Full commands AT+CWDHCP (for station mode), AT+CIPSTA and AT+CIPDNS
  * 0.2.3: AT+SYSCPUFREQ (80 or 160) - inspired by LoBo AT, useful for TLS connections
+ *        Resize the input buffer (AT+CIPSSLSIZE) - supported values: 512, 1024, 2048, 4098 (RFC 3546)
+ *        Check the site MFLN capability (AT+CIPSSLMFLN), check the connection MFLN status (AT+CIPSSLSTA)
  *
  * TODO:
  * - Implement AT+CWLAP
  * - TLS Security - list of certificates in FS, persistent fingerprint and single certificate, AT+CIPSSLAUTH_DEF
  * - Implement AT+CIPSNTPCFG, AT+CIPSNTPTIME
- * - Try to enable fragmentation and resize the SSL buffer (AT+CIPSSLSIZE) according to
- *   https://github.com/esp8266/Arduino/tree/master/libraries/ESP8266WiFi/examples/BearSSL_MaxFragmentLength
  */
 
 #include "Arduino.h"
@@ -118,6 +118,7 @@ uint8_t gsCipSslAuth = 0;  // command AT+CIPSSLAUTH: 0 = none, 1 = fingerprint, 
 uint8_t gsCipRecvMode = 0;  // command AT+CIPRECVMODE
 ipConfig_t gsCipStaCfg = { 0, 0, 0 };  // command AT+CIPSTA
 dnsConfig_t gsCipDnsCfg = { 0, 0 };  // command AT+CIPDNS
+uint16_t gsCipSslSize = 16384;  // command AT+CIPSSLSIZE
 
 /*
  *  The setup function is called once at startup of the sketch
