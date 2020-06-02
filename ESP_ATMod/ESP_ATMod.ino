@@ -31,7 +31,7 @@
  * 0.2.1: Fix the _CUR and _DEF command suffixes: empty suffix is equivalent to _DEF
  * 0.2.2: Full commands AT+CWDHCP (for station mode), AT+CIPSTA and AT+CIPDNS
  * 0.2.3: AT+SYSCPUFREQ (80 or 160) - inspired by LoBo AT, useful for TLS connections
- *        Resize the input buffer (AT+CIPSSLSIZE) - supported values: 512, 1024, 2048, 4098 (RFC 3546)
+ *        Resize the input buffer (AT+CIPSSLSIZE) - supported values: 512, 1024, 2048, 4096, 16384 (RFC 3546)
  *        Check the site MFLN capability (AT+CIPSSLMFLN), check the connection MFLN status (AT+CIPSSLSTA)
  *
  * TODO:

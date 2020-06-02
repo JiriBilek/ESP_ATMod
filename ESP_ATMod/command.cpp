@@ -1456,8 +1456,11 @@ void cmd_AT_CIPSSLSIZE()
 		++offset;
 
 		if (readNumber(inputBuffer, offset, sslSize) && inputBufferCnt == offset + 2
-				&& (sslSize == 512 || sslSize == 1024 || sslSize == 2048 || sslSize == 4096))
+				&& (sslSize == 512 || sslSize == 1024 || sslSize == 2048 || sslSize == 4096 || sslSize == 16384))
 		{
+			if (sslSize == 16384)
+				sslSize = 0;  // default value
+
 			gsCipSslSize = sslSize;
 
 			Serial.printf_P(MSG_OK);
@@ -2028,7 +2031,7 @@ void cmd_AT_CIPSSLMFLN()
 		// Read the MFLN status
 		bool mfln = BearSSL::WiFiClientSecure::probeMaxFragmentLength(remoteSite, remotePort, maxLen);
 
-		Serial.printf_P(PSTR("+CIPSSLMFLN:%s"), mfln ? "TRUE" : "FALSE");
+		Serial.printf_P(PSTR("+CIPSSLMFLN:%s\r\n"), mfln ? "TRUE" : "FALSE");
 
 	} while (0);
 
