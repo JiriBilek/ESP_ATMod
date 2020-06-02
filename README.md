@@ -2,7 +2,7 @@
 
 This firmware comes as an [Arduino esp8266](https://github.com/esp8266/Arduino) sketch.
 
-This file refers to version 0.2.2 of the firmware.
+This file refers to version 0.2.3 of the firmware.
 
 ## Purpose
 
@@ -34,11 +34,13 @@ The major differences are:
 
 2. Only TCP mode (with or without TLS) is supported, no UDP.
 
-3. In multiplex mode (AT+CWMODE=1), 5 simultaneous connections are available. Due to memory constraints, there can be **only one TLS (SSL) connection** at a time.
+3. In multiplex mode (AT+CWMODE=1), 5 simultaneous connections are available. Due to memory constraints, there can be only one TLS (SSL) connection at a time with standard buffer size, more concurrent TLS connections can be made with a reduced buffer size (AT+CIPSSLSIZE). When the buffer size is 512 bytes, all 5 concurrent connections can be TLS.
 
 New features:
 
 1. Implemented TLS security with state-of-the-art ciphersuites: certificate fingerprint checking or certificate chain verification (only one CA certificate can be used).
+
+2. Implemented TLS MFLN check (RFC 3546), setting TLS receive buffer size, checking MFLN status of a connection.
 
 ## The Future
 
@@ -64,6 +66,7 @@ In the following table, the list of supported AT commands is given. In the comme
 | AT+UART_DEF | Default UART configuration, stored in flash |
 | AT+SYSRAM | Print remaining RAM space |
 | AT+RFMODE | Set the physical wifi mode - see below |
+| AT+SYSCPUFREQ | Set or query the current CPU frequency |
 |  |  |
 | AT+CWMODE | Only AT+CWMODE=1 (Station mode) implemented |
 | AT+CWJAP, AT+CWJAP_CUR | Connect to AP, parameter &lt;pci_en&gt; not implemented |
@@ -79,7 +82,7 @@ In the following table, the list of supported AT commands is given. In the comme
 | | |
 | AT+CIPSTATUS | Get the connection status |
 | AT+CIPSTART | Establish TCP or SSL (TLS) connection. Only one TLS connection at a time |
-| AT+CIPSSLSIZE | Implemented, but does nothing |
+| AT+CIPSSLSIZE | Change the size of the recevier buffer (512, 1024, 2048 or 4096 bytes) |
 | AT+CIPSEND | Send data |
 | AT+CIPCLOSE | Close the TCP or SSL (TLS) connection |
 | AT+CIFSR | Get the local IP address |
@@ -92,6 +95,8 @@ In the following table, the list of supported AT commands is given. In the comme
 | AT+CIPSSLAUTH | Set and query the TLS authentication mode - see below |
 | AT+CIPSSLFP | Load or print the TLS server certificate fingerprint - see below |
 | AT+CIPSSLCERT | Load, query or delete TLS CA certificate - see below |
+| AT+CIPSSLMFLN | Check if the site supports Maximum Fragment Length Negotiation (MFLN) |
+| AT+CIPSSLSTA | Prints the MFLN status of a connection |
 
 ## New and Changed Commands
 
@@ -164,7 +169,7 @@ Switching to mode 2 succeeds only when the CA certificate preloaded (see AT+CIPS
 
 ### **AT+CIPSSLFP - Load or Print TLS Server Certificate SHA-1 Fingerprint**
 
-Load or print the saved server certificate fingerprint. The fingerprint is based on SHA-1 hash and is exactly 20 bytes long. When connecting, the TLS engine checks the fingerprint of the received certificate against the saved value. It ensures the device is connecting to the expected server. 
+Load or print the saved server certificate fingerprint. The fingerprint is based on SHA-1 hash and is exactly 20 bytes long. When connecting, the TLS engine checks the fingerprint of the received certificate against the saved value. It ensures the device is connecting to the expected server. After a successful connection, the fingerprint is checked and is no longer needed for this connection.
 
 The SHA-1 certificate fingerprint for a site can be obtained e.g. in browser while examining the server certificate.
 
@@ -196,7 +201,7 @@ The fingerprint consists of exactly 20 bytes. They are set as hex values and may
 
 ### **AT+CIPSSLCERT - Load, Query or Delete TLS CA Certificate**
 
-Load, query or delete CA certificate for TLS certificate chain verification. ONly one certificate at a time can be loaded. The certificate must be in PEM structure.
+Load, query or delete CA certificate for TLS certificate chain verification. Only one certificate at a time can be loaded. The certificate must be in PEM structure. After a successful connection, the certificate is checked and is no longer needed for this connection.
 
 **Syntax:**
 
@@ -255,3 +260,76 @@ Commands
 - AT+CIPRECVDATA (Get TCP or SSL Data in Passive Receive Mode) 
 
 work in SSL mode in the same way as in TCP mode.
+
+### **AT+SYSCPUFREQ - Set or query the Current CPU Frequency**
+
+Sets and queries the COU freqency. The only valid values are 80 and 160 Mhz.
+
+**Syntax:**
+
+Query:
+
+```
+AT+SYSCPUFREQ?
++SYSCPUFREQ=80
+
+OK
+```
+
+Set:
+
+```
+AT+SYSCPUFREQ=<freq>
+
+OK
+```
+
+The value freq may be 80 or 160.
+
+### **AT+CIPSSLSIZE - Set the TLS Receiver Buffer Size**
+
+Sets the TLS receiver buffer size. The size can be 512, 1024, 2048, 4096 or 16384 (default) bytes according to [RFC3546](https://tools.ietf.org/html/rfc3546). The value is used for all subsequent TLS connections, the opened connections are not affected.
+
+**Syntax:**
+
+```
+AT+CIPSSLSIZE=512
+
+OK
+```
+
+### **AT+CIPSSLMFLN - Checks if the given site supports the MFLN TLS Extension**
+
+The Maximum Fragment Length Negotiation extension is useful for lowering the RAM usage by reducing receiver buffer size on TLS connections. Newer TLS implementations support this extension but it would be wise to check the capability before changing a TLS buffer size and making a connection. As the server won't change this feature on the fly, you should test the MFLN capability only once.
+
+**Syntax:**
+
+AT+CIPSSLMFLN="*site*",*port*,*size*
+
+The valid sizes are 512, 1024, 2048 and 4096.
+
+```
+AT+CIPSSLMFLN="www.github.com",443,512
++CIPSSLMFLN:TRUE
+
+OK
+```
+
+### **AT+CIPSSLSTA - Checks the status of the MFLN negotiation**
+
+This command checks the MFLN status on an opened TLS connection.
+
+**Syntax:**
+
+AT+CIPSSLSTA[=linkID]
+
+The *linkID* value is mandatory when the multiplexing is on (AT+CIPMUX=1). It should be not entered when the multiplexing is turned off.
+
+```
+AT+CIPSSLSTA=0
++CIPSSLSTA:1
+
+OK
+```
+
+The returned value of 1 means there was a MFLN negotiation. It holds even with the default receiver buffer size set.
