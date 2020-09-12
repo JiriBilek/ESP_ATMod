@@ -19,10 +19,28 @@ My testing environment uses the built-in [Arduino WifiEsp library](https://githu
 
 ## Installation
 
+There are two options for compiling and flashing this library.
+
+### Arduino IDE
+
 First you have to install Arduino IDE and the core for the ESP8266 chip (see [https://github.com/esp8266/Arduino](https://github.com/esp8266/Arduino)).
 Next get all source files from this repository, place them in a folder named **ESP_ATMod** and compile and upload to your ESP module.
 
 After flashing, the module will open serial connection on RX and TX pins with 115200 Bd, 8 bits, no parity. You can talk with the module using a serial terminal of your choice.
+
+### PlatformIO
+
+An alternative to using the Arduino IDE is to use PlatformIO.
+
+1. Install [PlatformIO](https://platformio.org/)
+2. Make sure that your device is in flashing mode
+2. In your favourite terminal and from the root of this repository, run
+   the following command to build and upload the sketch to the device:
+   ```
+   platformio run --target upload
+   ```
+
+This has been configured and tested for the ESP-01 Black.
 
 ## Description
 
