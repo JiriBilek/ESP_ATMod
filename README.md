@@ -2,7 +2,7 @@
 
 This firmware comes as an [Arduino esp8266](https://github.com/esp8266/Arduino) sketch.
 
-This file refers to version 0.2.3 of the firmware.
+This file refers to version 0.2.4 of the firmware.
 
 ## Purpose
 
@@ -67,6 +67,7 @@ In the following table, the list of supported AT commands is given. In the comme
 | AT+SYSRAM | Print remaining RAM space |
 | AT+RFMODE | Set the physical wifi mode - see below |
 | AT+SYSCPUFREQ | Set or query the current CPU frequency |
+| AT+SYSTIME | Print current time (UTC) |
 |  |  |
 | AT+CWMODE | Only AT+CWMODE=1 (Station mode) implemented |
 | AT+CWJAP, AT+CWJAP_CUR | Connect to AP, parameter &lt;pci_en&gt; not implemented |
@@ -333,3 +334,19 @@ OK
 ```
 
 The returned value of 1 means there was a MFLN negotiation. It holds even with the default receiver buffer size set.
+
+### **AT+SYSTIME - Returns the current time UTC**
+
+This command returns the current time as unix time (number of seconds since January 1st, 1970). The time zone is fixed to GMT (UTC). The time is obtained by querying NTP servers automatically, after connecting to the internet. Before connecting to the internet or in case of an error in communication with NTP servers, the time is unknown. This situation should be temporary.
+
+**Syntax:**
+
+AT+SYSTIME?
+
+```
+AT+SYSTIME?
++SYSTIME:1607438042
+OK
+```
+
+If the current time is unknown, an error message is returned.

@@ -95,7 +95,8 @@ static const commandDef_t commandList[] = {
 		{ "+CIPDNS_CUR", MODE_QUERY_SET, CMD_AT_CIPDNS_CUR },
 		{ "+CIPDNS_DEF", MODE_QUERY_SET, CMD_AT_CIPDNS_DEF },
 		{ "+CIPDNS", MODE_QUERY_SET, CMD_AT_CIPDNS },
-		{ "+SYSCPUFREQ", MODE_QUERY_SET, CMD_AT_SYSCPUFREQ }
+		{ "+SYSCPUFREQ", MODE_QUERY_SET, CMD_AT_SYSCPUFREQ },
+		{ "+SYSTIME?", MODE_EXACT_MATCH, CMD_AT_SYSTIME }
 };
 
 /*
@@ -144,6 +145,7 @@ static void cmd_AT_CIPDNS(commands_t cmd);
 static void cmd_AT_SYSCPUFREQ();
 static void cmd_AT_CIPSSLMFLN();
 static void cmd_AT_CIPSSLSTA();
+static void cmd_AT_SYSTIME();
 
 /*
  * Processes the command buffer
@@ -287,6 +289,10 @@ void processCommandBuffer(void)
 	// ------------------------------------------------------------------------------------ AT+CIPSSLSTA
 	else if (cmd == CMD_AT_CIPSSLSTA)  // AT+CIPSSLSTA - Check the MFLN status for a connection
 		cmd_AT_CIPSSLSTA();
+
+	// ------------------------------------------------------------------------------------ AT+SYSTIME?
+	else if (cmd == CMD_AT_SYSTIME)  // AT+SYSTIME? - get time
+		cmd_AT_SYSTIME();
 
 	else
 	{
@@ -2132,6 +2138,22 @@ void cmd_AT_CIPSSLSTA()
 
 }
 
+/*
+ * AT+SYSTIME? - get time
+ */
+void cmd_AT_SYSTIME()
+{
+	time_t now = time(nullptr);
+	if (now > 8 * 3600 * 2)
+	{
+		Serial.printf_P(PSTR("+SYSTIME:%ld\r\n"), now);
+		Serial.println(F("OK"));
+	}
+	else
+	{
+		Serial.printf_P(MSG_ERROR);
+	}
+}
 
 /*********************************************************************************************
  * Searches the input buffer for a command. Returns command code or CMD_ERROR

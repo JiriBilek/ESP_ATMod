@@ -33,6 +33,7 @@
  * 0.2.3: AT+SYSCPUFREQ (80 or 160) - inspired by LoBo AT, useful for TLS connections
  *        Resize the input buffer (AT+CIPSSLSIZE) - supported values: 512, 1024, 2048, 4096, 16384 (RFC 3546)
  *        Check the site MFLN capability (AT+CIPSSLMFLN), check the connection MFLN status (AT+CIPSSLSTA)
+ * 0.2.4: AT+SYSTIME? for returning unixtime
  *
  * TODO:
  * - Implement AT+CWLAP
@@ -62,7 +63,7 @@ extern "C" {
  * Defines
  */
 
-const char APP_VERSION[] = "0.2.3";
+const char APP_VERSION[] = "0.2.4";
 
 /*
  * Constants
