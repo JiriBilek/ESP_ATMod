@@ -92,6 +92,9 @@ extern uint8_t gsCipRecvMode;  // command AT+CIPRECVMODE
 extern ipConfig_t gsCipStaCfg;  // command AT+CIPSTA_CUR
 extern dnsConfig_t gsCipDnsCfg;  // command AT+CIPDNS
 extern uint16_t gsCipSslSize;  // command AT+CIPSSLSIZE
+extern bool gsSTNPEnabled;  // command AT+CIPSNTPCFG
+extern int8_t gsSTNPTimezone;  // command AT+CIPSNTPCFG
+extern String gsSNTPServer[3];  // command AT+CIPSNTPCFG
 
 extern const char APP_VERSION[];
 extern const char MSG_OK[] PROGMEM;
@@ -107,5 +110,6 @@ void setDhcpMode();
 void setDns();
 int SendData(int clientIndex, int maxSize);
 
+const char* nullIfEmpty(String& s);
 
 #endif /* ESP_ATMOD_H_ */

@@ -23,6 +23,9 @@
 #include "ESP8266WiFi.h"
 #include <PolledTimeout.h>
 
+#include "sntp.h"
+#include <time.h>
+
 #include "ESP_ATMod.h"
 #include "command.h"
 #include "settings.h"
@@ -96,7 +99,9 @@ static const commandDef_t commandList[] = {
 		{ "+CIPDNS_DEF", MODE_QUERY_SET, CMD_AT_CIPDNS_DEF },
 		{ "+CIPDNS", MODE_QUERY_SET, CMD_AT_CIPDNS },
 		{ "+SYSCPUFREQ", MODE_QUERY_SET, CMD_AT_SYSCPUFREQ },
-		{ "+SYSTIME?", MODE_EXACT_MATCH, CMD_AT_SYSTIME }
+		{ "+CIPSNTPCFG", MODE_QUERY_SET, CMD_AT_CIPSNTPCFG },
+		{ "+SNTPTIME?", MODE_EXACT_MATCH, CMD_AT_SNTPTIME },
+		{ "+CIPSNTPTIME?", MODE_EXACT_MATCH, CMD_AT_CIPSNTPTIME }
 };
 
 /*
@@ -145,7 +150,9 @@ static void cmd_AT_CIPDNS(commands_t cmd);
 static void cmd_AT_SYSCPUFREQ();
 static void cmd_AT_CIPSSLMFLN();
 static void cmd_AT_CIPSSLSTA();
-static void cmd_AT_SYSTIME();
+static void cmd_AT_SNTPTIME();
+static void cmd_AT_CIPSNTPCFG();
+static void cmd_AT_CIPSNTPTIME();
 
 /*
  * Processes the command buffer
@@ -290,9 +297,17 @@ void processCommandBuffer(void)
 	else if (cmd == CMD_AT_CIPSSLSTA)  // AT+CIPSSLSTA - Check the MFLN status for a connection
 		cmd_AT_CIPSSLSTA();
 
-	// ------------------------------------------------------------------------------------ AT+SYSTIME?
-	else if (cmd == CMD_AT_SYSTIME)  // AT+SYSTIME? - get time
-		cmd_AT_SYSTIME();
+	// ------------------------------------------------------------------------------------ AT+SNTPTIME?
+	else if (cmd == CMD_AT_SNTPTIME)  // AT+SNTPTIME? - get time
+		cmd_AT_SNTPTIME();
+
+	// ------------------------------------------------------------------------------------ AT+CIPSNTPCFG
+	else if (cmd == CMD_AT_CIPSNTPCFG)  // AT+CIPSNTPCFG - configure SNTP time
+		cmd_AT_CIPSNTPCFG();
+
+	// ------------------------------------------------------------------------------------ AT+CIPSNTPTIME?
+	else if (cmd == CMD_AT_CIPSNTPTIME)  // AT+CIPSNTPTIME? - get time in asctime format
+		cmd_AT_CIPSNTPTIME();
 
 	else
 	{
@@ -2139,20 +2154,143 @@ void cmd_AT_CIPSSLSTA()
 }
 
 /*
- * AT+SYSTIME? - get time
+ * AT+SNTPTIME? - get time
  */
-void cmd_AT_SYSTIME()
+void cmd_AT_SNTPTIME()
 {
 	time_t now = time(nullptr);
-	if (now > 8 * 3600 * 2)
+	if (gsSTNPEnabled && (now > 8 * 3600 * 2))
 	{
-		Serial.printf_P(PSTR("+SYSTIME:%ld\r\n"), now);
+		now += gsSTNPTimezone * 3600;
+
+		struct tm *info = localtime((const time_t *)&now);
+
+		Serial.printf_P(PSTR("+SNTPTIME:%ld,%04d-%02d-%02d %02d:%02d:%02d\r\n"),
+		            now, info->tm_year+1900, info->tm_mon+1, info->tm_mday, info->tm_hour, info->tm_min, info->tm_sec);
+
 		Serial.println(F("OK"));
+	}
+	else
+	{
+		Serial.println(F("+SNTPTIME:Enable SNTP first (AT+CIPSNTPCFG)"));
+		Serial.printf_P(MSG_ERROR);
+	}
+}
+
+/*
+ * AT+CIPSNTPCFG - configure SNTP time
+ */
+void cmd_AT_CIPSNTPCFG()  // FIXME:
+{
+	uint8_t error = 1;
+
+	if (inputBuffer[13] == '?' && inputBufferCnt == 16)
+	{
+		Serial.printf_P(PSTR("+CIPSNTPCFG:%d"), gsSTNPEnabled ? 1 : 0);
+
+		if (gsSTNPEnabled)
+		{
+			Serial.printf_P(PSTR(",%d"), gsSTNPTimezone);
+
+			for (uint8_t i = 0; i < 3; ++i)
+			{
+				const char *sn = sntp_getservername(i);
+				if (sn != nullptr)
+					Serial.printf_P(PSTR(",\"%s\""), sn);
+			}
+		}
+
+		Serial.println();
+
+		error = 0;
+	}
+
+	else if (inputBuffer[13] == '=')
+	{
+		uint16_t offset = 14;
+		error = 1;
+
+		do
+		{
+			uint32_t sntpEnabled;
+			uint32_t sntpTimezone;
+			String sntpServer[3];
+
+			bool tzNegative = false;
+
+			if (!readNumber(inputBuffer, offset, sntpEnabled) || sntpEnabled > 1)
+				break;
+
+			// If enabling, read additional parameters
+			if (sntpEnabled)
+				{
+				  if (inputBuffer[offset] != ',')
+					  break;
+				if (inputBuffer[++offset] == '-')
+				{
+					tzNegative = true;
+					++offset;
+				}
+
+				if (!readNumber(inputBuffer, offset, sntpTimezone) || sntpEnabled > 12)
+					break;
+
+				for (uint8_t i = 0; i < 3; ++i)
+				{
+					if (inputBuffer[offset] != ',')
+						break;
+
+					sntpServer[i] = readStringFromBuffer(inputBuffer, ++offset, true);
+				}
+			}
+
+			if (inputBufferCnt != offset + 2)
+				break;
+
+			gsSTNPEnabled = (sntpEnabled == 1);
+
+			if (gsSTNPEnabled)
+			{
+				for (uint8_t i = 0; i < 3; ++ i)
+					gsSNTPServer[i] = sntpServer[i];
+
+				gsSTNPTimezone = (tzNegative ? -1 : +1) * sntpTimezone;
+
+				configTime(gsSTNPTimezone, 0, nullIfEmpty(gsSNTPServer[0]), nullIfEmpty(gsSNTPServer[1]), nullIfEmpty(gsSNTPServer[2]));
+			}
+
+			error = 0;
+
+		} while (0);
+	}
+
+	if (error == 0)
+	{
+		Serial.printf_P(MSG_OK);
 	}
 	else
 	{
 		Serial.printf_P(MSG_ERROR);
 	}
+}
+
+/*
+ * AT+CIPSNTPTIME? - get time in asctime format
+ * In case the time is not set correctly, returns 1. 1. 1970
+ */
+void cmd_AT_CIPSNTPTIME()
+{
+	time_t now = time(nullptr);
+
+	if (gsSTNPEnabled && (now > 8 * 3600 * 2))
+		now += gsSTNPTimezone * 3600;
+	else
+		now = 0;
+
+	struct tm *info = localtime((const time_t *)&now);
+
+	Serial.printf_P(PSTR("+CIPSNTPTIME:%s"), asctime(info));
+	Serial.println(F("OK"));
 }
 
 /*********************************************************************************************

@@ -70,7 +70,9 @@ enum commands_t {
 	CMD_AT_UART,
 	CMD_AT_RESTORE,
 	CMD_AT_SYSCPUFREQ,  // New command
-	CMD_AT_SYSTIME,  // New command
+	CMD_AT_SNTPTIME,  // New command
+	CMD_AT_CIPSNTPCFG,
+	CMD_AT_CIPSNTPTIME,
 };
 
 /*

@@ -34,11 +34,11 @@
  *        Resize the input buffer (AT+CIPSSLSIZE) - supported values: 512, 1024, 2048, 4096, 16384 (RFC 3546)
  *        Check the site MFLN capability (AT+CIPSSLMFLN), check the connection MFLN status (AT+CIPSSLSTA)
  * 0.2.4: AT+SYSTIME? for returning unixtime
+ * 0.2.5: revert AT+SYSTIME, implement AT+CIPSNTPCFG, AT+CIPSNTPTIME, AT+SNTPTIME
  *
  * TODO:
  * - Implement AT+CWLAP
  * - TLS Security - list of certificates in FS, persistent fingerprint and single certificate, AT+CIPSSLAUTH_DEF
- * - Implement AT+CIPSNTPCFG, AT+CIPSNTPTIME
  */
 
 #include "Arduino.h"
@@ -63,7 +63,7 @@ extern "C" {
  * Defines
  */
 
-const char APP_VERSION[] = "0.2.4";
+const char APP_VERSION[] = "0.2.5";
 
 /*
  * Constants
@@ -120,6 +120,9 @@ uint8_t gsCipRecvMode = 0;  // command AT+CIPRECVMODE
 ipConfig_t gsCipStaCfg = { 0, 0, 0 };  // command AT+CIPSTA
 dnsConfig_t gsCipDnsCfg = { 0, 0 };  // command AT+CIPDNS
 uint16_t gsCipSslSize = 16384;  // command AT+CIPSSLSIZE
+bool gsSTNPEnabled = true;  // command AT+CIPSNTPCFG
+int8_t gsSTNPTimezone = 0;  // command AT+CIPSNTPCFG
+String gsSNTPServer[3];  // command AT+CIPSNTPCFG
 
 /*
  *  The setup function is called once at startup of the sketch
@@ -159,6 +162,11 @@ void setup()
 	WiFi.mode(WIFI_STA);
 	WiFi.persistent(false);
 	WiFi.setAutoReconnect(false);
+
+	// Set the SNTP defaults
+	gsSNTPServer[0] = "pool.ntp.org";
+	gsSNTPServer[1] = "time.nist.gov";
+	gsSNTPServer[2] = "";
 
 	Serial.println(F("\r\nready"));
 }
@@ -373,8 +381,11 @@ void loop()
 			gsFlag_Connecting = false;
 
 			// Set up time to allow for certificate validation
-			if (time(nullptr) < 8 * 3600 * 2)
-				configTime(3 * 3600, 0, "pool.ntp.org", "time.nist.gov");
+			if (gsSTNPEnabled && time(nullptr) < 8 * 3600 * 2)
+			{
+				// FIXME: Note: the time zone is not used here, it didn't work for me
+				configTime(0, 0, nullIfEmpty(gsSNTPServer[0]), nullIfEmpty(gsSNTPServer[1]), nullIfEmpty(gsSNTPServer[2]));
+			}
 
 			// Redefine dns to the static ones
 			if (gsCipDnsCfg.dns1 != 0)
@@ -597,4 +608,16 @@ int SendData(int clientIndex, int maxSize)
 	}
 
 	return bytes;
+}
+
+/*
+ * Returns the internal char* of the input string
+ * In case of empty string returns nullptr
+ */
+const char* nullIfEmpty(String& s)
+{
+	if (s.isEmpty())
+		return nullptr;
+
+	return s.c_str();
 }
