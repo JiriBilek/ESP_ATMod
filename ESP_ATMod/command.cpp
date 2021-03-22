@@ -1246,7 +1246,7 @@ void cmd_AT_CIPSEND()
 	if (error > 0)
 		Serial.printf_P(MSG_ERROR);
 	else
-		Serial.print(F("OK\r\n>"));
+		Serial.print(F("OK\r\n> "));
 }
 
 /*

@@ -35,6 +35,7 @@
  *        Check the site MFLN capability (AT+CIPSSLMFLN), check the connection MFLN status (AT+CIPSSLSTA)
  * 0.2.4: AT+SYSTIME? for returning unixtime
  * 0.2.5: revert AT+SYSTIME, implement AT+CIPSNTPCFG, AT+CIPSNTPTIME, AT+SNTPTIME
+ * 0.2.6: add space to the response to command cmd_AT_CIPSEND (for compatibility with AT 1.x original firmware)
  *
  * TODO:
  * - Implement AT+CWLAP
@@ -63,7 +64,7 @@ extern "C" {
  * Defines
  */
 
-const char APP_VERSION[] = "0.2.5";
+const char APP_VERSION[] = "0.2.6";
 
 /*
  * Constants
