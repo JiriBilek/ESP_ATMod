@@ -36,6 +36,7 @@
  * 0.2.4: AT+SYSTIME? for returning unixtime
  * 0.2.5: revert AT+SYSTIME, implement AT+CIPSNTPCFG, AT+CIPSNTPTIME, AT+SNTPTIME
  * 0.2.6: add space to the response to command cmd_AT_CIPSEND (for compatibility with AT 1.x original firmware)
+ * 0.2.7: fix 'busy p...' text sending while connecting - send on every received char
  *
  * TODO:
  * - Implement AT+CWLAP
@@ -64,7 +65,7 @@ extern "C" {
  * Defines
  */
 
-const char APP_VERSION[] = "0.2.6";
+const char APP_VERSION[] = "0.2.7";
 
 /*
  * Constants
@@ -420,23 +421,21 @@ void loop()
 			WiFi.setAutoReconnect(false);
 	}
 
-	// Check for a new command while connecting
-	if (lineCompleted)
+    // Check for a new command while connecting
+    if (gsFlag_Connecting)
+    {
+        // Check for busy condition
+        if (inputBufferCnt != 0)
+        {
+            Serial.println(F("\r\nbusy p..."));
+
+            // Discard the input buffer
+            inputBufferCnt = 0;
+        }
+    }
+    else if (lineCompleted)  // Check for a new command
 	{
-		// Check for busy condition
-		if (gsFlag_Connecting)
-		{
-			Serial.println(F("\r\nbusy p..."));
-
-			// Discard the input buffer
-			inputBufferCnt = 0;
-		}
-
-		// Check for a new command
-		else
-		{
-			processCommandBuffer();
-		}
+		processCommandBuffer();
 	}
 }
 
