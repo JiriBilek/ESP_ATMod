@@ -37,9 +37,11 @@
  * 0.2.5: revert AT+SYSTIME, implement AT+CIPSNTPCFG, AT+CIPSNTPTIME, AT+SNTPTIME
  * 0.2.6: add space to the response to command cmd_AT_CIPSEND (for compatibility with AT 1.x original firmware)
  * 0.2.7: fix 'busy p...' text sending while connecting - send on every received char
+ * 0.2.8: add AT+CIPCLOSEMODE
  *
  * TODO:
  * - Implement AT+CWLAP
+ * - Implement AP mode
  * - TLS Security - list of certificates in FS, persistent fingerprint and single certificate, AT+CIPSSLAUTH_DEF
  */
 
@@ -65,7 +67,7 @@ extern "C" {
  * Defines
  */
 
-const char APP_VERSION[] = "0.2.7";
+const char APP_VERSION[] = "0.2.8";
 
 /*
  * Constants

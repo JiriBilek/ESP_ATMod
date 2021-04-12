@@ -77,6 +77,7 @@ static const commandDef_t commandList[] = {
 		{ "+CWMODE", MODE_QUERY_SET, CMD_AT_CWMODE },
 		{ "+CWQAP", MODE_EXACT_MATCH, CMD_AT_CWQAP },
 		{ "+CIFSR", MODE_EXACT_MATCH, CMD_AT_CIFSR },
+		{ "+CIPCLOSEMODE", MODE_NO_CHECKING, CMD_AT_CIPCLOSEMODE },
 		{ "+CIPCLOSE", MODE_NO_CHECKING, CMD_AT_CIPCLOSE },
 		{ "+CIPDINFO", MODE_QUERY_SET, CMD_AT_CIPDINFO },
 		{ "+CIPMUX", MODE_QUERY_SET, CMD_AT_CIPMUX },
@@ -137,6 +138,7 @@ static void cmd_AT_CIPSTA(commands_t cmd);
 static void cmd_AT_CIPSTART();
 static void cmd_AT_CIPSEND();
 static void cmd_AT_CIPCLOSE();
+static void cmd_AT_CIPCLOSEMODE();
 static void cmd_AT_UART(commands_t cmd);
 static void cmd_AT_RESTORE();
 static void cmd_AT_CIPSSLSIZE();
@@ -241,6 +243,10 @@ void processCommandBuffer(void)
 	// ------------------------------------------------------------------------------------ AT+CIPCLOSE
 	else if (cmd == CMD_AT_CIPCLOSE)  // AT+CIPCLOSE - Closes the TCP/UDP/SSL Connection
 		cmd_AT_CIPCLOSE();
+
+	// ------------------------------------------------------------------------------------ AT+CIPCLOSE
+	else if (cmd == CMD_AT_CIPCLOSEMODE)  // AT+CIPCLOSEMODE - Defines the closing mode - parsed but ignored for now
+		cmd_AT_CIPCLOSEMODE();
 
 	// ------------------------------------------------------------------------------------ AT+UART
 	else if (cmd == CMD_AT_UART || cmd == CMD_AT_UART_CUR || cmd == CMD_AT_UART_DEF)
@@ -1318,6 +1324,62 @@ void cmd_AT_CIPCLOSE()
 
 			if (error)
 				break;
+		}
+	} while (0);
+
+	if (error > 0)
+		Serial.printf_P(MSG_ERROR);
+	else
+		Serial.printf_P(MSG_OK);
+}
+
+/*
+ * AT+CIPCLOSEMODE - Defines the closing mode of the connection.
+ * Parsed but ignored for now.
+ */
+void cmd_AT_CIPCLOSEMODE()
+{
+	uint8_t error = 1;
+
+	do
+	{
+		uint16_t offset = 16;
+		uint32_t inputVal = 0;
+		uint32_t linkId = 0;
+
+		// Read the input
+
+		if (inputBuffer[15] != '=')
+			break;
+
+		if (!readNumber(inputBuffer, offset, inputVal) || inputVal > 5)
+			break;
+
+		if (gsCipMux == 0)
+		{
+			// Check the <enable_abort> value and end of line
+			if (inputVal > 1 || inputBufferCnt != offset + 2)
+				break;
+		}
+		else
+		{
+			// Read the second number - <enable_abort> value
+			if (inputBuffer[offset] != ',')
+				break;
+
+			++offset;
+			linkId = inputVal;
+			if (!readNumber(inputBuffer, offset, inputVal) || inputVal > 1 || inputBufferCnt != offset + 2)
+			break;
+		}
+
+		// Check the client
+		WiFiClient *cli = clients[linkId].client;
+
+		if (cli != nullptr)
+		{
+			if (cli->connected())
+				error = 0;  // Success only for a connected client
 		}
 	} while (0);
 
