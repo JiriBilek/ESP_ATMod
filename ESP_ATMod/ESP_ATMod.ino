@@ -438,6 +438,22 @@ void loop()
     else if (lineCompleted)  // Check for a new command
 	{
 		processCommandBuffer();
+
+		// Discard the garbage that may have come during the processing of the command
+		while (Serial.available())
+		{
+			int c = Serial.peek();
+			if (c < 0 || c == 'A')  // we are waiting for empty serial or 'A' in AT command
+				break;
+
+			/* Note: There is a potential risk of discarding input data when the data
+			 *       correctly starts with a character other than 'A'. This is the case
+			 *       of AT+CIPSEND, e.g.
+			 *       The risky time window opens after sending the last character of the
+			 *       processed command response and lasts until the USART is empty
+			 */
+			Serial.read();
+		}
 	}
 }
 

@@ -1345,7 +1345,7 @@ void cmd_AT_CIPCLOSEMODE()
 	{
 		uint16_t offset = 16;
 		uint32_t inputVal = 0;
-		uint32_t linkId = 0;
+//		uint32_t linkId = 0;
 
 		// Read the input
 
@@ -1368,19 +1368,17 @@ void cmd_AT_CIPCLOSEMODE()
 				break;
 
 			++offset;
-			linkId = inputVal;
+//			linkId = inputVal;
 			if (!readNumber(inputBuffer, offset, inputVal) || inputVal > 1 || inputBufferCnt != offset + 2)
-			break;
+				break;
 		}
 
 		// Check the client
-		WiFiClient *cli = clients[linkId].client;
+//		WiFiClient *cli = clients[linkId].client;
 
-		if (cli != nullptr)
-		{
-			if (cli->connected())
-				error = 0;  // Success only for a connected client
-		}
+//		if (cli != nullptr)  // Success only for an existing client
+			error = 0;
+
 	} while (0);
 
 	if (error > 0)
