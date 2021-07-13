@@ -38,11 +38,12 @@
  * 0.2.6: add space to the response to command cmd_AT_CIPSEND (for compatibility with AT 1.x original firmware)
  * 0.2.7: fix 'busy p...' text sending while connecting - send on every received char
  * 0.2.8: add AT+CIPCLOSEMODE
+ * 0.2.9: Stored certificates in filesystem with LittleFS
  *
  * TODO:
  * - Implement AT+CWLAP
  * - Implement AP mode
- * - TLS Security - list of certificates in FS, persistent fingerprint and single certificate, AT+CIPSSLAUTH_DEF
+ * - TLS Security - persistent fingerprint and single certificate, AT+CIPSSLAUTH_DEF
  */
 
 #include "Arduino.h"
