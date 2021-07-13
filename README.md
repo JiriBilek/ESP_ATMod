@@ -88,45 +88,44 @@ In the following table, the list of supported AT commands is given. In the comme
 
 | Command | Description |
 | - | - |
-| AT | Test AT startup |
-| AT+RST | Restart the module |
-| AT+GMR | Print version information |
-| ATE | AT commands echoing |
-| AT+RESTORE | Restore initial settings |
-| AT+UART, AT+UART_CUR | Current UART configuration |
-| AT+UART_DEF | Default UART configuration, stored in flash |
-| AT+SYSRAM | Print remaining RAM space |
-| AT+RFMODE | Set the physical wifi mode - see below |
-| AT+SYSCPUFREQ | Set or query the current CPU frequency |
-| AT+SYSTIME | Print current time (UTC) |
-|  |  |
-| AT+CWMODE | Only AT+CWMODE=1 (Station mode) implemented |
-| AT+CWJAP, AT+CWJAP_CUR | Connect to AP, parameter &lt;pci_en&gt; not implemented |
+| [**Basic AT Commands**](https://docs.espressif.com/projects/esp-at/en/latest/AT_Command_Set/Basic_AT_Commands.html#basic-at-commands) |  |
+| AT | Test AT startup. |
+| AT+RST | Restart a module. |
+| AT+GMR | Check version information. |
+| ATE | Configure AT commands echoing. |
+| AT+RESTORE | Restore factory default settings of the module. |
+| AT+UART, AT+UART_CUR | Current UART configuration, not saved in flash. |
+| AT+UART_DEF | Default UART configuration, saved in flash. |
+| AT+SYSRAM | uery current remaining heap size and minimum heap size. |
+| [**Wi-Fi AT Commands**](https://docs.espressif.com/projects/esp-at/en/latest/AT_Command_Set/Wi-Fi_AT_Commands.html#wi-fi-at-commandss) |  |
+| AT+CWMODE | Set the Wi-Fi mode (Station/SoftAP/Station+SoftAP). (Only AT+CWMODE=1 implemented) |
+| AT+CWJAP, AT+CWJAP_CUR | Connect to an AP, parameter &lt;pci_en&gt; not implemented |
 | AT+CWJAP_DEF | Connect to AP, saved to flash. Parameter &lt;pci_en&gt; not implemented |
-| AT+CWQAP | Disconnect from the AP |
+| AT+CWQAP | Disconnect from an AP. |
 | AT+CWDHCP, AT+CWDHCP_CUR | Enable/disable DHCP - only station mode enabling works |
 | AT+CWDHCP_DEF | Enable/disable DHCP saved to flash - only station mode enabling works |
-| AT+CWAUTOCONN | Enable/disable auto connecting to AP on start |
-| AT+CIPSTA, AT+CIPSTA_CUR | Set and/or print current IP address, gateway and network mask |
+| AT+CWAUTOCONN | Connect to an AP automatically when powered on. |
+| AT+CIPSTA, AT+CIPSTA_CUR | Query/Set the IP address of an ESP station. |
 | AT+CIPSTA_DEF | Set and/or print current IP address, gateway and network mask, stored in flash |
-| AT+CIPDNS, AT+CIPDNS_CUR | Enable and disable static DNS, set and/or print the DNS server addresses |
+| [**TCP/IP AT Commands**](https://docs.espressif.com/projects/esp-at/en/latest/AT_Command_Set/TCP-IP_AT_Commands.html) |  |
+| AT+CIPSTATUS | Obtain the TCP/UDP/SSL connection status and information. |
+| AT+CIPSTART |Establish TCP connection, or SSL connection. Only one TLS connection at a time. |
+| AT+CIPSEND |  Send data in the normal transmission mode or Wi-Fi passthrough mode. |
+| AT+CIPCLOSE | Close TCP/SSL connection. |
+| AT+CIFSR | Obtain the local IP address and MAC address. |
+| AT+CIPMUX | Enable/disable the multiple connections mode. Max. 5 conections, only one of them can be TLS |
+| AT+CIPDINFO | Set “+IPD” message mode. |
+| AT+CIPRECVMODE | Query/Set socket receiving mode. |
+| AT+CIPRECVDATA | Obtain socket data in passive receiving mode. |
+| AT+CIPRECVLEN | Obtain socket data length in passive receiving mode. |
+| AT+CIPDNS, AT+CIPDNS_CUR | Query/Set DNS server information. |
 | AT+CIPDNS_DEF | Default DNS setting, stored in flash |
-| | |
-| AT+CIPDINFO | Set “+IPD” message mode |
-| AT+CIPSTATUS | Get the connection status |
-| AT+CIPSTART | Establish TCP or SSL (TLS) connection. Only one TLS connection at a time |
-| AT+CIPSSLSIZE | Change the size of the recevier buffer (512, 1024, 2048 or 4096 bytes) |
-| AT+CIPSEND | Send data |
-| AT+CIPCLOSE | Close the TCP or SSL (TLS) connection |
-| AT+CIFSR | Get the local IP address |
-| AT+CIPMUX | Enable/disable multiple connections. Max. 5 conections, only one of them can be TLS |
-| AT+CIPRECVMODE | Set TCP or SSL Receive Mode |
-| AT+CIPRECVLEN | Get TCP or SSL Data Length in Passive Receive Mode |
-| AT+CIPRECVDATA | Get TCP or SSL Data in Passive Receive Mode |
-| +IPD | Receive network data |
-| | |
+| **New commands** |  |
+| AT+SYSCPUFREQ | Set or query the current CPU frequency |
+| AT+RFMODE | Set the physical wifi mode - see below |
 | AT+CIPSSLAUTH | Set and query the TLS authentication mode - see below |
 | AT+CIPSSLFP | Load or print the TLS server certificate fingerprint - see below |
+| AT+CIPSSLSIZE | Change the size of the receiver buffer (512, 1024, 2048 or 4096 bytes) |
 | AT+CIPSSLCERT | Load, query or delete TLS CA certificate - see below |
 | AT+CIPSSLMFLN | Check if the site supports Maximum Fragment Length Negotiation (MFLN) |
 | AT+CIPSSLSTA | Prints the MFLN status of a connection |
