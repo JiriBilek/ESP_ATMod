@@ -12,35 +12,6 @@ The AT firmware provided by Espressif comes with basic TLS ciphersuites only. Es
 
 The firmware fits into 1024 KB flash and can be run even on ESP-01 module with 8 Mbit flash.
 
-## Status
-
-The firmware is still in work-in-progress state. It has been tested and is running on my devices but there might be deviations from the expected behaviour.
-My testing environment uses the built-in [Arduino WifiEsp library](https://github.com/bportaluri/WiFiEsp) and also the newer [WiFiEspAT library](https://github.com/jandrassy/WiFiEspAT).
-
-## Installation
-
-There are two options for compiling and flashing this library.
-
-### Arduino IDE
-
-First you have to install Arduino IDE and the [core](https://github.com/esp8266/Arduino) for the ESP8266 chip. Next get all source files from this repository, place them in a folder named **ESP_ATMod** and compile and upload to your ESP module.
-
-After flashing, the module will open serial connection on RX and TX pins with 115200 Bd, 8 bits, no parity. You can talk with the module using a serial terminal of your choice.
-
-### PlatformIO
-
-An alternative to using the Arduino IDE is to use PlatformIO.
-
-1. Install [PlatformIO](https://platformio.org/)
-2. Make sure that your device is in flashing mode
-2. In your favourite terminal and from the root of this repository, run
-   the following command to build and upload the sketch to the device:
-   ```
-   platformio run --target upload
-   ```
-
-This has been configured and tested for the ESP-01 Black.
-
 ## Description
 
 The firmware does not (and likely will not) implement the whole set of AT commands defined in Espressif's documentation.
@@ -59,12 +30,51 @@ New features:
 
 2. Implemented TLS MFLN check (RFC 3546), setting TLS receive buffer size, checking MFLN status of a connection.
 
+## Status
+
+The firmware is still in work-in-progress state. It has been tested and is running on my devices but there might be deviations from the expected behaviour.
+My testing environment uses the built-in [Arduino WifiEsp library](https://github.com/bportaluri/WiFiEsp) and also the newer [WiFiEspAT library](https://github.com/jandrassy/WiFiEspAT).
+
 ## The Future
 
 Next development will be focused on
 
 1. More complete AT command implementation.
 
+## Installation
+
+There are two options for compiling and flashing this library.
+
+### Arduino IDE
+
+First you have to install Arduino IDE and the [core](https://github.com/esp8266/Arduino) for the ESP8266 chip. Next get all source files from this repository, place them in a folder named **ESP_ATMod** and compile and upload to your ESP module.
+
+After flashing, the module will open serial connection on RX and TX pins with 115200 Bd, 8 bits, no parity. You can talk with the module using a serial terminal of your choice.
+
+### PlatformIO
+
+An alternative to using the Arduino IDE is to use PlatformIO.
+
+1. Install [PlatformIO](https://platformio.org/)
+2. Make sure that your device is in flashing mode
+3. In your favourite terminal and from the root of this repository, run
+   the following command to build and upload the sketch to the device:
+   ```
+   platformio run --target upload
+   ```
+
+This has been configured and tested for the ESP-01 Black.
+
+## Add certificates
+
+Certificates are stored in the ESP's filesystem with LittleFS. To add a certificate follow the following steps. 
+**IMPORTANT: the certifcate must be in .pem format.**
+
+1. Copy the certificate you want to the data directory in ESP_ATMod
+2. Install the [LittleFS Filesystem Uploader](https://github.com/earlephilhower/arduino-esp8266littlefs-plugin) 
+3. Select Tools > ESP8266 LittleFS Data Upload menu item. This should start uploading the files into ESP8266 flash file system. When done, IDE status bar will display LittleFS Image Uploaded message. Might take a few minutes for large file system sizes.
+4. Now upload the ESP_ATMod sketch to the ESP.
+5. The certificate(s) you uploaded are now loaded and ready to use (you can check them with AT+CIPSSLCERT?).
 
 ## AT Command List
 
