@@ -26,7 +26,7 @@ The major differences are:
 
 New features:
 
-1. Implemented TLS security with state-of-the-art ciphersuites: certificate fingerprint checking or certificate chain verification (only one CA certificate can be used).
+1. Implemented TLS security with state-of-the-art ciphersuites: certificate fingerprint checking or certificate chain verification.
 
 2. Implemented TLS MFLN check (RFC 3546), setting TLS receive buffer size, checking MFLN status of a connection.
 
