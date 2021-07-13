@@ -1,6 +1,6 @@
 # ESP 8266 AT Firmware - modified for TLS 1.2
 
-This firmware comes as an [Arduino esp8266](https://github.com/esp8266/Arduino) sketch.
+This firmware comes as an [Arduino esp8266](https://github.com/esp8266/Arduino#arduino-on-esp8266) sketch.
 
 This file refers to version 0.3.0 of the firmware.
 
@@ -47,7 +47,7 @@ There are two options for compiling and flashing this library.
 
 ### Arduino IDE
 
-First you have to instal [Arduino IDE](https://www.arduino.cc/en/software- and the [core](https://github.com/esp8266/Arduino) for the ESP8266 chip. Next get all source files from this repository, place them in a folder named **ESP_ATMod** and compile and upload to your ESP module.
+First you have to instal [Arduino IDE](https://www.arduino.cc/en/software- and the [core](https://github.com/esp8266/Arduino#installing-with-boards-manager) for the ESP8266 chip. Next get all source files from this repository, place them in a folder named **ESP_ATMod** and compile and upload to your ESP module.
 
 After flashing, the module will open serial connection on RX and TX pins with 115200 Bd, 8 bits, no parity. You can talk with the module using a serial terminal of your choice.
 
@@ -74,7 +74,7 @@ Certificates are stored in the ESP's filesystem with LittleFS. To add a certific
 **IMPORTANT: the certifcate must be in .pem format.**
 
 1. Copy the certificate you want to the data directory in ESP_ATMod
-2. Install the [LittleFS Filesystem Uploader](https://github.com/earlephilhower/arduino-esp8266littlefs-plugin) 
+2. Install the [LittleFS Filesystem Uploader](https://github.com/earlephilhower/arduino-esp8266littlefs-plugin#installation) 
 3. Select Tools > ESP8266 LittleFS Data Upload menu item. This should start uploading the files into ESP8266 flash file system. When done, IDE status bar will display LittleFS Image Uploaded message. Might take a few minutes for large file system sizes.
 4. Now upload the ESP_ATMod sketch to the ESP.
 5. The certificate(s) you uploaded are now loaded and ready to use (you can check them with AT+CIPSSLCERT?).
