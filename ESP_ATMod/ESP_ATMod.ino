@@ -200,11 +200,11 @@ void setup()
 			}
 			else
 			{
-				// Check if file has content
-				if (dir.fileSize())
+				// Check if the file is in PEM format
+				if (filename.endsWith(".pem"))
 				{
-					// Check if the file is in PEM format
-					if (filename.endsWith(".pem"))
+					// Check if file has content
+					if (dir.fileSize())
 					{
 						File file = LittleFS.open(filename, "r");
 
@@ -233,12 +233,12 @@ void setup()
 					}
 					else
 					{
-						Serial.printf_P(PSTR("\n%s is not a .pem file"), filename.c_str());
+						Serial.printf_P(PSTR("\n%s is empty"), filename.c_str());
 					}
 				}
 				else
 				{
-					Serial.printf_P(PSTR("\n%s is empty"), filename.c_str());
+					Serial.printf_P(PSTR("\n%s is not a .pem file"), filename.c_str());
 				}
 			}
 		}
