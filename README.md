@@ -111,9 +111,12 @@ In the following table, the list of supported AT commands is given. In the comme
 | AT+CIPSTATUS | Obtain the TCP/UDP/SSL connection status and information. |
 | AT+CIPSTART |Establish TCP connection, or SSL connection. Only one TLS connection at a time. |
 | AT+CIPSEND |  Send data in the normal transmission mode or Wi-Fi passthrough mode. |
+| AT+CIPCLOSEMODE | Set the Close Mode of TCP Connection |
 | AT+CIPCLOSE | Close TCP/SSL connection. |
 | AT+CIFSR | Obtain the local IP address and MAC address. |
 | AT+CIPMUX | Enable/disable the multiple connections mode. Max. 5 conections, only one of them can be TLS |
+| AT+CIPSNTPCFG | Query/Set the time zone and SNTP server. |
+| AT+CIPSNTPTIME | Query the SNTP time. |
 | AT+CIPDINFO | Set “+IPD” message mode. |
 | AT+CIPRECVMODE | Query/Set socket receiving mode. |
 | AT+CIPRECVDATA | Obtain socket data in passive receiving mode. |
@@ -127,8 +130,10 @@ In the following table, the list of supported AT commands is given. In the comme
 | AT+CIPSSLFP | Load or print the TLS server certificate fingerprint - see below |
 | AT+CIPSSLSIZE | Change the size of the receiver buffer (512, 1024, 2048 or 4096 bytes) |
 | AT+CIPSSLCERT | Load, query or delete TLS CA certificate - see below |
+| AT+CIPSSLCERTMAX | Query or set the maximum amount of certificates that can be loaded |
 | AT+CIPSSLMFLN | Check if the site supports Maximum Fragment Length Negotiation (MFLN) |
 | AT+CIPSSLSTA | Prints the MFLN status of a connection |
+| AT+SNTPTIME | Get SNTP time|
 
 ## New and Changed Commands
 
