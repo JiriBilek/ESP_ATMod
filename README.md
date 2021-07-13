@@ -260,7 +260,7 @@ The fingerprint consists of exactly 20 bytes. They are set as hex values and may
 
 Load, query or delete CA certificate for TLS certificate chain verification. Currently maximum 5 certificates at a time can be loaded. The certificates must be in PEM structure. After a successful connection, the certificate is checked and is no longer needed for this connection.
 
-**Query:**
+**Query the first certificate:**
 
 *Syntax:*
 ```
@@ -362,7 +362,7 @@ or with an error message. In case of a successful loading, the certificate is re
 
 The limit for the PEM certificate is 4096 characters total. 
 
-**Delete:**
+**Delete the first certificate:**
 
 *Syntax:*
 ```
