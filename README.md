@@ -2,7 +2,7 @@
 
 This firmware comes as an [Arduino esp8266](https://github.com/esp8266/Arduino) sketch.
 
-This file refers to version 0.2.9 of the firmware.
+This file refers to version 0.3.0 of the firmware.
 
 ## Purpose
 

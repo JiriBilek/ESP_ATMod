@@ -38,7 +38,7 @@
  * 0.2.6: add space to the response to command cmd_AT_CIPSEND (for compatibility with AT 1.x original firmware)
  * 0.2.7: fix 'busy p...' text sending while connecting - send on every received char
  * 0.2.8: add AT+CIPCLOSEMODE
- * 0.2.9: Stored certificates in filesystem with LittleFS
+ * 0.3.0: Stored certificates in filesystem with LittleFS
  *
  * TODO:
  * - Implement AT+CWLAP
@@ -70,7 +70,7 @@ extern "C"
  * Defines
  */
 
-const char APP_VERSION[] = "0.2.9";
+const char APP_VERSION[] = "0.3.0";
 
 /*
  * Constants
