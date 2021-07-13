@@ -78,6 +78,7 @@ Certificates are stored in the ESP's filesystem with LittleFS. To add a certific
 3. Select Tools > ESP8266 LittleFS Data Upload menu item. This should start uploading the files into ESP8266 flash file system. When done, IDE status bar will display LittleFS Image Uploaded message. Might take a few minutes for large file system sizes.
 4. Now upload the ESP_ATMod sketch to the ESP.
 5. The certificate(s) you uploaded are now loaded and ready to use (you can check them with AT+CIPSSLCERT?).
+6. (Optional) You may delete the .gitkeep file in the data directory. It is only there to push and pull the data directory in git. Not deleting the .gitkeep file won't do any harm.
 
 ## AT Command List
 
