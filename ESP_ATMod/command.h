@@ -24,7 +24,8 @@
 /*
  * Constants for implemented commands
  */
-enum commands_t {
+enum commands_t
+{
 	CMD_ERROR = 0,
 	CMD_AT,
 	CMD_ATE,
@@ -48,15 +49,15 @@ enum commands_t {
 	CMD_AT_CIPCLOSEMODE,
 	CMD_AT_CIPSEND,
 	CMD_AT_CIPSSLSIZE,
-	CMD_AT_CIPSSLAUTH,  // New command
-	CMD_AT_CIPSSLFP,  // New command
-	CMD_AT_CIPSSLCERT,  // New command
-  	CMD_AT_CIPSSLCERTMAX,  // New command
-	CMD_AT_CIPSSLMFLN,  // New command
-	CMD_AT_CIPSSLSTA,  // New command
-	CMD_AT_CIPRECVMODE,  // v 1.7
-	CMD_AT_CIPRECVLEN,  // v 1.7
-	CMD_AT_CIPRECVDATA,  // v 1.7
+	CMD_AT_CIPSSLAUTH,	  // New command
+	CMD_AT_CIPSSLFP,	  // New command
+	CMD_AT_CIPSSLCERT,	  // New command
+	CMD_AT_CIPSSLCERTMAX, // New command
+	CMD_AT_CIPSSLMFLN,	  // New command
+	CMD_AT_CIPSSLSTA,	  // New command
+	CMD_AT_CIPRECVMODE,	  // v 1.7
+	CMD_AT_CIPRECVLEN,	  // v 1.7
+	CMD_AT_CIPRECVDATA,	  // v 1.7
 	CMD_AT_CIPDNS,
 	CMD_AT_CIPDNS_CUR,
 	CMD_AT_CIPDNS_DEF,
@@ -65,14 +66,14 @@ enum commands_t {
 	CMD_AT_CWJAP_DEF,
 	CMD_AT_CWQAP,
 	CMD_AT_SYSRAM,
-	CMD_AT_RFMODE,  // New command
+	CMD_AT_RFMODE, // New command
 	CMD_AT_CIFSR,
 	CMD_AT_UART_CUR,
 	CMD_AT_UART_DEF,
 	CMD_AT_UART,
 	CMD_AT_RESTORE,
-	CMD_AT_SYSCPUFREQ,  // New command
-	CMD_AT_SNTPTIME,  // New command
+	CMD_AT_SYSCPUFREQ, // New command
+	CMD_AT_SNTPTIME,   // New command
 	CMD_AT_CIPSNTPCFG,
 	CMD_AT_CIPSNTPTIME,
 };
@@ -82,7 +83,5 @@ enum commands_t {
  */
 
 void processCommandBuffer();
-
-
 
 #endif /* COMMAND_H_ */

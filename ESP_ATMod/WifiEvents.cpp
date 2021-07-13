@@ -27,7 +27,7 @@
 /*
  * Feedback when connected to AP
  */
-void onStationConnected(const WiFiEventStationModeConnected& evt)
+void onStationConnected(const WiFiEventStationModeConnected &evt)
 {
 	(void)evt;
 	Serial.println(F("WIFI CONNECTED"));
@@ -46,7 +46,7 @@ void onStationGotIP(const WiFiEventStationModeGotIP &evt)
  * Feedback when disconnected
  * FIXME: print only reason 8
  */
-void onStationDisconnected(const WiFiEventStationModeDisconnected& evt)
+void onStationDisconnected(const WiFiEventStationModeDisconnected &evt)
 {
 	Serial.printf_P(PSTR("WIFI DISCONNECT (%d)\r\n"), evt.reason);
 }

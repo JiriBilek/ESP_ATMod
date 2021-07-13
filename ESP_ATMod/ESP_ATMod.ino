@@ -52,7 +52,8 @@
 #include <ESP8266WiFi.h>
 #include <PolledTimeout.h>
 
-extern "C" {
+extern "C"
+{
 #include "user_interface.h"
 
 #include "lwip/dns.h"
@@ -77,58 +78,58 @@ const char APP_VERSION[] = "0.2.8";
 const char MSG_OK[] PROGMEM = "\r\nOK\r\n";
 const char MSG_ERROR[] PROGMEM = "\r\nERROR\r\n";
 
-const uint16_t MAX_PEM_CERT_LENGTH = 4096;  // Maximum size of a certificate loaded by AT+CIPSSLCERT
+const uint16_t MAX_PEM_CERT_LENGTH = 4096; // Maximum size of a certificate loaded by AT+CIPSSLCERT
 
 /*
  * Global variables
  */
 
-uint8_t inputBuffer[INPUT_BUFFER_LEN];  // Input buffer
-uint16_t inputBufferCnt;  // Number of bytes in inputBuffer
+uint8_t inputBuffer[INPUT_BUFFER_LEN]; // Input buffer
+uint16_t inputBufferCnt;			   // Number of bytes in inputBuffer
 
 WiFiEventHandler onConnectedHandler;
 WiFiEventHandler onGotIPHandler;
 WiFiEventHandler onDisconnectedHandler;
 
-client_t clients[5] = { { nullptr, TYPE_NONE, 0, 0 },
-						{ nullptr, TYPE_NONE, 0, 0 },
-						{ nullptr, TYPE_NONE, 0, 0 },
-						{ nullptr, TYPE_NONE, 0, 0 },
-						{ nullptr, TYPE_NONE, 0, 0 } };
+client_t clients[5] = {{nullptr, TYPE_NONE, 0, 0},
+					   {nullptr, TYPE_NONE, 0, 0},
+					   {nullptr, TYPE_NONE, 0, 0},
+					   {nullptr, TYPE_NONE, 0, 0},
+					   {nullptr, TYPE_NONE, 0, 0}};
 
 uint8_t sendBuffer[2048];
-uint16_t dataRead = 0;  // Number of bytes read from the input to a send buffer
+uint16_t dataRead = 0; // Number of bytes read from the input to a send buffer
 
 // TLS specific variables
 
-uint8_t fingerprint[20];  // SHA-1 certificate fingerprint for TLS connections
-bool fingerprintValid; 
+uint8_t fingerprint[20]; // SHA-1 certificate fingerprint for TLS connections
+bool fingerprintValid;
 BearSSL::X509List CAcert; // CA certificate for TLS validation
 int maximumCertificates;
 
-char *PemCertificate = nullptr;  // Buffer for loading a certificate
-uint16_t PemCertificatePos;  // Position in buffer while loading
-uint16_t PemCertificateCount;  // Number of chars read
+char *PemCertificate = nullptr; // Buffer for loading a certificate
+uint16_t PemCertificatePos;		// Position in buffer while loading
+uint16_t PemCertificateCount;	// Number of chars read
 
 /*
  *  Global settings
  */
-bool gsEchoEnabled = true;  // command ATE
-uint8_t gsCipMux = 0;  // command AT+CIPMUX
-uint8_t gsCipdInfo = 0;  // command AT+CIPDINFO
-uint8_t gsCwDhcp = 3;  // command AT+CWDHCP_CUR
-bool gsFlag_Connecting = false;  // Connecting in progress (CWJAP) - other commands ignored
-int8_t gsLinkIdReading = -1;  // Link id where the data is read
-bool gsCertLoading = false;  // AT+CIPSSLCERT in progress
-bool gsWasConnected = false;  // Connection flag for AT+CIPSTATUS
-uint8_t gsCipSslAuth = 0;  // command AT+CIPSSLAUTH: 0 = none, 1 = fingerprint, 2 = certificate chain
-uint8_t gsCipRecvMode = 0;  // command AT+CIPRECVMODE
-ipConfig_t gsCipStaCfg = { 0, 0, 0 };  // command AT+CIPSTA
-dnsConfig_t gsCipDnsCfg = { 0, 0 };  // command AT+CIPDNS
-uint16_t gsCipSslSize = 16384;  // command AT+CIPSSLSIZE
-bool gsSTNPEnabled = true;  // command AT+CIPSNTPCFG
-int8_t gsSTNPTimezone = 0;  // command AT+CIPSNTPCFG
-String gsSNTPServer[3];  // command AT+CIPSNTPCFG
+bool gsEchoEnabled = true;			// command ATE
+uint8_t gsCipMux = 0;				// command AT+CIPMUX
+uint8_t gsCipdInfo = 0;				// command AT+CIPDINFO
+uint8_t gsCwDhcp = 3;				// command AT+CWDHCP_CUR
+bool gsFlag_Connecting = false;		// Connecting in progress (CWJAP) - other commands ignored
+int8_t gsLinkIdReading = -1;		// Link id where the data is read
+bool gsCertLoading = false;			// AT+CIPSSLCERT in progress
+bool gsWasConnected = false;		// Connection flag for AT+CIPSTATUS
+uint8_t gsCipSslAuth = 0;			// command AT+CIPSSLAUTH: 0 = none, 1 = fingerprint, 2 = certificate chain
+uint8_t gsCipRecvMode = 0;			// command AT+CIPRECVMODE
+ipConfig_t gsCipStaCfg = {0, 0, 0}; // command AT+CIPSTA
+dnsConfig_t gsCipDnsCfg = {0, 0};	// command AT+CIPDNS
+uint16_t gsCipSslSize = 16384;		// command AT+CIPSSLSIZE
+bool gsSTNPEnabled = true;			// command AT+CIPSNTPCFG
+int8_t gsSTNPTimezone = 0;			// command AT+CIPSNTPCFG
+String gsSNTPServer[3];				// command AT+CIPSNTPCFG
 
 /*
  *  The setup function is called once at startup of the sketch
@@ -156,12 +157,12 @@ void setup()
 	memset(fingerprint, 0, sizeof(fingerprint));
 	fingerprintValid = false;
 
-  // Register event handlers.
-  // Call "onStationConnected" each time a station connects
+	// Register event handlers.
+	// Call "onStationConnected" each time a station connects
 	onConnectedHandler = WiFi.onStationModeConnected(&onStationConnected);
-  // Call "onStationModeGotIP" each time a station fully connects
+	// Call "onStationModeGotIP" each time a station fully connects
 	onGotIPHandler = WiFi.onStationModeGotIP(&onStationGotIP);
-  // Call "onStationDisconnected" each time a station disconnects
+	// Call "onStationDisconnected" each time a station disconnects
 	onDisconnectedHandler = WiFi.onStationModeDisconnected(&onStationDisconnected);
 
 	// Set the WiFi defaults
@@ -174,64 +175,79 @@ void setup()
 	gsSNTPServer[1] = "time.nist.gov";
 	gsSNTPServer[2] = "";
 
-  // Default maximum certificates
+	// Default maximum certificates
 	int maximumCertificates = Settings::getMaximumCertificates();
 
-  // Load certificates from LittleFS
-  if (LittleFS.begin()) {
-    // Open dir folder
-    Dir dir = LittleFS.openDir("/");
+	// Load certificates from LittleFS
+	if (LittleFS.begin())
+	{
+		// Open dir folder
+		Dir dir = LittleFS.openDir("/");
 
-    // Cycle all the content
-    while (dir.next()) {
-      // Get filename
-      String filename = dir.fileName();
+		// Cycle all the content
+		while (dir.next())
+		{
+			// Get filename
+			String filename = dir.fileName();
 
-      int originalCertCount = CAcert.getCount();
+			int originalCertCount = CAcert.getCount();
 
-      // Check if maximum certificates has not been reached yet
-      if (originalCertCount >= maximumCertificates) {
-        Serial.printf_P(PSTR("\nCould not load %s. Reached the maximum of %d certificates"), filename.c_str(), maximumCertificates);
-      } else {
-        // Check if file has content
-        if(dir.fileSize()) {
-          // Check if the file is in PEM format
-          if(filename.endsWith(".pem")) {
-            File file = LittleFS.open(filename, "r");
+			// Check if maximum certificates has not been reached yet
+			if (originalCertCount >= maximumCertificates)
+			{
+				Serial.printf_P(PSTR("\nCould not load %s. Reached the maximum of %d certificates"), filename.c_str(), maximumCertificates);
+			}
+			else
+			{
+				// Check if file has content
+				if (dir.fileSize())
+				{
+					// Check if the file is in PEM format
+					if (filename.endsWith(".pem"))
+					{
+						File file = LittleFS.open(filename, "r");
 
-            if(!file){
-              Serial.printf_P("\nFailed to open file for reading");
-              return;
-            }
+						if (!file)
+						{
+							Serial.printf_P("\nFailed to open file for reading");
+							return;
+						}
 
-            // Read file content
-            String fileContent = "";
-            while(file.available()) {
-              fileContent += (char)file.read();
-            }
+						// Read file content
+						String fileContent = "";
+						while (file.available())
+						{
+							fileContent += (char)file.read();
+						}
 
-            file.close();
+						file.close();
 
-            // Append certificate to CAcert list
-            CAcert.append(fileContent.c_str());
+						// Append certificate to CAcert list
+						CAcert.append(fileContent.c_str());
 
-            if (CAcert.getCount() == originalCertCount)
-            {
-              Serial.printf_P(PSTR("\nFailed to add %s to the certificates list"), filename.c_str());
-            }
-          } else {
-            Serial.printf_P(PSTR("\n%s is not a .pem file"), filename.c_str());
-          }
-        } else{
-          Serial.printf_P(PSTR("\n%s is empty"), filename.c_str());
-        }
-      }
-    }
-  } else{
-    Serial.printf_P("\nInizializing FS failed.");
-  }
+						if (CAcert.getCount() == originalCertCount)
+						{
+							Serial.printf_P(PSTR("\nFailed to add %s to the certificates list"), filename.c_str());
+						}
+					}
+					else
+					{
+						Serial.printf_P(PSTR("\n%s is not a .pem file"), filename.c_str());
+					}
+				}
+				else
+				{
+					Serial.printf_P(PSTR("\n%s is empty"), filename.c_str());
+				}
+			}
+		}
+	}
+	else
+	{
+		Serial.printf_P("\nInizializing FS failed.");
+	}
 
-  Serial.println(F("\r\nready"));
+	Serial.println(F("\r\nready"));
 }
 
 /*
@@ -245,7 +261,7 @@ void loop()
 
 	if (Serial.availableForWrite())
 	{
-		uint8_t maxCli = 0;  // Maximum client number
+		uint8_t maxCli = 0; // Maximum client number
 		if (gsCipMux == 1)
 			maxCli = 4;
 
@@ -257,13 +273,13 @@ void loop()
 			{
 				int avail = cli->available();
 
-				if (avail > clients[i].lastAvailableBytes)  // For RECVMODE it is every non zero avail
+				if (avail > clients[i].lastAvailableBytes) // For RECVMODE it is every non zero avail
 				{
 					if (gsCipRecvMode == 0)
 					{
 						SendData(i, 0);
 					}
-					else  // CIPRECVMODE = 1
+					else // CIPRECVMODE = 1
 					{
 						clients[i].lastAvailableBytes = avail;
 
@@ -338,24 +354,27 @@ void loop()
 				// Ignore multiple newlines, save space in the buffer
 				if (c != '\n' || (PemCertificatePos > 0 && PemCertificate[PemCertificatePos - 1] != '\n'))
 				{
-          // Create real backslash from seperate characters '\' and 'n'
-          if (c == 'n' && PemCertificate[PemCertificatePos - 1] == '\\') {
-            PemCertificate[PemCertificatePos - 1] = '\n';
-          } else {
-            PemCertificate[PemCertificatePos++] = c;
-          }
+					// Create real backslash from seperate characters '\' and 'n'
+					if (c == 'n' && PemCertificate[PemCertificatePos - 1] == '\\')
+					{
+						PemCertificate[PemCertificatePos - 1] = '\n';
+					}
+					else
+					{
+						PemCertificate[PemCertificatePos++] = c;
+					}
 
 					// Check the end
 					if (c == '-' && PemCertificatePos > 100)
 					{
-						if (! memcmp_P(PemCertificate + PemCertificatePos - 25, PSTR("-----END CERTIFICATE-----"), 25))
+						if (!memcmp_P(PemCertificate + PemCertificatePos - 25, PSTR("-----END CERTIFICATE-----"), 25))
 						{
 							Serial.printf_P(PSTR("\r\nRead %d bytes\r\n"), PemCertificateCount);
 
 							// Process the certificate
 							PemCertificate[PemCertificatePos] = '\0';
 
-              int originalCertCount = CAcert.getCount();
+							int originalCertCount = CAcert.getCount();
 							CAcert.append(PemCertificate);
 
 							delete PemCertificate;
@@ -378,16 +397,17 @@ void loop()
 					if (PemCertificatePos > MAX_PEM_CERT_LENGTH - 1)
 					{
 						gsCertLoading = false;
-						Serial.printf_P(MSG_ERROR);  // Invalid data
+						Serial.printf_P(MSG_ERROR); // Invalid data
 					}
 				}
 			}
 			else if (c < ' ')
-			{}
-			else  // illegal character in certificate
+			{
+			}
+			else // illegal character in certificate
 			{
 				gsCertLoading = false;
-				Serial.printf_P(MSG_ERROR);  // Invalid data
+				Serial.printf_P(MSG_ERROR); // Invalid data
 			}
 		}
 		else if (inputBufferCnt < INPUT_BUFFER_LEN)
@@ -395,13 +415,14 @@ void loop()
 			if (gsEchoEnabled)
 				Serial.write(c);
 
-/*			if (inputBufferCnt == 0 && c != 'A')  // Wait for 'A' as the start of the command
+			/*			if (inputBufferCnt == 0 && c != 'A')  // Wait for 'A' as the start of the command
 			{}
-			else*/  // FIXME: problematic, some libraries send garbage to check if the module is alive
+			else*/
+			// FIXME: problematic, some libraries send garbage to check if the module is alive
 			{
 				inputBuffer[inputBufferCnt++] = c;
 
-				if (c == '\n')  // LF (0x0a)
+				if (c == '\n') // LF (0x0a)
 				{
 					lineCompleted = true;
 					break;
@@ -411,7 +432,7 @@ void loop()
 		else
 		{
 			inputBufferCnt = 0;
-			Serial.printf_P(MSG_ERROR);  // Buffer overflow
+			Serial.printf_P(MSG_ERROR); // Buffer overflow
 		}
 
 		yield();
@@ -466,7 +487,7 @@ void loop()
 			gsFlag_Connecting = false;
 			break;
 
-//		case STATION_IDLE:
+			//		case STATION_IDLE:
 			//return WL_IDLE_STATUS;
 		default:
 			break; // return WL_DISCONNECTED;
@@ -477,19 +498,19 @@ void loop()
 			WiFi.setAutoReconnect(false);
 	}
 
-    // Check for a new command while connecting
-    if (gsFlag_Connecting)
-    {
-        // Check for busy condition
-        if (inputBufferCnt != 0)
-        {
-            Serial.println(F("\r\nbusy p..."));
+	// Check for a new command while connecting
+	if (gsFlag_Connecting)
+	{
+		// Check for busy condition
+		if (inputBufferCnt != 0)
+		{
+			Serial.println(F("\r\nbusy p..."));
 
-            // Discard the input buffer
-            inputBufferCnt = 0;
-        }
-    }
-    else if (lineCompleted)  // Check for a new command
+			// Discard the input buffer
+			inputBufferCnt = 0;
+		}
+	}
+	else if (lineCompleted) // Check for a new command
 	{
 		processCommandBuffer();
 
@@ -497,7 +518,7 @@ void loop()
 		while (Serial.available())
 		{
 			int c = Serial.peek();
-			if (c < 0 || c == 'A')  // we are waiting for empty serial or 'A' in AT command
+			if (c < 0 || c == 'A') // we are waiting for empty serial or 'A' in AT command
 				break;
 
 			/* Note: There is a potential risk of discarding input data when the data
@@ -544,7 +565,7 @@ void setDhcpMode()
 {
 	if (gsCwDhcp & 2)
 	{
-		WiFi.config(0, 0, 0);  // Enable Station DHCP
+		WiFi.config(0, 0, 0); // Enable Station DHCP
 	}
 	else
 	{
@@ -579,7 +600,7 @@ void setDns()
 	else
 	{
 		// Default DNS server 64.6.64.6 (Verisign Free DNS)
-		dns_setserver(0, IPAddress(64,6,64,6));
+		dns_setserver(0, IPAddress(64, 6, 64, 6));
 		dns_setserver(1, nullptr);
 	}
 }
@@ -590,7 +611,7 @@ void setDns()
  */
 int SendData(int clientIndex, int maxSize)
 {
-	const char *respText[2] = { "+IPD", "+CIPRECVDATA" };
+	const char *respText[2] = {"+IPD", "+CIPRECVDATA"};
 
 	WiFiClient *cli = clients[clientIndex].client;
 	int bytes;
@@ -624,7 +645,7 @@ int SendData(int clientIndex, int maxSize)
 
 		Serial.printf_P(PSTR(",%d"), avail);
 
-		if (gsCipdInfo == 1 && gsCipRecvMode == 0)  // No CIPDINFO for CIPRECVDATA
+		if (gsCipdInfo == 1 && gsCipRecvMode == 0) // No CIPDINFO for CIPRECVDATA
 		{
 			IPAddress ip = cli->remoteIP();
 
@@ -686,7 +707,7 @@ int SendData(int clientIndex, int maxSize)
  * Returns the internal char* of the input string
  * In case of empty string returns nullptr
  */
-const char* nullIfEmpty(String& s)
+const char *nullIfEmpty(String &s)
 {
 	if (s.isEmpty())
 		return nullptr;

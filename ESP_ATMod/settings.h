@@ -30,7 +30,7 @@
  * Defines
  */
 
-#define EEPROM_DATA_SIZE	64
+#define EEPROM_DATA_SIZE 64
 
 /*
  * Types
@@ -43,7 +43,7 @@ typedef struct
 	uint8_t dhcpMode;
 	ipConfig_t netConfig;
 	dnsConfig_t dnsConfig;
-  	int maximumCertificates;
+	int maximumCertificates;
 
 	uint32_t crc32;
 } eepromData_t;
@@ -60,14 +60,14 @@ public:
 	static uint8_t getDhcpMode();
 	static ipConfig_t getNetConfig();
 	static dnsConfig_t getDnsConfig();
-  	static int getMaximumCertificates();
+	static int getMaximumCertificates();
 
 	static void setUartBaudRate(uint32_t baudRate);
 	static void setUartConfig(SerialConfig config);
 	static void setDhcpMode(uint8_t mode);
 	static void setNetConfig(ipConfig_t netCfg);
 	static void setDnsConfig(dnsConfig_t dnsCfg);
-  	static void setMaximumCertificates(int maximumCertificates);
+	static void setMaximumCertificates(int maximumCertificates);
 
 	static void reset();
 
@@ -89,18 +89,17 @@ protected:
 		uint8_t getDhcpMode() { return data.dhcpMode; }
 		ipConfig_t getNetConfig() { return data.netConfig; }
 		dnsConfig_t getDnsConfig() { return data.dnsConfig; }
-    		int getMaximumCertificates() { return data.maximumCertificates; }
+		int getMaximumCertificates() { return data.maximumCertificates; }
 
 		void setUartBaudRate(uint32_t baudRate) { data.uartBaudRate = baudRate; }
 		void setUartConfig(SerialConfig config) { data.uartConfig = config; }
 		void setDhcpMode(uint8_t mode) { data.dhcpMode = mode; }
 		void setNetConfig(ipConfig_t netCfg) { data.netConfig = netCfg; }
 		void setDnsConfig(dnsConfig_t dnsCfg) { data.dnsConfig = dnsCfg; }
-    		void setMaximumCertificates(int maximumCertificates) { data.maximumCertificates = maximumCertificates; }
+		void setMaximumCertificates(int maximumCertificates) { data.maximumCertificates = maximumCertificates; }
 
 		eepromData_t *getDataPtr() { return &data; }
 	};
 };
-
 
 #endif /* SETTINGS_H_ */

@@ -22,7 +22,6 @@
 #ifndef ASNDECODE_H_
 #define ASNDECODE_H_
 
-
 #include "Arduino.h"
 
 /*
@@ -30,6 +29,5 @@
  */
 
 uint8_t *getCnFromDer(uint8_t *der, uint16_t length);
-
 
 #endif /* ASNDECODE_H_ */
