@@ -52,6 +52,7 @@ First you have to install [Arduino IDE](https://www.arduino.cc/en/software) and 
 After flashing, the module will open serial connection on RX and TX pins with 115200 Bd, 8 bits, no parity. You can talk with the module using a serial terminal of your choice.
 
 **DISCLAIMER**
+
 Use the released Arduino IDE 1 and not the Arduino IDE 2.0 beta version. The beta version is not stable yet and contains a bug that messes up persistent wifi due the certificate uploads to the ESP's filesystem. Futhermore the Arduino IDE 2.0 beta version does not have the LittleFS Filesystem Uploader tool in place.
 
 ### PlatformIO
