@@ -112,6 +112,7 @@ In the following table, the list of supported AT commands is given. In the comme
 | AT+CIPDNS, AT+CIPDNS_CUR | Enable and disable static DNS, set and/or print the DNS server addresses |
 | AT+CIPDNS_DEF | Default DNS setting, stored in flash |
 | | |
+| AT+CIPDINFO | Set “+IPD” message mode |
 | AT+CIPSTATUS | Get the connection status |
 | AT+CIPSTART | Establish TCP or SSL (TLS) connection. Only one TLS connection at a time |
 | AT+CIPSSLSIZE | Change the size of the recevier buffer (512, 1024, 2048 or 4096 bytes) |
