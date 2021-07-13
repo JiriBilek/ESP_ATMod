@@ -72,6 +72,7 @@ This has been configured and tested for the ESP-01 Black.
 ## Add certificates
 
 Certificates are stored in the ESP's filesystem with LittleFS. To add a certificate follow the following steps. 
+
 **IMPORTANT: the certifcate must be in .pem format.**
 
 1. Copy the certificate you want to the data directory in ESP_ATMod
