@@ -47,7 +47,7 @@ There are two options for compiling and flashing this library.
 
 ### Arduino IDE
 
-First you have to instal [Arduino IDE](https://www.arduino.cc/en/software- and the [core](https://github.com/esp8266/Arduino#installing-with-boards-manager) for the ESP8266 chip. Next get all source files from this repository, place them in a folder named **ESP_ATMod** and compile and upload to your ESP module.
+First you have to instal [Arduino IDE](https://www.arduino.cc/en/software) and the [core](https://github.com/esp8266/Arduino#installing-with-boards-manager) for the ESP8266 chip. Next get all source files from this repository, place them in a folder named **ESP_ATMod** and compile and upload to your ESP module.
 
 After flashing, the module will open serial connection on RX and TX pins with 115200 Bd, 8 bits, no parity. You can talk with the module using a serial terminal of your choice.
 
