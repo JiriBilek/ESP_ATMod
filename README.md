@@ -310,7 +310,7 @@ OK
 >
 ```
 
-You can now send the certificate (PEM encoding), no echo is given. After the last line (`-----END CERTIFICATE-----`), the certificate is parsed and loaded. The certificate should be sent with \n notation. For example: 
+You can now send the certificate (PEM encoding), no echo is given. After the last line (`-----END CERTIFICATE-----`), the certificate is parsed and loaded. The certificate should be sent with \n notation. For example [isrg-root-x1-cross-signed.pem](https://letsencrypt.org/certs/isrg-root-x1-cross-signed.pem): 
 
 ```
 -----BEGIN CERTIFICATE-----
