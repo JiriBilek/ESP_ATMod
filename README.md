@@ -2,7 +2,7 @@
 
 This firmware comes as an [Arduino esp8266](https://github.com/esp8266/Arduino) sketch.
 
-This file refers to version 0.2.4 of the firmware.
+This file refers to version 0.2.9 of the firmware.
 
 ## Purpose
 
@@ -64,9 +64,7 @@ New features:
 
 Next development will be focused on
 
-1. Enabling LittleFS and storing certificates there, the idea is to validate TLS connection against the list of common CA certificates stored locally. No CRL though.
-
-2. More complete AT command implementation.
+1. More complete AT command implementation.
 
 
 ## AT Command List
@@ -75,7 +73,7 @@ In the following table, the list of supported AT commands is given. In the comme
 
 | Command | Description |
 | - | - |
-| AT | Test |
+| AT | Test AT startup |
 | AT+RST | Restart the module |
 | AT+GMR | Print version information |
 | ATE | AT commands echoing |
@@ -123,21 +121,29 @@ In the following table, the list of supported AT commands is given. In the comme
 
 Sets and queries the physical wifi mode.
 
-**Syntax:**
+**Query:**
 
-Query:
-
+*Syntax:*
 ```
 AT+RFMODE?
+```
+
+*Answer:*
+```
 +RFMODE=1
 
 OK
 ```
 
-Set:
+**Set:**
 
+*Syntax:*
 ```
 AT+RFMODE=<mode>
+```
+
+*Answer:*
+```
 
 OK
 ```
@@ -154,21 +160,29 @@ The allowed values of &lt;mode&gt; are:
 
 Set or queries the selected TLS authentication mode. The default is no authentication. Try to avoid this because it is insecure and prone to MITM attack.
 
-**Syntax:**
+**Query:**
 
-Query:
-
+*Syntax:*
 ```
 AT+CIPSSLAUTH?
+```
+
+*Answer:*
+```
 +CIPSSLAUTH=0
 
 OK
 ```
 
-Set:
+**Set:**
 
+*Syntax:*
 ```
 AT+CIPSSLAUTH=<mode>
+```
+
+*Answer:*
+```
 
 OK
 ```
@@ -192,26 +206,35 @@ Load or print the saved server certificate fingerprint. The fingerprint is based
 
 The SHA-1 certificate fingerprint for a site can be obtained e.g. in browser while examining the server certificate.
 
-**Syntax:**
+**Query:**
 
-Query:
-
+*Syntax:*
 ```
 AT+CIPSSLFP?
+```
+
+*Answer:*
+```
 +CIPSSLFP:"4F:D5:B1:C9:B2:8C:CF:D2:D5:9C:84:5D:76:F6:F7:A1:D0:A2:FA:3D"
 
 OK
 ```
 
-Set:
+**Set:**
 
+*Syntax:*
 ```
 AT+CIPSSLFP="4F:D5:B1:C9:B2:8C:CF:D2:D5:9C:84:5D:76:F6:F7:A1:D0:A2:FA:3D"
-
-OK
 ```
+
+or
+
 ```
 AT+CIPSSLFP="4FD5B1C9B28CCFD2D59C845D76F6F7A1D0A2FA3D"
+```
+
+*Answer:*
+```
 
 OK
 ```
@@ -220,54 +243,138 @@ The fingerprint consists of exactly 20 bytes. They are set as hex values and may
 
 ### **AT+CIPSSLCERT - Load, Query or Delete TLS CA Certificate**
 
-Load, query or delete CA certificate for TLS certificate chain verification. Only one certificate at a time can be loaded. The certificate must be in PEM structure. After a successful connection, the certificate is checked and is no longer needed for this connection.
+Load, query or delete CA certificate for TLS certificate chain verification. Currently maximum 5 certificates at a time can be loaded. The certificates must be in PEM structure. After a successful connection, the certificate is checked and is no longer needed for this connection.
 
-**Syntax:**
+**Query:**
 
-Query:
-
+*Syntax:*
 ```
 AT+CIPSSLCERT?
+```
+
+*Answer:*
+```
 +CIPSSLCERT:no cert
 
 OK
 ```
 
+or
+
 ```
-AT+CIPSSLCERT?
 +CIPSSLCERT:DST Root CA X3
 
 OK
 ```
 
-Set:
+**Query specific certificate:**
 
+*Syntax:*
+```
+AT+CIPSSLCERT?2
+```
+
+*Answer:*
+```
++CIPSSLCERT:DST Root CA X3
+
+OK
+```
+
+**Set:**
+
+*Syntax:*
 ```
 AT+CIPSSLCERT
+```
+
+*Answer:*
+```
 
 OK
 >
 ```
 
-You can now send the certificate (PEM encoding), no echo is given. After the last line (`-----END CERTIFICATE-----`), the certificate is parsed and loaded. The application responds with
+You can now send the certificate (PEM encoding), no echo is given. After the last line (`-----END CERTIFICATE-----`), the certificate is parsed and loaded. The certificate should be sent with \n notation. For example: 
 
 ```
-Read 1216 bytes
+-----BEGIN CERTIFICATE-----
+MIIFYDCCBEigAwIBAgIQQAF3ITfU6UK47naqPGQKtzANBgkqhkiG9w0BAQsFADA/
+MSQwIgYDVQQKExtEaWdpdGFsIFNpZ25hdHVyZSBUcnVzdCBDby4xFzAVBgNVBAMT
+DkRTVCBSb290IENBIFgzMB4XDTIxMDEyMDE5MTQwM1oXDTI0MDkzMDE4MTQwM1ow
+TzELMAkGA1UEBhMCVVMxKTAnBgNVBAoTIEludGVybmV0IFNlY3VyaXR5IFJlc2Vh
+cmNoIEdyb3VwMRUwEwYDVQQDEwxJU1JHIFJvb3QgWDEwggIiMA0GCSqGSIb3DQEB
+AQUAA4ICDwAwggIKAoICAQCt6CRz9BQ385ueK1coHIe+3LffOJCMbjzmV6B493XC
+ov71am72AE8o295ohmxEk7axY/0UEmu/H9LqMZshftEzPLpI9d1537O4/xLxIZpL
+wYqGcWlKZmZsj348cL+tKSIG8+TA5oCu4kuPt5l+lAOf00eXfJlII1PoOK5PCm+D
+LtFJV4yAdLbaL9A4jXsDcCEbdfIwPPqPrt3aY6vrFk/CjhFLfs8L6P+1dy70sntK
+4EwSJQxwjQMpoOFTJOwT2e4ZvxCzSow/iaNhUd6shweU9GNx7C7ib1uYgeGJXDR5
+bHbvO5BieebbpJovJsXQEOEO3tkQjhb7t/eo98flAgeYjzYIlefiN5YNNnWe+w5y
+sR2bvAP5SQXYgd0FtCrWQemsAXaVCg/Y39W9Eh81LygXbNKYwagJZHduRze6zqxZ
+Xmidf3LWicUGQSk+WT7dJvUkyRGnWqNMQB9GoZm1pzpRboY7nn1ypxIFeFntPlF4
+FQsDj43QLwWyPntKHEtzBRL8xurgUBN8Q5N0s8p0544fAQjQMNRbcTa0B7rBMDBc
+SLeCO5imfWCKoqMpgsy6vYMEG6KDA0Gh1gXxG8K28Kh8hjtGqEgqiNx2mna/H2ql
+PRmP6zjzZN7IKw0KKP/32+IVQtQi0Cdd4Xn+GOdwiK1O5tmLOsbdJ1Fu/7xk9TND
+TwIDAQABo4IBRjCCAUIwDwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMCAQYw
+SwYIKwYBBQUHAQEEPzA9MDsGCCsGAQUFBzAChi9odHRwOi8vYXBwcy5pZGVudHJ1
+c3QuY29tL3Jvb3RzL2RzdHJvb3RjYXgzLnA3YzAfBgNVHSMEGDAWgBTEp7Gkeyxx
++tvhS5B1/8QVYIWJEDBUBgNVHSAETTBLMAgGBmeBDAECATA/BgsrBgEEAYLfEwEB
+ATAwMC4GCCsGAQUFBwIBFiJodHRwOi8vY3BzLnJvb3QteDEubGV0c2VuY3J5cHQu
+b3JnMDwGA1UdHwQ1MDMwMaAvoC2GK2h0dHA6Ly9jcmwuaWRlbnRydXN0LmNvbS9E
+U1RST09UQ0FYM0NSTC5jcmwwHQYDVR0OBBYEFHm0WeZ7tuXkAXOACIjIGlj26Ztu
+MA0GCSqGSIb3DQEBCwUAA4IBAQAKcwBslm7/DlLQrt2M51oGrS+o44+/yQoDFVDC
+5WxCu2+b9LRPwkSICHXM6webFGJueN7sJ7o5XPWioW5WlHAQU7G75K/QosMrAdSW
+9MUgNTP52GE24HGNtLi1qoJFlcDyqSMo59ahy2cI2qBDLKobkx/J3vWraV0T9VuG
+WCLKTVXkcGdtwlfFRjlBz4pYg1htmf5X6DYO8A4jqv2Il9DjXA6USbW1FzXSLr9O
+he8Y4IWS6wY7bCkjCWDcRQJMEhg76fsO3txE+FiYruq9RUWhiF1myv4Q6W+CyBFC
+Dfvp7OOGAN6dEOM4+qR9sdjoSYKEBpsr6GtPAQw4dy753ec5
+-----END CERTIFICATE-----
+```
+
+Should be:
+```
+-----BEGIN CERTIFICATE-----\nMIIFYDCCBEigAwIBAgIQQAF3ITfU6UK47naqPGQKtzANBgkqhkiG9w0BAQsFADA/\nMSQwIgYDVQQKExtEaWdpdGFsIFNpZ25hdHVyZSBUcnVzdCBDby4xFzAVBgNVBAMT\nDkRTVCBSb290IENBIFgzMB4XDTIxMDEyMDE5MTQwM1oXDTI0MDkzMDE4MTQwM1ow\nTzELMAkGA1UEBhMCVVMxKTAnBgNVBAoTIEludGVybmV0IFNlY3VyaXR5IFJlc2Vh\ncmNoIEdyb3VwMRUwEwYDVQQDEwxJU1JHIFJvb3QgWDEwggIiMA0GCSqGSIb3DQEB\nAQUAA4ICDwAwggIKAoICAQCt6CRz9BQ385ueK1coHIe+3LffOJCMbjzmV6B493XC\nov71am72AE8o295ohmxEk7axY/0UEmu/H9LqMZshftEzPLpI9d1537O4/xLxIZpL\nwYqGcWlKZmZsj348cL+tKSIG8+TA5oCu4kuPt5l+lAOf00eXfJlII1PoOK5PCm+D\nLtFJV4yAdLbaL9A4jXsDcCEbdfIwPPqPrt3aY6vrFk/CjhFLfs8L6P+1dy70sntK\n4EwSJQxwjQMpoOFTJOwT2e4ZvxCzSow/iaNhUd6shweU9GNx7C7ib1uYgeGJXDR5\nbHbvO5BieebbpJovJsXQEOEO3tkQjhb7t/eo98flAgeYjzYIlefiN5YNNnWe+w5y\nsR2bvAP5SQXYgd0FtCrWQemsAXaVCg/Y39W9Eh81LygXbNKYwagJZHduRze6zqxZ\nXmidf3LWicUGQSk+WT7dJvUkyRGnWqNMQB9GoZm1pzpRboY7nn1ypxIFeFntPlF4\nFQsDj43QLwWyPntKHEtzBRL8xurgUBN8Q5N0s8p0544fAQjQMNRbcTa0B7rBMDBc\nSLeCO5imfWCKoqMpgsy6vYMEG6KDA0Gh1gXxG8K28Kh8hjtGqEgqiNx2mna/H2ql\nPRmP6zjzZN7IKw0KKP/32+IVQtQi0Cdd4Xn+GOdwiK1O5tmLOsbdJ1Fu/7xk9TND\nTwIDAQABo4IBRjCCAUIwDwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMCAQYw\nSwYIKwYBBQUHAQEEPzA9MDsGCCsGAQUFBzAChi9odHRwOi8vYXBwcy5pZGVudHJ1\nc3QuY29tL3Jvb3RzL2RzdHJvb3RjYXgzLnA3YzAfBgNVHSMEGDAWgBTEp7Gkeyxx\n+tvhS5B1/8QVYIWJEDBUBgNVHSAETTBLMAgGBmeBDAECATA/BgsrBgEEAYLfEwEB\nATAwMC4GCCsGAQUFBwIBFiJodHRwOi8vY3BzLnJvb3QteDEubGV0c2VuY3J5cHQu\nb3JnMDwGA1UdHwQ1MDMwMaAvoC2GK2h0dHA6Ly9jcmwuaWRlbnRydXN0LmNvbS9E\nU1RST09UQ0FYM0NSTC5jcmwwHQYDVR0OBBYEFHm0WeZ7tuXkAXOACIjIGlj26Ztu\nMA0GCSqGSIb3DQEBCwUAA4IBAQAKcwBslm7/DlLQrt2M51oGrS+o44+/yQoDFVDC\n5WxCu2+b9LRPwkSICHXM6webFGJueN7sJ7o5XPWioW5WlHAQU7G75K/QosMrAdSW\n9MUgNTP52GE24HGNtLi1qoJFlcDyqSMo59ahy2cI2qBDLKobkx/J3vWraV0T9VuG\nWCLKTVXkcGdtwlfFRjlBz4pYg1htmf5X6DYO8A4jqv2Il9DjXA6USbW1FzXSLr9O\nhe8Y4IWS6wY7bCkjCWDcRQJMEhg76fsO3txE+FiYruq9RUWhiF1myv4Q6W+CyBFC\nDfvp7OOGAN6dEOM4+qR9sdjoSYKEBpsr6GtPAQw4dy753ec5\n-----END CERTIFICATE-----
+```
+
+The application responds with
+
+```
+Read 1952 bytes
 
 OK
 ```
 or with an error message. In case of a successful loading, the certificate is ready to use and you can turn the certificate checking on (`AT+CIPSSLAUTH=2`). 
 
-The limit for the PEM certificate is 4096 characters total.
+The limit for the PEM certificate is 4096 characters total. 
 
-Delete:
+**Delete:**
 
+*Syntax:*
 ```
 AT+CIPSSLCERT=DELETE
+```
+
+*Answer:*
+```
 +CIPSSLCERT:deleted
 
 OK
 ```
+
+**Query specific certificate:**
+
+*Syntax:*
+```
+AT+CIPSSLCERT=DELETE:2
+```
+
+*Answer:*
+```
++CIPSSLCERT:deleted certificate 2
+
+OK
+```
+
 The certificate is deleted from the memory. 
 
 ### **AT+CIPRECVMODE, AT+CIPRECVLEN, AT+CIPRECVDATA in SSL mode**
@@ -284,21 +391,29 @@ work in SSL mode in the same way as in TCP mode.
 
 Sets and queries the COU freqency. The only valid values are 80 and 160 Mhz.
 
-**Syntax:**
+**Query:**
 
-Query:
-
+*Syntax:*
 ```
 AT+SYSCPUFREQ?
+```
+
+*Answer:*
+```
 +SYSCPUFREQ=80
 
 OK
 ```
 
-Set:
+**Set:**
 
+*Syntax:*
 ```
 AT+SYSCPUFREQ=<freq>
+```
+
+*Answer:*
+```
 
 OK
 ```
@@ -309,10 +424,14 @@ The value freq may be 80 or 160.
 
 Sets the TLS receiver buffer size. The size can be 512, 1024, 2048, 4096 or 16384 (default) bytes according to [RFC3546](https://tools.ietf.org/html/rfc3546). The value is used for all subsequent TLS connections, the opened connections are not affected.
 
-**Syntax:**
+*Syntax:*
 
 ```
 AT+CIPSSLSIZE=512
+```
+
+*Answer:*
+```
 
 OK
 ```
@@ -321,7 +440,7 @@ OK
 
 The Maximum Fragment Length Negotiation extension is useful for lowering the RAM usage by reducing receiver buffer size on TLS connections. Newer TLS implementations support this extension but it would be wise to check the capability before changing a TLS buffer size and making a connection. As the server won't change this feature on the fly, you should test the MFLN capability only once.
 
-**Syntax:**
+*Syntax:*
 
 AT+CIPSSLMFLN="*site*",*port*,*size*
 
@@ -329,6 +448,10 @@ The valid sizes are 512, 1024, 2048 and 4096.
 
 ```
 AT+CIPSSLMFLN="www.github.com",443,512
+```
+
+*Answer:*
+```
 +CIPSSLMFLN:TRUE
 
 OK
@@ -338,7 +461,7 @@ OK
 
 This command checks the MFLN status on an opened TLS connection.
 
-**Syntax:**
+*Syntax:*
 
 AT+CIPSSLSTA[=linkID]
 
@@ -346,6 +469,10 @@ The *linkID* value is mandatory when the multiplexing is on (AT+CIPMUX=1). It sh
 
 ```
 AT+CIPSSLSTA=0
+```
+
+*Answer:*
+```
 +CIPSSLSTA:1
 
 OK
@@ -357,12 +484,13 @@ The returned value of 1 means there was a MFLN negotiation. It holds even with t
 
 This command returns the current time as unix time (number of seconds since January 1st, 1970). The time zone is fixed to GMT (UTC). The time is obtained by querying NTP servers automatically, after connecting to the internet. Before connecting to the internet or in case of an error in communication with NTP servers, the time is unknown. This situation should be temporary.
 
-**Syntax:**
-
-AT+SYSTIME?
-
+*Syntax:*
 ```
 AT+SYSTIME?
+```
+
+*Answer:*
+```
 +SYSTIME:1607438042
 OK
 ```

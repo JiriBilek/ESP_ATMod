@@ -46,6 +46,7 @@
  */
 
 #include "Arduino.h"
+#include "LittleFS.h"
 #include "string.h"
 
 #include <ESP8266WiFi.h>
@@ -101,8 +102,9 @@ uint16_t dataRead = 0;  // Number of bytes read from the input to a send buffer
 // TLS specific variables
 
 uint8_t fingerprint[20];  // SHA-1 certificate fingerprint for TLS connections
-bool fingerprintValid;
-BearSSL::X509List *CAcert = nullptr;  // CA certificate for TLS validation
+bool fingerprintValid; 
+BearSSL::X509List CAcert; // CA certificate for TLS validation
+int maximumCertificates;
 
 char *PemCertificate = nullptr;  // Buffer for loading a certificate
 uint16_t PemCertificatePos;  // Position in buffer while loading
@@ -154,12 +156,12 @@ void setup()
 	memset(fingerprint, 0, sizeof(fingerprint));
 	fingerprintValid = false;
 
-    // Register event handlers.
-    // Call "onStationConnected" each time a station connects
+  // Register event handlers.
+  // Call "onStationConnected" each time a station connects
 	onConnectedHandler = WiFi.onStationModeConnected(&onStationConnected);
-    // Call "onStationModeGotIP" each time a station fully connects
+  // Call "onStationModeGotIP" each time a station fully connects
 	onGotIPHandler = WiFi.onStationModeGotIP(&onStationGotIP);
-    // Call "onStationDisconnected" each time a station disconnects
+  // Call "onStationDisconnected" each time a station disconnects
 	onDisconnectedHandler = WiFi.onStationModeDisconnected(&onStationDisconnected);
 
 	// Set the WiFi defaults
@@ -172,7 +174,64 @@ void setup()
 	gsSNTPServer[1] = "time.nist.gov";
 	gsSNTPServer[2] = "";
 
-	Serial.println(F("\r\nready"));
+  // Default maximum certificates
+	int maximumCertificates = Settings::getMaximumCertificates();
+
+  // Load certificates from LittleFS
+  if (LittleFS.begin()) {
+    // Open dir folder
+    Dir dir = LittleFS.openDir("/");
+
+    // Cycle all the content
+    while (dir.next()) {
+      // Get filename
+      String filename = dir.fileName();
+
+      int originalCertCount = CAcert.getCount();
+
+      // Check if maximum certificates has not been reached yet
+      if (originalCertCount >= maximumCertificates) {
+        Serial.printf_P(PSTR("\nCould not load %s. Reached the maximum of %d certificates"), filename.c_str(), maximumCertificates);
+      } else {
+        // Check if file has content
+        if(dir.fileSize()) {
+          // Check if the file is in PEM format
+          if(filename.endsWith(".pem")) {
+            File file = LittleFS.open(filename, "r");
+
+            if(!file){
+              Serial.printf_P("\nFailed to open file for reading");
+              return;
+            }
+
+            // Read file content
+            String fileContent = "";
+            while(file.available()) {
+              fileContent += (char)file.read();
+            }
+
+            file.close();
+
+            // Append certificate to CAcert list
+            CAcert.append(fileContent.c_str());
+
+            if (CAcert.getCount() == originalCertCount)
+            {
+              Serial.printf_P(PSTR("\nFailed to add %s to the certificates list"), filename.c_str());
+            }
+          } else {
+            Serial.printf_P(PSTR("\n%s is not a .pem file"), filename.c_str());
+          }
+        } else{
+          Serial.printf_P(PSTR("\n%s is empty"), filename.c_str());
+        }
+      }
+    }
+  } else{
+    Serial.printf_P("\nInizializing FS failed.");
+  }
+
+  Serial.println(F("\r\nready"));
 }
 
 /*
@@ -274,16 +333,17 @@ void loop()
 			++PemCertificateCount;
 
 			// base 64 characters and hyphen for header and footer
-			if (isAlphaNumeric(c) || strchr("/+= -\r\n", c) != nullptr)
+			if (isAlphaNumeric(c) || strchr("/+= -\\", c) != nullptr)
 			{
-				// Check newlines - the header and footer must be separated by at least one '\n' from the base64 certificate data
-				if (c == '\r')
-					c = '\n';
-
 				// Ignore multiple newlines, save space in the buffer
 				if (c != '\n' || (PemCertificatePos > 0 && PemCertificate[PemCertificatePos - 1] != '\n'))
 				{
-					PemCertificate[PemCertificatePos++] = c;
+          // Create real backslash from seperate characters '\' and 'n'
+          if (c == 'n' && PemCertificate[PemCertificatePos - 1] == '\\') {
+            PemCertificate[PemCertificatePos - 1] = '\n';
+          } else {
+            PemCertificate[PemCertificatePos++] = c;
+          }
 
 					// Check the end
 					if (c == '-' && PemCertificatePos > 100)
@@ -293,11 +353,10 @@ void loop()
 							Serial.printf_P(PSTR("\r\nRead %d bytes\r\n"), PemCertificateCount);
 
 							// Process the certificate
-
 							PemCertificate[PemCertificatePos] = '\0';
-							// Serial.print(PemCertificate);
 
-							BearSSL::X509List *certList = new BearSSL::X509List(PemCertificate);
+              int originalCertCount = CAcert.getCount();
+							CAcert.append(PemCertificate);
 
 							delete PemCertificate;
 							PemCertificate = nullptr;
@@ -305,13 +364,8 @@ void loop()
 
 							gsCertLoading = false;
 
-							if (certList->getCount() == 1)
+							if (CAcert.getCount() == (originalCertCount + 1))
 							{
-								if (CAcert != nullptr)
-									delete CAcert;
-
-								CAcert = certList;
-
 								Serial.printf_P(MSG_OK);
 							}
 							else

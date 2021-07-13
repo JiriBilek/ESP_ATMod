@@ -91,6 +91,7 @@ static const commandDef_t commandList[] = {
 		{ "+CIPSSLAUTH", MODE_QUERY_SET, CMD_AT_CIPSSLAUTH },
 		{ "+CIPSSLFP", MODE_QUERY_SET, CMD_AT_CIPSSLFP },
 		{ "+CIPSSLCERT", MODE_NO_CHECKING, CMD_AT_CIPSSLCERT },
+    		{ "+CIPSSLCERTMAX", MODE_QUERY_SET, CMD_AT_CIPSSLCERTMAX },
 		{ "+CIPSSLMFLN", MODE_QUERY_SET, CMD_AT_CIPSSLMFLN },
 		{ "+CIPSSLSTA", MODE_NO_CHECKING, CMD_AT_CIPSSLSTA },
 		{ "+CIPRECVMODE", MODE_QUERY_SET, CMD_AT_CIPRECVMODE },
@@ -145,6 +146,7 @@ static void cmd_AT_CIPSSLSIZE();
 static void cmd_AT_CIPSSLAUTH();
 static void cmd_AT_CIPSSLFP();
 static void cmd_AT_CIPSSLCERT();
+static void cmd_AT_CIPSSLCERTMAX();
 static void cmd_AT_CIPRECVMODE();
 static void cmd_AT_CIPRECVLEN();
 static void cmd_AT_CIPRECVDATA();
@@ -273,6 +275,10 @@ void processCommandBuffer(void)
 	// ------------------------------------------------------------------------------------ AT+CIPSSLCERT
 	else if (cmd == CMD_AT_CIPSSLCERT)  // AT+CIPSSLCERT - Load CA certificate in PEM format
 		cmd_AT_CIPSSLCERT();
+
+  // ------------------------------------------------------------------------------------ AT+CIPSSLCERTMAX
+	else if (cmd == CMD_AT_CIPSSLCERTMAX)  // AT+CIPSSLCERT - Get or set the maximum certificate amount
+		cmd_AT_CIPSSLCERTMAX();
 
 	// ------------------------------------------------------------------------------------ AT+CIPRECVMODE
 	else if (cmd == CMD_AT_CIPRECVMODE)  // AT+CIPRECVMODE - Set TCP Receive Mode
@@ -1107,9 +1113,9 @@ void cmd_AT_CIPSTART()
 				{
 					static_cast<BearSSL::WiFiClientSecure*>(cli)->setFingerprint(fingerprint);
 				}
-				else if (gsCipSslAuth == 2 && CAcert != nullptr) // certificate chain verification
+				else if (gsCipSslAuth == 2 && CAcert.getCount() > 0) // certificate chain verification
 				{
-					static_cast<BearSSL::WiFiClientSecure*>(cli)->setTrustAnchors(CAcert);
+					static_cast<BearSSL::WiFiClientSecure*>(cli)->setTrustAnchors(&CAcert);
 				}
 				else
 				{
@@ -1583,7 +1589,7 @@ void cmd_AT_CIPSSLAUTH()
 			{
 				Serial.println(F("fp not valid"));
 			}
-			else if (sslAuth == 2 && CAcert == nullptr)
+			else if (sslAuth == 2 && CAcert.getCount() == 0)
 			{
 				Serial.println(F("CA cert not loaded"));
 			}
@@ -1676,13 +1682,19 @@ void cmd_AT_CIPSSLFP()
  */
 void cmd_AT_CIPSSLCERT()
 {
+  uint16_t offset = 13;  // offset to ? or =
+
 	if (inputBufferCnt == 15)
 	{
 		PemCertificate = new char[MAX_PEM_CERT_LENGTH];
 		PemCertificatePos = 0;
 		PemCertificateCount = 0;
 
-		if (PemCertificate != nullptr)
+    if (CAcert.getCount() >= maximumCertificates) {
+      Serial.printf_P(PSTR("Reached the maximum of %d certificates"), maximumCertificates);
+      Serial.printf_P(MSG_ERROR);
+    }
+		else if (PemCertificate != nullptr)
 		{
 			gsCertLoading = true;
 
@@ -1694,63 +1706,154 @@ void cmd_AT_CIPSSLCERT()
 			Serial.printf_P(MSG_ERROR);
 		}
 	}
-	else if (inputBuffer[13] == '?' && inputBufferCnt == 16)
+	else if (inputBuffer[offset] == '?' && (inputBufferCnt >= 16 && inputBufferCnt <= 18))
 	{
-		if (CAcert == nullptr)
+		if (CAcert.getCount() == 0)
 		{
 			Serial.println(F("+CIPSSLCERT:no cert"));
 		}
 		else
 		{
-			Serial.print(F("+CIPSSLCERT:"));
+      uint32_t certNumber;
 
-			const br_x509_certificate *cert = &(CAcert->getX509Certs()[0]);
+      ++offset;
+      if (!readNumber(inputBuffer, offset, certNumber) ){
+        certNumber = 1;
+      }
 
-			uint8_t *cnBytes = getCnFromDer(cert->data, cert->data_len);
+      if (certNumber > CAcert.getCount()) {
+        Serial.println(F("+CIPSSLCERT:no cert"));
+      } else {
+        Serial.print(F("+CIPSSLCERT:"));
 
-			if (cnBytes != nullptr)
-			{
-				char *cn = new char[cnBytes[0] + 1];
+        const br_x509_certificate *cert = &(CAcert.getX509Certs()[certNumber-1]);
 
-				if (cn != nullptr)
-				{
-					memcpy(cn, &(cnBytes[1]), cnBytes[0]);
-					cn[cnBytes[0]] = '\0';
+        uint8_t *cnBytes = getCnFromDer(cert->data, cert->data_len);
 
-					Serial.println(cn);
+        if (cnBytes != nullptr)
+        {
+          char *cn = new char[cnBytes[0] + 1];
 
-					delete cn;
-				}
-				else
-				{
-					Serial.println(F("cert ok"));
-				}
-			}
-			else
-			{
-				Serial.println(F("cert ok"));
-			}
+          if (cn != nullptr)
+          {
+            memcpy(cn, &(cnBytes[1]), cnBytes[0]);
+            cn[cnBytes[0]] = '\0';
+
+            Serial.println(cn);
+
+            delete cn;
+          }
+          else
+          {
+            Serial.println(F("cert ok"));
+          }
+        }
+        else
+        {
+          Serial.println(F("cert ok"));
+        }
+      }
 		}
 
 		Serial.printf_P(MSG_OK);
 	}
-	else if (!memcmp_P(&(inputBuffer[13]), PSTR("=DELETE"), 7) && inputBufferCnt == 22)
+	else if (!memcmp_P(&(inputBuffer[offset]), PSTR("=DELETE"), 7) && inputBufferCnt == 22)
 	{
-		if (CAcert == nullptr)
+		if (CAcert.getCount() == 0)
 		{
 			Serial.println(F("+CIPSSLCERT:no cert"));
 		}
 		else
 		{
-			delete CAcert;
-			CAcert = nullptr;
+      BearSSL::X509List certList;
 
-			Serial.print(F("+CIPSSLCERT:deleted"));
+      // Delete latest certificate
+      for(int i = 1; i < CAcert.getCount(); i++) {
+        const br_x509_certificate *cert = &(CAcert.getX509Certs()[i-1]);
+        certList.append(cert->data, cert->data_len);
+      }
+
+      CAcert = BearSSL::X509List();
+
+      for(int i = 0; i < certList.getCount(); i++) {
+        const br_x509_certificate *cert = &(certList.getX509Certs()[i]);
+        CAcert.append(cert->data, cert->data_len);
+      }
 		}
 
 		Serial.printf_P(MSG_OK);
 	}
+  else if (!memcmp_P(&(inputBuffer[offset]), PSTR("=DELETE"), 7) && (inputBufferCnt >= 22 && inputBufferCnt <= 25))
+	{
+		if (CAcert.getCount() == 0)
+		{
+			Serial.println(F("+CIPSSLCERT:no cert"));
+		}
+		else
+		{
+      offset = 21;
+      uint32_t certNumberToDelete;
 
+      if (readNumber(inputBuffer, offset, certNumberToDelete) && certNumberToDelete <= CAcert.getCount()) {
+        BearSSL::X509List certList;
+
+        // Delete latest certificate
+        for(int i = 0; i < CAcert.getCount(); i++) {
+          if(certNumberToDelete != (i+1)) {
+            const br_x509_certificate *cert = &(CAcert.getX509Certs()[i]);
+            certList.append(cert->data, cert->data_len);
+          }
+        }
+
+        CAcert = BearSSL::X509List();
+
+        for(int i = 0; i < certList.getCount(); i++) {
+          const br_x509_certificate *cert = &(certList.getX509Certs()[i]);
+          CAcert.append(cert->data, cert->data_len);
+        }
+
+        Serial.printf_P(PSTR("+CIPSSLCERT:deleted certificate %d"), certNumberToDelete);
+        Serial.printf_P(MSG_OK);
+      } else if (certNumberToDelete > CAcert.getCount()) {
+        Serial.println(F("+CIPSSLCERT=DELETE:no cert"));
+      } else {
+        Serial.printf_P(MSG_ERROR);
+      }
+		}
+  }
+}
+
+/*
+ * AT+CIPSSLCERTMAX - Get or set the maximum certificates amount
+ */
+void cmd_AT_CIPSSLCERTMAX()
+{
+  Serial.println(inputBuffer[16]);
+  if (inputBuffer[16] == '?' && inputBufferCnt == 12)
+	{
+		Serial.printf_P(PSTR("+CIPSSLCERTMAX:%d\r\nOK\r\n"), maximumCertificates);
+	}
+	else if (inputBuffer[16] == '=')
+	{
+		uint16_t offset = 17;
+		uint32_t max;
+
+		if (readNumber(inputBuffer, offset, max))
+		{
+      maximumCertificates = max;
+      Settings::setMaximumCertificates(maximumCertificates);
+
+			Serial.printf_P(MSG_OK);
+		}
+		else
+		{
+			Serial.printf_P(MSG_ERROR);
+		}
+	}
+	else
+	{
+		Serial.printf_P(MSG_ERROR);
+	}
 }
 
 /*
