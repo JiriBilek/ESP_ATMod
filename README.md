@@ -151,11 +151,11 @@ Works in SSL mode in the same way as in TCP mode.
 
 ### **AT+SYSCPUFREQ - Set or query the Current CPU Frequency**
 
-Sets and queries the COU freqency. The only valid values are 80 and 160 Mhz.
+Sets and queries the CPU freqency. The only valid values are 80 and 160 Mhz.
 
 **Query:**
 
-*Syntax:*
+*Command:*
 ```
 AT+SYSCPUFREQ?
 ```
@@ -169,7 +169,7 @@ OK
 
 **Set:**
 
-*Syntax:*
+*Command:*
 ```
 AT+SYSCPUFREQ=<freq>
 ```
@@ -188,7 +188,7 @@ Sets and queries the physical wifi mode.
 
 **Query:**
 
-*Syntax:*
+*Command:*
 ```
 AT+RFMODE?
 ```
@@ -202,7 +202,7 @@ OK
 
 **Set:**
 
-*Syntax:*
+*Command:*
 ```
 AT+RFMODE=<mode>
 ```
@@ -227,7 +227,7 @@ Set or queries the selected TLS authentication mode. The default is no authentic
 
 **Query:**
 
-*Syntax:*
+*Command:*
 ```
 AT+CIPSSLAUTH?
 ```
@@ -241,7 +241,7 @@ OK
 
 **Set:**
 
-*Syntax:*
+*Command:*
 ```
 AT+CIPSSLAUTH=<mode>
 ```
@@ -273,7 +273,7 @@ The SHA-1 certificate fingerprint for a site can be obtained e.g. in browser whi
 
 **Query:**
 
-*Syntax:*
+*Command:*
 ```
 AT+CIPSSLFP?
 ```
@@ -287,7 +287,7 @@ OK
 
 **Set:**
 
-*Syntax:*
+*Command:*
 ```
 AT+CIPSSLFP="4F:D5:B1:C9:B2:8C:CF:D2:D5:9C:84:5D:76:F6:F7:A1:D0:A2:FA:3D"
 ```
@@ -310,7 +310,7 @@ The fingerprint consists of exactly 20 bytes. They are set as hex values and may
 
 Sets the TLS receiver buffer size. The size can be 512, 1024, 2048, 4096 or 16384 (default) bytes according to [RFC3546](https://tools.ietf.org/html/rfc3546). The value is used for all subsequent TLS connections, the opened connections are not affected.
 
-*Syntax:*
+*Command:*
 
 ```
 AT+CIPSSLSIZE=512
@@ -328,7 +328,7 @@ Currently maximum 5 certificates at a time can be loaded. With this command the 
 
 **Query amount to load:**
 
-*Syntax:*
+*Command:*
 
 ```
 AT+CIPSSLCERTMAX?
@@ -342,7 +342,7 @@ OK
 
 **Set amount to load:**
 
-*Syntax:*
+*Command:*
 
 ```
 AT+CIPSSLCERTMAX=6
@@ -360,7 +360,7 @@ Load, query or delete CA certificate for TLS certificate chain verification. Cur
 
 **Query the first certificate:**
 
-*Syntax:*
+*Command:*
 ```
 AT+CIPSSLCERT?
 ```
@@ -382,7 +382,7 @@ OK
 
 **Query specific certificate:**
 
-*Syntax:*
+*Command:*
 ```
 AT+CIPSSLCERT?2
 ```
@@ -396,7 +396,7 @@ OK
 
 **Set:**
 
-*Syntax:*
+*Command:*
 ```
 AT+CIPSSLCERT
 ```
@@ -462,7 +462,7 @@ The limit for the PEM certificate is 4096 characters total.
 
 **Delete the first certificate:**
 
-*Syntax:*
+*Command:*
 ```
 AT+CIPSSLCERT=DELETE
 ```
@@ -476,7 +476,7 @@ OK
 
 **Query specific certificate:**
 
-*Syntax:*
+*Command:*
 ```
 AT+CIPSSLCERT=DELETE:2
 ```
@@ -494,7 +494,7 @@ The certificate is deleted from the memory.
 
 The Maximum Fragment Length Negotiation extension is useful for lowering the RAM usage by reducing receiver buffer size on TLS connections. Newer TLS implementations support this extension but it would be wise to check the capability before changing a TLS buffer size and making a connection. As the server won't change this feature on the fly, you should test the MFLN capability only once.
 
-*Syntax:*
+*Command:*
 
 AT+CIPSSLMFLN="*site*",*port*,*size*
 
@@ -515,7 +515,7 @@ OK
 
 This command checks the MFLN status on an opened TLS connection.
 
-*Syntax:*
+*Command:*
 
 AT+CIPSSLSTA[=linkID]
 
@@ -538,7 +538,7 @@ The returned value of 1 means there was a MFLN negotiation. It holds even with t
 
 This command returns the current time as unix time (number of seconds since January 1st, 1970). The time zone is fixed to GMT (UTC). The time is obtained by querying NTP servers automatically, after connecting to the internet. Before connecting to the internet or in case of an error in communication with NTP servers, the time is unknown. This situation should be temporary.
 
-*Syntax:*
+*Command:*
 ```
 AT+SYSTIME?
 ```
