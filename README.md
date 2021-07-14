@@ -479,6 +479,40 @@ AT+CIPSSLMFLN="www.github.com",443,512
 OK
 ```
 
+### **AT+CIPSSLCERTMAX - Query or set maximum certificates to load**
+
+Currently maximum 5 certificates at a time can be loaded. With this command the amount of certificates to load with LittleFS can be adjusted.
+
+**Query amount to load:**
+
+*Syntax:*
+
+```
+AT+CIPSSLCERTMAX?
+```
+
+*Answer:*
+```
++CIPSSLCERTMAX:
+
+OK
+```
+
+**Set amount to load:**
+
+*Syntax:*
+
+```
+AT+CIPSSLCERTMAX=6
+```
+
+*Answer:*
+```
++CIPSSLCERTMAX:6
+
+OK
+```
+
 ### **AT+CIPSSLSTA - Checks the status of the MFLN negotiation**
 
 This command checks the MFLN status on an opened TLS connection.
