@@ -458,27 +458,6 @@ OK
 
 The certificate is deleted from the memory. 
 
-### **AT+CIPSSLMFLN - Checks if the given site supports the MFLN TLS Extension**
-
-The Maximum Fragment Length Negotiation extension is useful for lowering the RAM usage by reducing receiver buffer size on TLS connections. Newer TLS implementations support this extension but it would be wise to check the capability before changing a TLS buffer size and making a connection. As the server won't change this feature on the fly, you should test the MFLN capability only once.
-
-*Syntax:*
-
-AT+CIPSSLMFLN="*site*",*port*,*size*
-
-The valid sizes are 512, 1024, 2048 and 4096.
-
-```
-AT+CIPSSLMFLN="www.github.com",443,512
-```
-
-*Answer:*
-```
-+CIPSSLMFLN:TRUE
-
-OK
-```
-
 ### **AT+CIPSSLCERTMAX - Query or set maximum certificates to load**
 
 Currently maximum 5 certificates at a time can be loaded. With this command the amount of certificates to load with LittleFS can be adjusted.
@@ -509,6 +488,27 @@ AT+CIPSSLCERTMAX=6
 *Answer:*
 ```
 +CIPSSLCERTMAX:6
+
+OK
+```
+
+### **AT+CIPSSLMFLN - Checks if the given site supports the MFLN TLS Extension**
+
+The Maximum Fragment Length Negotiation extension is useful for lowering the RAM usage by reducing receiver buffer size on TLS connections. Newer TLS implementations support this extension but it would be wise to check the capability before changing a TLS buffer size and making a connection. As the server won't change this feature on the fly, you should test the MFLN capability only once.
+
+*Syntax:*
+
+AT+CIPSSLMFLN="*site*",*port*,*size*
+
+The valid sizes are 512, 1024, 2048 and 4096.
+
+```
+AT+CIPSSLMFLN="www.github.com",443,512
+```
+
+*Answer:*
+```
++CIPSSLMFLN:TRUE
 
 OK
 ```
