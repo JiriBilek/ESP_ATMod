@@ -118,9 +118,9 @@ In the following table, the list of supported AT commands is given. In the comme
 | AT+CIPSNTPCFG | Query/Set the time zone and SNTP server. |
 | AT+CIPSNTPTIME | Query the SNTP time. |
 | AT+CIPDINFO | Set “+IPD” message mode. |
-| AT+CIPRECVMODE | Query/Set socket receiving mode. |
-| AT+CIPRECVDATA | Obtain socket data in passive receiving mode. |
-| AT+CIPRECVLEN | Obtain socket data length in passive receiving mode. |
+| [AT+CIPRECVMODE](https://github.com/JiriBilek/ESP_ATMod#atciprecvmode-atciprecvdata-atciprecvlen-in-ssl-mode) | Query/Set socket receiving mode. |
+| [AT+CIPRECVDATA](https://github.com/JiriBilek/ESP_ATMod#atciprecvmode-atciprecvdata-atciprecvlen-in-ssl-mode) | Obtain socket data in passive receiving mode. |
+| [AT+CIPRECVLEN](https://github.com/JiriBilek/ESP_ATMod#atciprecvmode-atciprecvdata-atciprecvlen-in-ssl-mode) | Obtain socket data length in passive receiving mode. |
 | AT+CIPDNS, AT+CIPDNS_CUR | Query/Set DNS server information. |
 | AT+CIPDNS_DEF | Default DNS setting, stored in flash |
 | **New commands** |  |
@@ -135,7 +135,19 @@ In the following table, the list of supported AT commands is given. In the comme
 | [AT+CIPSSLSTA](https://github.com/JiriBilek/ESP_ATMod#atcipsslsta---checks-the-status-of-the-mfln-negotiation) | Prints the MFLN status of a connection. |
 | [AT+SNTPTIME](https://github.com/JiriBilek/ESP_ATMod#atsystime---returns-the-current-time-utc) | Get SNTP time. |
 
-## New and Changed Commands
+## Changed Commands
+
+### **AT+CIPRECVMODE, AT+CIPRECVDATA, AT+CIPRECVLEN in SSL mode**
+
+Commands 
+
+- AT+CIPRECVMODE (Set TCP or SSL Receive Mode)
+- AT+CIPRECVDATA (Get TCP or SSL Data in Passive Receive Mode)
+- AT+CIPRECVLEN (Get TCP or SSL Data Length in Passive Receive Mode)
+
+Works in SSL mode in the same way as in TCP mode.
+
+## New Commands
 
 ### **AT+SYSCPUFREQ - Set or query the Current CPU Frequency**
 
@@ -445,16 +457,6 @@ OK
 ```
 
 The certificate is deleted from the memory. 
-
-### **AT+CIPRECVMODE, AT+CIPRECVLEN, AT+CIPRECVDATA in SSL mode**
-
-Commands 
-
-- AT+CIPRECVMODE (Set TCP or SSL Receive Mode), 
-- AT+CIPRECVLEN (Get TCP or SSL Data Length in Passive Receive Mode)
-- AT+CIPRECVDATA (Get TCP or SSL Data in Passive Receive Mode) 
-
-work in SSL mode in the same way as in TCP mode.
 
 ### **AT+CIPSSLMFLN - Checks if the given site supports the MFLN TLS Extension**
 
