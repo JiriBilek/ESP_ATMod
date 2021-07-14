@@ -124,16 +124,16 @@ In the following table, the list of supported AT commands is given. In the comme
 | AT+CIPDNS, AT+CIPDNS_CUR | Query/Set DNS server information. |
 | AT+CIPDNS_DEF | Default DNS setting, stored in flash |
 | **New commands** |  |
-| AT+SYSCPUFREQ | Set or query the current CPU frequency |
-| AT+RFMODE | Set the physical wifi mode - see below |
-| AT+CIPSSLAUTH | Set and query the TLS authentication mode - see below |
-| AT+CIPSSLFP | Load or print the TLS server certificate fingerprint - see below |
-| AT+CIPSSLSIZE | Change the size of the receiver buffer (512, 1024, 2048 or 4096 bytes) |
-| AT+CIPSSLCERT | Load, query or delete TLS CA certificate - see below |
-| AT+CIPSSLCERTMAX | Query or set the maximum amount of certificates that can be loaded |
-| AT+CIPSSLMFLN | Check if the site supports Maximum Fragment Length Negotiation (MFLN) |
-| AT+CIPSSLSTA | Prints the MFLN status of a connection |
-| AT+SNTPTIME | Get SNTP time|
+| [AT+SYSCPUFREQ](https://github.com/JiriBilek/ESP_ATMod#atsyscpufreq---set-or-query-the-current-cpu-frequency) | Set or query the current CPU frequency. |
+| [AT+RFMODE](https://github.com/JiriBilek/ESP_ATMod#atrfmode---get-and-change-the-physical-wifi-mode) | Set the physical wifi mode. |
+| [AT+CIPSSLAUTH](https://github.com/JiriBilek/ESP_ATMod#atcipsslauth---set-and-query-the-tls-authentication-mode) | Set and query the TLS authentication mode. |
+| [AT+CIPSSLFP](https://github.com/JiriBilek/ESP_ATMod#atcipsslfp---load-or-print-tls-server-certificate-sha-1-fingerprint) | Load or print the TLS server certificate fingerprint. |
+| [AT+CIPSSLSIZE](https://github.com/JiriBilek/ESP_ATMod#atcipsslsize---set-the-tls-receiver-buffer-size) | Change the size of the receiver buffer (512, 1024, 2048 or 4096 bytes) |
+| [AT+CIPSSLCERT](https://github.com/JiriBilek/ESP_ATMod#atcipsslcert---load-query-or-delete-tls-ca-certificate) | Load, query or delete TLS CA certificate. |
+| [AT+CIPSSLCERTMAX](https://github.com/JiriBilek/ESP_ATMod#atcipsslcertmax---query-or-set-maximum-certificates-to-load) | Query or set the maximum amount of certificates that can be loaded. |
+| [AT+CIPSSLMFLN](https://github.com/JiriBilek/ESP_ATMod#atcipsslmfln---checks-if-the-given-site-supports-the-mfln-tls-extension) | Check if the site supports Maximum Fragment Length Negotiation (MFLN). |
+| [AT+CIPSSLSTA](https://github.com/JiriBilek/ESP_ATMod#atcipsslsta---checks-the-status-of-the-mfln-negotiation) | Prints the MFLN status of a connection. |
+| [AT+SNTPTIME](https://github.com/JiriBilek/ESP_ATMod#atsystime---returns-the-current-time-utc) | Get SNTP time. |
 
 ## New and Changed Commands
 
