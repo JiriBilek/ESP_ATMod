@@ -96,7 +96,7 @@ In the following table, the list of supported AT commands is given. In the comme
 | AT+RESTORE | Restore factory default settings of the module. |
 | AT+UART, AT+UART_CUR | Current UART configuration, not saved in flash. |
 | AT+UART_DEF | Default UART configuration, saved in flash. |
-| AT+SYSRAM | uery current remaining heap size and minimum heap size. |
+| AT+SYSRAM | Query current remaining heap size and minimum heap size. |
 | [**Wi-Fi AT Commands**](https://docs.espressif.com/projects/esp-at/en/latest/AT_Command_Set/Wi-Fi_AT_Commands.html#wi-fi-at-commandss) |  |
 | AT+CWMODE | Set the Wi-Fi mode (Station/SoftAP/Station+SoftAP). (Only AT+CWMODE=1 implemented) |
 | AT+CWJAP, AT+CWJAP_CUR | Connect to an AP, parameter &lt;pci_en&gt; not implemented |
