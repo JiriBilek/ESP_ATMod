@@ -129,8 +129,8 @@ In the following table, the list of supported AT commands is given. In the comme
 | [AT+CIPSSLAUTH](https://github.com/JiriBilek/ESP_ATMod#atcipsslauth---set-and-query-the-tls-authentication-mode) | Set and query the TLS authentication mode. |
 | [AT+CIPSSLFP](https://github.com/JiriBilek/ESP_ATMod#atcipsslfp---load-or-print-tls-server-certificate-sha-1-fingerprint) | Load or print the TLS server certificate fingerprint. |
 | [AT+CIPSSLSIZE](https://github.com/JiriBilek/ESP_ATMod#atcipsslsize---set-the-tls-receiver-buffer-size) | Change the size of the receiver buffer (512, 1024, 2048 or 4096 bytes) |
-| [AT+CIPSSLCERT](https://github.com/JiriBilek/ESP_ATMod#atcipsslcert---load-query-or-delete-tls-ca-certificate) | Load, query or delete TLS CA certificate. |
 | [AT+CIPSSLCERTMAX](https://github.com/JiriBilek/ESP_ATMod#atcipsslcertmax---query-or-set-maximum-certificates-to-load) | Query or set the maximum amount of certificates that can be loaded. |
+| [AT+CIPSSLCERT](https://github.com/JiriBilek/ESP_ATMod#atcipsslcert---load-query-or-delete-tls-ca-certificate) | Load, query or delete TLS CA certificate. |
 | [AT+CIPSSLMFLN](https://github.com/JiriBilek/ESP_ATMod#atcipsslmfln---checks-if-the-given-site-supports-the-mfln-tls-extension) | Check if the site supports Maximum Fragment Length Negotiation (MFLN). |
 | [AT+CIPSSLSTA](https://github.com/JiriBilek/ESP_ATMod#atcipsslsta---checks-the-status-of-the-mfln-negotiation) | Prints the MFLN status of a connection. |
 | [AT+SNTPTIME](https://github.com/JiriBilek/ESP_ATMod#atsystime---returns-the-current-time-utc) | Get SNTP time. |
@@ -320,6 +320,40 @@ AT+CIPSSLSIZE=512
 ```
 
 OK
+``` 
+
+### **AT+CIPSSLCERTMAX - Query or set maximum certificates to load**
+
+Currently maximum 5 certificates at a time can be loaded. With this command the amount of certificates to load with LittleFS can be adjusted.
+
+**Query amount to load:**
+
+*Syntax:*
+
+```
+AT+CIPSSLCERTMAX?
+```
+
+*Answer:*
+```
++CIPSSLCERTMAX:
+
+OK
+```
+
+**Set amount to load:**
+
+*Syntax:*
+
+```
+AT+CIPSSLCERTMAX=6
+```
+
+*Answer:*
+```
++CIPSSLCERTMAX:6
+
+OK
 ```
 
 ### **AT+CIPSSLCERT - Load, Query or Delete TLS CA Certificate**
@@ -456,41 +490,7 @@ AT+CIPSSLCERT=DELETE:2
 OK
 ```
 
-The certificate is deleted from the memory. 
-
-### **AT+CIPSSLCERTMAX - Query or set maximum certificates to load**
-
-Currently maximum 5 certificates at a time can be loaded. With this command the amount of certificates to load with LittleFS can be adjusted.
-
-**Query amount to load:**
-
-*Syntax:*
-
-```
-AT+CIPSSLCERTMAX?
-```
-
-*Answer:*
-```
-+CIPSSLCERTMAX:
-
-OK
-```
-
-**Set amount to load:**
-
-*Syntax:*
-
-```
-AT+CIPSSLCERTMAX=6
-```
-
-*Answer:*
-```
-+CIPSSLCERTMAX:6
-
-OK
-```
+The certificate is deleted from the memory.
 
 ### **AT+CIPSSLMFLN - Checks if the given site supports the MFLN TLS Extension**
 
