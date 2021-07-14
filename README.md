@@ -336,8 +336,7 @@ AT+CIPSSLCERTMAX?
 
 *Answer:*
 ```
-+CIPSSLCERTMAX:
-
++CIPSSLCERTMAX:5
 OK
 ```
 
@@ -352,7 +351,6 @@ AT+CIPSSLCERTMAX=6
 *Answer:*
 ```
 +CIPSSLCERTMAX:6
-
 OK
 ```
 
