@@ -137,6 +137,39 @@ In the following table, the list of supported AT commands is given. In the comme
 
 ## New and Changed Commands
 
+### **AT+SYSCPUFREQ - Set or query the Current CPU Frequency**
+
+Sets and queries the COU freqency. The only valid values are 80 and 160 Mhz.
+
+**Query:**
+
+*Syntax:*
+```
+AT+SYSCPUFREQ?
+```
+
+*Answer:*
+```
++SYSCPUFREQ=80
+
+OK
+```
+
+**Set:**
+
+*Syntax:*
+```
+AT+SYSCPUFREQ=<freq>
+```
+
+*Answer:*
+```
+
+OK
+```
+
+The value freq may be 80 or 160.
+
 ### **AT+RFMODE - Get and Change the Physical Wifi Mode**
 
 Sets and queries the physical wifi mode.
@@ -260,6 +293,22 @@ OK
 ```
 
 The fingerprint consists of exactly 20 bytes. They are set as hex values and may be divided with ':'.
+
+### **AT+CIPSSLSIZE - Set the TLS Receiver Buffer Size**
+
+Sets the TLS receiver buffer size. The size can be 512, 1024, 2048, 4096 or 16384 (default) bytes according to [RFC3546](https://tools.ietf.org/html/rfc3546). The value is used for all subsequent TLS connections, the opened connections are not affected.
+
+*Syntax:*
+
+```
+AT+CIPSSLSIZE=512
+```
+
+*Answer:*
+```
+
+OK
+```
 
 ### **AT+CIPSSLCERT - Load, Query or Delete TLS CA Certificate**
 
@@ -406,55 +455,6 @@ Commands
 - AT+CIPRECVDATA (Get TCP or SSL Data in Passive Receive Mode) 
 
 work in SSL mode in the same way as in TCP mode.
-
-### **AT+SYSCPUFREQ - Set or query the Current CPU Frequency**
-
-Sets and queries the COU freqency. The only valid values are 80 and 160 Mhz.
-
-**Query:**
-
-*Syntax:*
-```
-AT+SYSCPUFREQ?
-```
-
-*Answer:*
-```
-+SYSCPUFREQ=80
-
-OK
-```
-
-**Set:**
-
-*Syntax:*
-```
-AT+SYSCPUFREQ=<freq>
-```
-
-*Answer:*
-```
-
-OK
-```
-
-The value freq may be 80 or 160.
-
-### **AT+CIPSSLSIZE - Set the TLS Receiver Buffer Size**
-
-Sets the TLS receiver buffer size. The size can be 512, 1024, 2048, 4096 or 16384 (default) bytes according to [RFC3546](https://tools.ietf.org/html/rfc3546). The value is used for all subsequent TLS connections, the opened connections are not affected.
-
-*Syntax:*
-
-```
-AT+CIPSSLSIZE=512
-```
-
-*Answer:*
-```
-
-OK
-```
 
 ### **AT+CIPSSLMFLN - Checks if the given site supports the MFLN TLS Extension**
 
