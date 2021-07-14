@@ -2495,18 +2495,31 @@ commands_t findCommand(uint8_t *input, uint16_t inpLen)
 	for (unsigned int i = 0; i < sizeof(commandList) / sizeof(commandDef_t); ++i)
 	{
 		const char *cmd = commandList[i].text;
-    int commandLength;
-    char* inputCmd = (char*)input +2;
-    inputCmd[strcspn(inputCmd, "\r\n")] = 0;
+		int commandLength;
+		char *inputCmd = (char *)input + 2;
+		inputCmd[strcspn(inputCmd, "\r\n")] = 0;
 
-    // Get input command length
-    if(strchr(inputCmd, '?') != NULL){
-      commandLength = (int)(strchr(inputCmd, '?') - inputCmd);
-    } else if (strchr(inputCmd, '=') != NULL){
-      commandLength = (int)(strchr(inputCmd, '=') - inputCmd);
-    } else {
-      commandLength = strlen(inputCmd);
-    }
+		// Get input command length
+		if (strchr(inputCmd, '?') != NULL)
+		{
+			commandLength = (int)(strchr(inputCmd, '?') - inputCmd);
+		}
+		else if (strchr(inputCmd, '=') != NULL)
+		{
+			commandLength = (int)(strchr(inputCmd, '=') - inputCmd);
+		}
+		else if (strchr(inputCmd, '0') != NULL)
+		{
+			commandLength = (int)(strchr(inputCmd, '0') - inputCmd);
+		}
+		else if (strchr(inputCmd, '1') != NULL)
+		{
+			commandLength = (int)(strchr(inputCmd, '1') - inputCmd);
+		}
+		else
+		{
+			commandLength = strlen(inputCmd);
+		}
 
 		if (!memcmp(cmd, inputCmd, commandLength))
 		{
