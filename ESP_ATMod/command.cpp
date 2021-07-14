@@ -105,7 +105,7 @@ static const commandDef_t commandList[] = {
 	{"+CIPSSLFP", MODE_QUERY_SET, CMD_AT_CIPSSLFP},
 	{"+CIPSSLSIZE", MODE_QUERY_SET, CMD_AT_CIPSSLSIZE},
 	{"+CIPSSLCERTMAX", MODE_QUERY_SET, CMD_AT_CIPSSLCERTMAX},
-	{"+CIPSSLCERT", MODE_NO_CHECKING, CMD_AT_CIPSSLCERT},
+	{"+CIPSSLCERT", MODE_QUERY_SET, CMD_AT_CIPSSLCERT},
 	{"+CIPSSLMFLN", MODE_QUERY_SET, CMD_AT_CIPSSLMFLN},
 	{"+CIPSSLSTA", MODE_NO_CHECKING, CMD_AT_CIPSSLSTA},
 	{"+CIPSNTPTIME?", MODE_EXACT_MATCH, CMD_AT_CIPSNTPTIME}};
@@ -2495,11 +2495,22 @@ commands_t findCommand(uint8_t *input, uint16_t inpLen)
 	for (unsigned int i = 0; i < sizeof(commandList) / sizeof(commandDef_t); ++i)
 	{
 		const char *cmd = commandList[i].text;
+    int commandLength;
+    char* inputCmd = (char*)input +2;
+    inputCmd[strcspn(inputCmd, "\r\n")] = 0;
 
-		if (!memcmp(cmd, input + 2, strlen(cmd)))
+    // Get input command length
+    if(strchr(inputCmd, '?') != NULL){
+      commandLength = (int)(strchr(inputCmd, '?') - inputCmd);
+    } else if (strchr(inputCmd, '=') != NULL){
+      commandLength = (int)(strchr(inputCmd, '=') - inputCmd);
+    } else {
+      commandLength = strlen(inputCmd);
+    }
+
+		if (!memcmp(cmd, inputCmd, commandLength))
 		{
 			// We have a command
-
 			switch (commandList[i].mode)
 			{
 			case MODE_NO_CHECKING:
