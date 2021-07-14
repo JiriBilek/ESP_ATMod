@@ -75,8 +75,8 @@ enum commands_t
 	CMD_AT_CIPSSLAUTH,	  // New command
 	CMD_AT_CIPSSLFP,	  // New command
 	CMD_AT_CIPSSLSIZE,	  // New command
-	CMD_AT_CIPSSLCERT,	  // New command
 	CMD_AT_CIPSSLCERTMAX, // New command
+	CMD_AT_CIPSSLCERT,	  // New command
 	CMD_AT_CIPSSLMFLN,	  // New command
 	CMD_AT_CIPSSLSTA,	  // New command
 	CMD_AT_SNTPTIME,	  // New command

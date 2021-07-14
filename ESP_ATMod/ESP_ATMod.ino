@@ -177,7 +177,7 @@ void setup()
 	gsSNTPServer[2] = "";
 
 	// Default maximum certificates
-	int maximumCertificates = Settings::getMaximumCertificates();
+	maximumCertificates = Settings::getMaximumCertificates();
 
 	// Load certificates from LittleFS
 	if (LittleFS.begin())

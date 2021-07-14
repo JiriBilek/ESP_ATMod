@@ -104,8 +104,8 @@ static const commandDef_t commandList[] = {
 	{"+CIPSSLAUTH", MODE_QUERY_SET, CMD_AT_CIPSSLAUTH},
 	{"+CIPSSLFP", MODE_QUERY_SET, CMD_AT_CIPSSLFP},
 	{"+CIPSSLSIZE", MODE_QUERY_SET, CMD_AT_CIPSSLSIZE},
-	{"+CIPSSLCERT", MODE_NO_CHECKING, CMD_AT_CIPSSLCERT},
 	{"+CIPSSLCERTMAX", MODE_QUERY_SET, CMD_AT_CIPSSLCERTMAX},
+	{"+CIPSSLCERT", MODE_NO_CHECKING, CMD_AT_CIPSSLCERT},
 	{"+CIPSSLMFLN", MODE_QUERY_SET, CMD_AT_CIPSSLMFLN},
 	{"+CIPSSLSTA", MODE_NO_CHECKING, CMD_AT_CIPSSLSTA},
 	{"+CIPSNTPTIME?", MODE_EXACT_MATCH, CMD_AT_CIPSNTPTIME}};
@@ -159,8 +159,8 @@ static void cmd_AT_RFMODE();
 static void cmd_AT_CIPSSLAUTH();
 static void cmd_AT_CIPSSLFP();
 static void cmd_AT_CIPSSLSIZE();
-static void cmd_AT_CIPSSLCERT();
 static void cmd_AT_CIPSSLCERTMAX();
+static void cmd_AT_CIPSSLCERT();
 static void cmd_AT_CIPSSLMFLN();
 static void cmd_AT_CIPSSLSTA();
 static void cmd_AT_SNTPTIME();
@@ -308,13 +308,13 @@ void processCommandBuffer(void)
 		// AT+CIPSSLSIZE - Sets the Size of SSL Buffer - the command is parsed but ignored
 		cmd_AT_CIPSSLSIZE();
 
+	// ------------------------------------------------------------------------------------ AT+CIPSSLCERTMAX
+	else if (cmd == CMD_AT_CIPSSLCERTMAX) // AT+CIPSSLCERTMAX - Get or set the maximum certificate amount
+		cmd_AT_CIPSSLCERTMAX();
+
 	// ------------------------------------------------------------------------------------ AT+CIPSSLCERT
 	else if (cmd == CMD_AT_CIPSSLCERT) // AT+CIPSSLCERT - Load CA certificate in PEM format
 		cmd_AT_CIPSSLCERT();
-
-	// ------------------------------------------------------------------------------------ AT+CIPSSLCERTMAX
-	else if (cmd == CMD_AT_CIPSSLCERTMAX) // AT+CIPSSLCERT - Get or set the maximum certificate amount
-		cmd_AT_CIPSSLCERTMAX();
 
 	// ------------------------------------------------------------------------------------ AT+CIPSSLMFLN
 	else if (cmd == CMD_AT_CIPSSLMFLN) // AT+CIPSSLMFLN - Check the capability of MFLN for a site
@@ -2093,6 +2093,38 @@ void cmd_AT_CIPSSLSIZE()
 }
 
 /*
+ * AT+CIPSSLCERTMAX - Get or set the maximum certificates amount
+ */
+void cmd_AT_CIPSSLCERTMAX()
+{
+	if (inputBuffer[16] == '?' && inputBufferCnt == 19)
+	{
+		Serial.printf_P(PSTR("+CIPSSLCERTMAX:%d\r\nOK\r\n"), maximumCertificates);
+	}
+	else if (inputBuffer[16] == '=')
+	{
+		uint16_t offset = 17;
+		uint32_t max;
+
+		if (readNumber(inputBuffer, offset, max))
+		{
+			maximumCertificates = max;
+			Settings::setMaximumCertificates(maximumCertificates);
+
+			Serial.printf_P(MSG_OK);
+		}
+		else
+		{
+			Serial.printf_P(MSG_ERROR);
+		}
+	}
+	else
+	{
+		Serial.printf_P(MSG_ERROR);
+	}
+}
+
+/*
  * AT+CIPSSLCERT - Load CA certificate in PEM format
  */
 void cmd_AT_CIPSSLCERT()
@@ -2250,39 +2282,6 @@ void cmd_AT_CIPSSLCERT()
 				Serial.printf_P(MSG_ERROR);
 			}
 		}
-	}
-}
-
-/*
- * AT+CIPSSLCERTMAX - Get or set the maximum certificates amount
- */
-void cmd_AT_CIPSSLCERTMAX()
-{
-	Serial.println(inputBuffer[16]);
-	if (inputBuffer[16] == '?' && inputBufferCnt == 12)
-	{
-		Serial.printf_P(PSTR("+CIPSSLCERTMAX:%d\r\nOK\r\n"), maximumCertificates);
-	}
-	else if (inputBuffer[16] == '=')
-	{
-		uint16_t offset = 17;
-		uint32_t max;
-
-		if (readNumber(inputBuffer, offset, max))
-		{
-			maximumCertificates = max;
-			Settings::setMaximumCertificates(maximumCertificates);
-
-			Serial.printf_P(MSG_OK);
-		}
-		else
-		{
-			Serial.printf_P(MSG_ERROR);
-		}
-	}
-	else
-	{
-		Serial.printf_P(MSG_ERROR);
 	}
 }
 
