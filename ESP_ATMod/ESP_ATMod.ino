@@ -122,6 +122,7 @@ uint8_t gsCwDhcp = 3;				// command AT+CWDHCP_CUR
 bool gsFlag_Connecting = false;		// Connecting in progress (CWJAP) - other commands ignored
 int8_t gsLinkIdReading = -1;		// Link id where the data is read
 bool gsCertLoading = false;			// AT+CIPSSLCERT in progress
+bool gsCertLastInput = false;		// Prevent processing wrong command when certificate was the last input
 bool gsWasConnected = false;		// Connection flag for AT+CIPSTATUS
 uint8_t gsCipSslAuth = 0;			// command AT+CIPSSLAUTH: 0 = none, 1 = fingerprint, 2 = certificate chain
 uint8_t gsCipRecvMode = 0;			// command AT+CIPRECVMODE
@@ -349,21 +350,22 @@ void loop()
 		{
 			++PemCertificateCount;
 
-			// base 64 characters and hyphen for header and footer
-			if (isAlphaNumeric(c) || strchr("/+= -\\", c) != nullptr)
+			if (isAlphaNumeric(c) || strchr("/+= -\\\r\n", c) != nullptr)
 			{
+				// Check newlines - the header and footer must be separated by at least one '\n' from the base64 certificate data
+				if (c == '\r')
+					c = '\n';
+				else if (c == 'n' && PemCertificatePos > 0 && PemCertificate[PemCertificatePos - 1] == '\\')
+				{
+					// Create real backslash from separate characters '\' and 'n'
+					c = '\n';
+					--PemCertificatePos;
+				}
+
 				// Ignore multiple newlines, save space in the buffer
 				if (c != '\n' || (PemCertificatePos > 0 && PemCertificate[PemCertificatePos - 1] != '\n'))
 				{
-					// Create real backslash from seperate characters '\' and 'n'
-					if (c == 'n' && PemCertificate[PemCertificatePos - 1] == '\\')
-					{
-						PemCertificate[PemCertificatePos - 1] = '\n';
-					}
-					else
-					{
-						PemCertificate[PemCertificatePos++] = c;
-					}
+					PemCertificate[PemCertificatePos++] = c;
 
 					// Check the end
 					if (c == '-' && PemCertificatePos > 100)
@@ -409,6 +411,12 @@ void loop()
 			{
 				gsCertLoading = false;
 				Serial.printf_P(MSG_ERROR); // Invalid data
+			}
+
+			// Reading certificate stopped, so certificated is last input
+			if (!gsCertLoading)
+			{
+				gsCertLastInput = true;
 			}
 		}
 		else if (inputBufferCnt < INPUT_BUFFER_LEN)
@@ -513,7 +521,18 @@ void loop()
 	}
 	else if (lineCompleted) // Check for a new command
 	{
-		processCommandBuffer();
+		// Process command if certificate was not the last input
+		if (!gsCertLastInput)
+		{
+			processCommandBuffer();
+		}
+		else
+		{
+			gsCertLastInput = false;
+
+			// Discard the input buffer
+			inputBufferCnt = 0;
+		}
 
 		// Discard the garbage that may have come during the processing of the command
 		while (Serial.available())

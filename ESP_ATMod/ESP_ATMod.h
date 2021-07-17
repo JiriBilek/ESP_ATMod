@@ -67,8 +67,8 @@ extern uint8_t inputBuffer[INPUT_BUFFER_LEN]; // Input buffer
 extern uint16_t inputBufferCnt;				  // Number of bytes in inputBuffer
 extern uint8_t fingerprint[20];				  // SHA-1 certificate fingerprint for TLS connections
 extern bool fingerprintValid;
-extern BearSSL::X509List CAcert; // CA certificate for TLS validation
-extern size_t maximumCertificates;	 // Maximum amount of certificates to load
+extern BearSSL::X509List CAcert;   // CA certificate for TLS validation
+extern size_t maximumCertificates; // Maximum amount of certificates to load
 
 extern char *PemCertificate;		 // Buffer for loading a certificate
 extern uint16_t PemCertificatePos;	 // Position in buffer while loading
