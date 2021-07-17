@@ -350,29 +350,6 @@ void cmd_AT()
 }
 
 /*
- * AT+RST - soft reset
- */
-void cmd_AT_RST()
-{
-	Serial.printf_P(MSG_OK);
-	Serial.flush();
-
-	ESP.reset();
-}
-
-/*
- * AT+GMR - firmware version
- */
-void cmd_AT_GMR()
-{
-	Serial.println(F("AT version:1.7.0.0 (partial)"));
-	Serial.printf_P(PSTR("SDK version:%s\r\n"), system_get_sdk_version());
-	Serial.printf_P(PSTR("Compile time:%s %s\r\n"), __DATE__, __TIME__);
-	Serial.printf_P(PSTR("Version ESP_ATMod:%s\r\n"), APP_VERSION);
-	Serial.println(F("OK"));
-}
-
-/*
  * ATE0, ATE1 - echo enabled / disabled
  */
 void cmd_ATE()
@@ -390,134 +367,53 @@ void cmd_ATE()
 }
 
 /*
- * AT+RESTORE - Restores the Factory Default Settings
+ * AT+GMR - firmware version
  */
-void cmd_AT_RESTORE()
+void cmd_AT_GMR()
+{
+	Serial.println(F("AT version:1.7.0.0 (partial)"));
+	Serial.printf_P(PSTR("SDK version:%s\r\n"), system_get_sdk_version());
+	Serial.printf_P(PSTR("Compile time:%s %s\r\n"), __DATE__, __TIME__);
+	Serial.printf_P(PSTR("Version ESP_ATMod:%s\r\n"), APP_VERSION);
+	Serial.println(F("OK"));
+}
+
+/*
+ * AT+RST - soft reset
+ */
+void cmd_AT_RST()
 {
 	Serial.printf_P(MSG_OK);
-
-	// Reset the EEPROM configuration
-	Settings::reset();
+	Serial.flush();
 
 	ESP.reset();
 }
 
 /*
- * AT+UART=baudrate,databits,stopbits,parity,flow - UART Configuration
+ * AT+CWAUTOCONN - auto connect to AP
  */
-void cmd_AT_UART(commands_t cmd)
+void cmd_AT_CWAUTOCONN()
 {
-	uint16_t offset = 7;
-	if (cmd == CMD_AT_UART_CUR || cmd == CMD_AT_UART_DEF)
-		offset += 4;
-
-	if (inputBuffer[offset] == '?' && inputBufferCnt == offset + 3)
+	if (inputBuffer[13] == '?')
 	{
-		const char *cmdSuffix = "";
-		if (cmd == CMD_AT_UART_CUR)
-			cmdSuffix = suffix_CUR;
-		else if (cmd == CMD_AT_UART_DEF)
-			cmdSuffix = suffix_DEF;
+		Serial.print(F("+CWAUTOCONN:"));
+		Serial.println(WiFi.getAutoConnect() ? "1" : "0");
+		Serial.printf_P(MSG_OK);
+	}
+	else if (inputBuffer[13] == '=')
+	{
+		uint32_t autoconn;
+		uint16_t offset = 14;
 
-		Serial.printf_P(PSTR("+UART%s:"), cmdSuffix);
-
-		/*
-		 * UART Register USC0:
-		 * 		UCSBN   4  //StopBits Count (2bit) 0:disable, 1:1bit, 2:1.5bit, 3:2bit
-		 * 		UCBN    2  //DataBits Count (2bin) 0:5bit, 1:6bit, 2:7bit, 3:8bit
-		 * 		UCPAE   1  //Parity Enable
-		 * 		UCPA    0  //Parity 0:even, 1:odd
-		 */
-
-		uint32_t uartConfig;
-		uint32_t baudRate;
-
-		if (cmd == CMD_AT_UART_DEF)
+		if (readNumber(inputBuffer, offset, autoconn) && autoconn <= 1 && inputBufferCnt == offset + 2)
 		{
-			uartConfig = Settings::getUartConfig();
-			baudRate = Settings::getUartBaudRate();
+			WiFi.setAutoConnect(autoconn);
+			Serial.printf_P(MSG_OK);
 		}
 		else
 		{
-			uartConfig = USC0(0);
-			baudRate = Serial.baudRate();
-		}
-
-		uint8_t databits = 5 + ((uartConfig >> UCBN) & 3);
-		uint8_t stopbits = (uartConfig >> UCSBN) & 3;
-		uint8_t parity = uartConfig & 3;
-
-		Serial.printf("%d,%d,%d,%d,0\r\nOK\r\n", baudRate, databits, stopbits, parity);
-	}
-	else if (inputBuffer[offset] == '=')
-	{
-		uint8_t error = 1;
-
-		++offset;
-
-		do
-		{
-			uint32_t baudRate;
-			uint32_t dataBits;
-			uint32_t stopBits;
-			uint32_t parity;
-			uint32_t flow;
-			SerialConfig uartConfig;
-
-			if (!readNumber(inputBuffer, offset, baudRate) || baudRate < 110 || baudRate > 921600 || inputBuffer[offset] != ',')
-				break;
-
-			++offset;
-
-			if (!readNumber(inputBuffer, offset, dataBits) || dataBits < 5 || dataBits > 8 || inputBuffer[offset] != ',')
-				break;
-
-			++offset;
-
-			if (!readNumber(inputBuffer, offset, stopBits) || stopBits < 1 || stopBits > 3 || inputBuffer[offset] != ',')
-				break;
-
-			++offset;
-
-			if (!readNumber(inputBuffer, offset, parity) || parity > 2 || inputBuffer[offset] != ',')
-				break;
-
-			++offset;
-
-			if (!readNumber(inputBuffer, offset, flow) || flow > 3 || inputBufferCnt != offset + 2)
-				break;
-
-			if (flow != 0)
-			{
-				Serial.println(F("NOT IMPLEMENTED"));
-				break;
-			}
-
-			uartConfig = (SerialConfig)(((dataBits - 5) << UCBN) | (stopBits << UCSBN) | parity);
-
-			AT_DEBUG_PRINTF("--- %d,%02x\r\n", baudRate, uartConfig);
-
-			error = 0;
-
-			// Restart the serial interface
-
-			Serial.flush();
-			Serial.end();
-			Serial.begin(baudRate, uartConfig);
-			delay(250); // To let the line settle
-
-			if (cmd != CMD_AT_UART_CUR)
-			{
-				Settings::setUartBaudRate(baudRate);
-				Settings::setUartConfig(uartConfig);
-			}
-
-		} while (0);
-
-		if (error == 0)
-			Serial.printf_P(MSG_OK);
-		else if (error == 1)
 			Serial.printf_P(MSG_ERROR);
+		}
 	}
 	else
 	{
@@ -526,19 +422,11 @@ void cmd_AT_UART(commands_t cmd)
 }
 
 /*
- * AT+SYSRAM? - Checks the Remaining Space of RAM
- */
-void cmd_AT_SYSRAM()
-{
-	Serial.printf_P(PSTR("+SYSRAM:%d\r\nOK\r\n"), ESP.getFreeHeap());
-}
-
-/*
  * AT+CWMODE - Sets the Current Wi-Fi mode (only mode 1 implemented)
  */
 void cmd_AT_CWMODE(commands_t cmd)
 {
-	uint16_t offset = 9; // offset to ? or =
+	uint16_t offset = 9;  // offset to ? or =
 	if (cmd != CMD_AT_CWMODE)
 		offset += 4;
 
@@ -561,7 +449,7 @@ void cmd_AT_CWMODE(commands_t cmd)
 
 		if (readNumber(inputBuffer, offset, mode) && mode <= 3 && inputBufferCnt == offset + 2)
 		{
-			if (mode == 1) // Only MODE 1 is supported
+			if (mode == 1)  // Only MODE 1 is supported
 				Serial.printf_P(MSG_OK);
 			else
 				Serial.println(F("ERROR NOT SUPPORTED"));
@@ -576,11 +464,155 @@ void cmd_AT_CWMODE(commands_t cmd)
 }
 
 /*
+ * AT+CIPMUX - Enable or Disable Multiple Connections
+ */
+void cmd_AT_CIPMUX()
+{
+	bool error = true;
+
+	if (inputBuffer[9] == '?' && inputBufferCnt == 12)
+	{
+		Serial.printf_P(PSTR("+CIPMUX:%d\r\n\r\nOK\r\n"), gsCipMux);
+		error = false;
+	}
+	else if (inputBuffer[9] == '=')
+	{
+		uint32_t mux;
+		uint16_t offset = 10;
+
+		if (readNumber(inputBuffer, offset, mux) && mux <= 1 && inputBufferCnt == offset + 2)
+		{
+			bool openedError = false;
+
+			for (uint8_t i = 0; i <= 4; ++i)
+			{
+				if (clients[i].client != nullptr)
+				{
+					Serial.println(F("link is builded"));
+					openedError = true;
+					break;
+				}
+			}
+
+			if (!openedError)
+			{
+				gsCipMux = mux;
+				Serial.printf_P(MSG_OK);
+				error = false;
+			}
+		}
+	}
+
+	if (error)
+	{
+		Serial.printf_P(MSG_ERROR);
+	}
+}
+
+/*
+ * AT+CIPDINFO - Shows the Remote IP and Port with +IPD
+ */
+void cmd_AT_CIPDINFO()
+{
+	if (inputBuffer[11] == '?' && inputBufferCnt == 14)
+	{
+		Serial.printf_P(PSTR("+CIPDINFO:%s\r\n\r\nOK\r\n"), gsCipdInfo ? "TRUE" : "FALSE");
+	}
+	else if (inputBuffer[11] == '=')
+	{
+		uint32_t ipdInfo;
+		uint16_t offset = 12;
+
+		if (readNumber(inputBuffer, offset, ipdInfo) && ipdInfo <= 1 && inputBufferCnt == offset + 2)
+		{
+			gsCipdInfo = ipdInfo;
+			Serial.printf_P(MSG_OK);
+		}
+		else
+		{
+			Serial.printf_P(MSG_ERROR);
+		}
+	}
+	else
+	{
+		Serial.printf_P(MSG_ERROR);
+	}
+}
+
+/*
+ * AT+CWDHCP=x,y - Enables/Disables DHCP
+ */
+void cmd_AT_CWDHCP(commands_t cmd)
+{
+	bool error = true;
+
+	uint16_t offset = 9;  // offset to ? or =
+	if (cmd != CMD_AT_CWDHCP)
+		offset += 4;
+
+	if (inputBuffer[offset] == '?' && inputBufferCnt == offset + 3)
+	{
+		const char *cmdSuffix = "";
+		if (cmd == CMD_AT_CWDHCP_CUR)
+			cmdSuffix = suffix_CUR;
+		else if (cmd == CMD_AT_CWDHCP_DEF)
+			cmdSuffix = suffix_DEF;
+
+		uint8_t dhcp;
+
+		if (cmd == CMD_AT_CWDHCP_DEF)
+			dhcp = Settings::getDhcpMode();
+		else
+			dhcp = gsCwDhcp;
+
+		Serial.printf_P(PSTR("+CWDHCP%s:%d\r\n"), cmdSuffix, dhcp);
+
+		Serial.printf_P(MSG_OK);
+		error = false;
+	}
+	else if (inputBuffer[offset] == '=')
+	{
+		uint32_t mode;
+		uint32_t en;
+
+		++offset;
+
+		if (readNumber(inputBuffer, offset, mode) && mode <= 2 && inputBuffer[offset] == ',')
+		{
+			++offset;
+
+			const WiFiMode_t dhcpToMode[3] = { WIFI_AP, WIFI_STA, WIFI_AP_STA };
+
+			if (dhcpToMode[mode] == WiFi.getMode())  // The mode must match the current mode
+			{
+				if (readNumber(inputBuffer, offset, en) && en <= 1 && inputBufferCnt == offset + 2)
+				{
+					gsCwDhcp = 1 | en << 1;  // Only Station DHCP is supported
+
+					setDhcpMode();
+
+					if (cmd != CMD_AT_CWDHCP_CUR)
+						Settings::setDhcpMode(gsCwDhcp);
+
+					Serial.printf_P(MSG_OK);
+					error = false;
+				}
+			}
+		}
+	}
+
+	if (error)
+	{
+		Serial.printf_P(MSG_ERROR);
+	}
+}
+
+/*
  * AT+CWJAP="ssid","pwd" [,"bssid"] - Connects to an AP, only ssid, pwd and bssid supported
  */
 void cmd_AT_CWJAP(commands_t cmd)
 {
-	uint16_t offset = 8; // offset to ? or =
+	uint16_t offset = 8;  // offset to ? or =
 	if (cmd != CMD_AT_CWJAP)
 		offset += 4;
 
@@ -595,14 +627,14 @@ void cmd_AT_CWJAP(commands_t cmd)
 			struct station_config conf;
 
 			if (cmd == CMD_AT_CWJAP_DEF)
-				wifi_station_get_config_default(&conf);
+		        wifi_station_get_config_default(&conf);
 			else
-				wifi_station_get_config(&conf);
+			    wifi_station_get_config(&conf);
 
 			char ssid[33];
 
 			memcpy(ssid, conf.ssid, sizeof(conf.ssid));
-			ssid[32] = 0; // Nullterm in case of 32 char ssid
+			ssid[32] = 0;  // Nullterm in case of 32 char ssid
 
 			const char *cmdSuffix = "";
 			if (cmd == CMD_AT_CWJAP_CUR)
@@ -614,8 +646,8 @@ void cmd_AT_CWJAP(commands_t cmd)
 
 			// +CWJAP_CUR:<ssid>,<bssid>,<channel>,<rssi>
 			Serial.printf_P(PSTR("\"%s\",\"%02x:%02x:%02x:%02x:%02x:%02x\",%d,%d\r\n"), ssid,
-							conf.bssid[0], conf.bssid[1], conf.bssid[2], conf.bssid[3], conf.bssid[4], conf.bssid[5],
-							WiFi.channel(), WiFi.RSSI());
+					conf.bssid[0], conf.bssid[1], conf.bssid[2], conf.bssid[3], conf.bssid[4], conf.bssid[5],
+					WiFi.channel(), WiFi.RSSI());
 		}
 		Serial.printf_P(MSG_OK);
 	}
@@ -623,8 +655,7 @@ void cmd_AT_CWJAP(commands_t cmd)
 	{
 		bool error = true;
 
-		do
-		{
+		do {
 			String ssid;
 			String pwd;
 			String bssid;
@@ -676,7 +707,7 @@ void cmd_AT_CWJAP(commands_t cmd)
 				}
 
 				if (WiFi.status() == WL_CONNECTED)
-					break; // Still connected
+					break;  // Still connected
 			}
 
 			uint8_t *pBssid = nullptr;
@@ -721,92 +752,32 @@ void cmd_AT_CWQAP()
 }
 
 /*
- * AT+CWDHCP=x,y - Enables/Disables DHCP
+ * AT+SYSRAM? - Checks the Remaining Space of RAM
  */
-void cmd_AT_CWDHCP(commands_t cmd)
+void cmd_AT_SYSRAM()
 {
-	bool error = true;
-
-	uint16_t offset = 9; // offset to ? or =
-	if (cmd != CMD_AT_CWDHCP)
-		offset += 4;
-
-	if (inputBuffer[offset] == '?' && inputBufferCnt == offset + 3)
-	{
-		const char *cmdSuffix = "";
-		if (cmd == CMD_AT_CWDHCP_CUR)
-			cmdSuffix = suffix_CUR;
-		else if (cmd == CMD_AT_CWDHCP_DEF)
-			cmdSuffix = suffix_DEF;
-
-		uint8_t dhcp;
-
-		if (cmd == CMD_AT_CWDHCP_DEF)
-			dhcp = Settings::getDhcpMode();
-		else
-			dhcp = gsCwDhcp;
-
-		Serial.printf_P(PSTR("+CWDHCP%s:%d\r\n"), cmdSuffix, dhcp);
-
-		Serial.printf_P(MSG_OK);
-		error = false;
-	}
-	else if (inputBuffer[offset] == '=')
-	{
-		uint32_t mode;
-		uint32_t en;
-
-		++offset;
-
-		if (readNumber(inputBuffer, offset, mode) && mode <= 2 && inputBuffer[offset] == ',')
-		{
-			++offset;
-
-			const WiFiMode_t dhcpToMode[3] = {WIFI_AP, WIFI_STA, WIFI_AP_STA};
-
-			if (dhcpToMode[mode] == WiFi.getMode()) // The mode must match the current mode
-			{
-				if (readNumber(inputBuffer, offset, en) && en <= 1 && inputBufferCnt == offset + 2)
-				{
-					gsCwDhcp = 1 | en << 1; // Only Station DHCP is supported
-
-					setDhcpMode();
-
-					if (cmd != CMD_AT_CWDHCP_CUR)
-						Settings::setDhcpMode(gsCwDhcp);
-
-					Serial.printf_P(MSG_OK);
-					error = false;
-				}
-			}
-		}
-	}
-
-	if (error)
-	{
-		Serial.printf_P(MSG_ERROR);
-	}
+	Serial.printf_P(PSTR("+SYSRAM:%d\r\nOK\r\n"), ESP.getFreeHeap());
 }
 
 /*
- * AT+CWAUTOCONN - auto connect to AP
+ * AT+RFMODE - Sets or queries current RF mode (custom command)
  */
-void cmd_AT_CWAUTOCONN()
+void cmd_AT_RFMODE()
 {
-	if (inputBuffer[13] == '?')
+	if (inputBuffer[9] == '?' && inputBufferCnt == 12)
 	{
-		Serial.print(F("+CWAUTOCONN:"));
-		Serial.println(WiFi.getAutoConnect() ? "1" : "0");
-		Serial.printf_P(MSG_OK);
+		Serial.printf_P(PSTR("+RFMODE:%d\r\nOK\r\n"), wifi_get_phy_mode());
 	}
-	else if (inputBuffer[13] == '=')
+	else if (inputBuffer[9] == '=')
 	{
-		uint32_t autoconn;
-		uint16_t offset = 14;
+		uint16_t offset = 10;
+		uint32_t mode;
 
-		if (readNumber(inputBuffer, offset, autoconn) && autoconn <= 1 && inputBufferCnt == offset + 2)
+		if (readNumber(inputBuffer, offset, mode) && mode >= 1 && mode <= 3 && inputBufferCnt == offset + 2)
 		{
-			WiFi.setAutoConnect(autoconn);
+			phy_mode_t phymode = phy_mode_t(mode);
+			wifi_set_phy_mode(phymode);
+
 			Serial.printf_P(MSG_OK);
 		}
 		else
@@ -818,6 +789,72 @@ void cmd_AT_CWAUTOCONN()
 	{
 		Serial.printf_P(MSG_ERROR);
 	}
+}
+
+/*
+ * AT+CIPSTATUS - Gets the Connection Status
+ */
+void cmd_AT_CIPSTATUS()
+{
+	wl_status_t status = WiFi.status();
+
+	if (status != WL_CONNECTED)
+	{
+		Serial.println(F("STATUS:5\r\n\r\nOK"));
+	}
+	else
+	{
+		bool statusPrinted = false;
+		uint8_t maxCli = 0;  // Maximum client number
+		if (gsCipMux == 1)
+			maxCli = 4;
+
+		for (uint8_t i = 0; i <= maxCli; ++i)
+		{
+			WiFiClient *cli = clients[i].client;
+			if (cli != nullptr && cli->connected())
+			{
+				if (!statusPrinted)
+				{
+					Serial.println(F("STATUS:3"));
+					statusPrinted = true;
+				}
+
+				const char types_text[3][4] = { "TCP", "UDP", "SSL" };
+				Serial.printf_P(PSTR("+CIPSTATUS:%d,\"%s\",\"%s\",%d,%d,0\r\n"), i, types_text[clients[i].type],
+						cli->remoteIP().toString().c_str(), cli->remotePort(), cli->localPort());
+			}
+		}
+
+		if (!statusPrinted)
+		{
+			char stat;
+
+			if (gsWasConnected)
+				stat = '4';
+			else
+				stat = '2';
+
+			Serial.printf_P(PSTR("STATUS:%c\r\n"), stat);
+		}
+
+		Serial.printf_P(MSG_OK);
+	}
+}
+
+/*
+ * AT+CIFSR - Gets the Local IP Address
+ */
+void cmd_AT_CIFSR()
+{
+	IPAddress ip = WiFi.localIP();
+	if (! ip.isSet())
+		Serial.println(F("+CISFR:STAIP,\"0.0.0.0\""));
+	else
+	Serial.printf_P(PSTR("+CISFR:STAIP,\"%s\"\r\n"), ip.toString().c_str());
+
+	Serial.printf_P(PSTR("+CIFSR:STAMAC,\"%s\"\r\n"), WiFi.macAddress().c_str());
+	Serial.printf_P(MSG_OK);
 }
 
 /*
@@ -840,7 +877,7 @@ void cmd_AT_CIPSTA(commands_t cmd)
 		}
 		else
 		{
-			cfg = {WiFi.localIP(), WiFi.gatewayIP(), WiFi.subnetMask()};
+			cfg = { WiFi.localIP(), WiFi.gatewayIP(), WiFi.subnetMask() };
 		}
 
 		const char *cmdSuffix = "";
@@ -890,7 +927,7 @@ void cmd_AT_CIPSTA(commands_t cmd)
 
 				error = 0;
 			}
-			else // read gateway and mask
+			else  // read gateway and mask
 			{
 				++offset;
 
@@ -911,11 +948,11 @@ void cmd_AT_CIPSTA(commands_t cmd)
 			{
 				// Save the network configuration
 				Settings::setNetConfig(cfg);
-				Settings::setDhcpMode(1); // Stop DHCP
+				Settings::setDhcpMode(1);  // Stop DHCP
 			}
 
 			gsCipStaCfg = cfg;
-			gsCwDhcp = 1; // Stop DHCP
+			gsCwDhcp = 1;  // Stop DHCP
 
 			// Reconfigure (stop DHCP and set the static addresses)
 			setDhcpMode();
@@ -934,57 +971,6 @@ void cmd_AT_CIPSTA(commands_t cmd)
 }
 
 /*
- * AT+CIPSTATUS - Gets the Connection Status
- */
-void cmd_AT_CIPSTATUS()
-{
-	wl_status_t status = WiFi.status();
-
-	if (status != WL_CONNECTED)
-	{
-		Serial.println(F("STATUS:5\r\n\r\nOK"));
-	}
-	else
-	{
-		bool statusPrinted = false;
-		uint8_t maxCli = 0; // Maximum client number
-		if (gsCipMux == 1)
-			maxCli = 4;
-
-		for (uint8_t i = 0; i <= maxCli; ++i)
-		{
-			WiFiClient *cli = clients[i].client;
-			if (cli != nullptr && cli->connected())
-			{
-				if (!statusPrinted)
-				{
-					Serial.println(F("STATUS:3"));
-					statusPrinted = true;
-				}
-
-				const char types_text[3][4] = {"TCP", "UDP", "SSL"};
-				Serial.printf_P(PSTR("+CIPSTATUS:%d,\"%s\",\"%s\",%d,%d,0\r\n"), i, types_text[clients[i].type],
-								cli->remoteIP().toString().c_str(), cli->remotePort(), cli->localPort());
-			}
-		}
-
-		if (!statusPrinted)
-		{
-			char stat;
-
-			if (gsWasConnected)
-				stat = '4';
-			else
-				stat = '2';
-
-			Serial.printf_P(PSTR("STATUS:%c\r\n"), stat);
-		}
-
-		Serial.printf_P(MSG_OK);
-	}
-}
-
-/*
  * AT+CIPSTART - Establishes TCP Connection, UDP Transmission or SSL Connection
  */
 void cmd_AT_CIPSTART()
@@ -993,13 +979,13 @@ void cmd_AT_CIPSTART()
 	 * AT+CIPMUX=0:  AT+CIPSTART=<type>,<remote IP>,<remote port>[,<TCP keep alive>]
 	 * AT+CIPMUX=1:  AT+CIPSTART=<link ID>,<type>,<remote IP>,<remote port>[,<TCP keep alive>]
 	 */
-	uint8_t error = 1; // 1 = generic error, 0 = ok
+	uint8_t error = 1;  // 1 = generic error, 0 = ok
 	uint16_t offset = 11;
 
 	// Parse the input
 
 	uint8_t linkID = 0;
-	clientTypes_t type = TYPE_NONE; // 0 = TCP, 1 = UDP, 2 = SSL
+	clientTypes_t type = TYPE_NONE;  // 0 = TCP, 1 = UDP, 2 = SSL
 	char remoteAddr[41];
 	uint32_t remotePort = 0;
 
@@ -1008,8 +994,7 @@ void cmd_AT_CIPSTART()
 		if (inputBuffer[offset] != '=')
 			break;
 
-		++offset;
-		error = 2;
+		++offset;  error = 2;
 
 		// Read link ID
 		if (gsCipMux == 1)
@@ -1040,8 +1025,7 @@ void cmd_AT_CIPSTART()
 		else
 			break;
 
-		offset += 3;
-		error = 4;
+		offset += 3;  error = 4;
 
 		if (inputBuffer[offset] != '"' || inputBuffer[offset + 1] != ',' || inputBuffer[offset + 2] != '"')
 			break;
@@ -1052,7 +1036,7 @@ void cmd_AT_CIPSTART()
 
 		uint8_t pos = 0;
 
-		while (pos < sizeof(remoteAddr) - 1 && inputBuffer[offset] != '"' && inputBuffer[offset] >= ' ')
+		while (pos < sizeof(remoteAddr)-1 && inputBuffer[offset] != '"' && inputBuffer[offset] >= ' ')
 		{
 			remoteAddr[pos++] = inputBuffer[offset++];
 		}
@@ -1065,7 +1049,7 @@ void cmd_AT_CIPSTART()
 
 		// Read remote port
 
-		error = 100; // Unspecified error
+		error = 100;  // Unspecified error
 
 		if (!readNumber(inputBuffer, offset, remotePort) || remotePort > 65535)
 			break;
@@ -1117,33 +1101,33 @@ void cmd_AT_CIPSTART()
 
 			error = 99;
 
-			if (type == 0) // TCP
+			if (type == 0)  // TCP
 			{
 				cli = new WiFiClient();
 			}
-			else if (type == 2) // SSL
+			else if (type == 2)  // SSL
 			{
 				cli = new BearSSL::WiFiClientSecure();
 
 				if (gsCipSslSize != 16384)
-					static_cast<BearSSL::WiFiClientSecure *>(cli)->setBufferSizes(gsCipSslSize, 512);
+					static_cast<BearSSL::WiFiClientSecure*>(cli)->setBufferSizes(gsCipSslSize, 512);
 
 				if (gsCipSslAuth == 0)
 				{
-					static_cast<BearSSL::WiFiClientSecure *>(cli)->setInsecure();
+					static_cast<BearSSL::WiFiClientSecure*>(cli)->setInsecure();
 				}
 				else if (gsCipSslAuth == 1 && fingerprintValid)
 				{
-					static_cast<BearSSL::WiFiClientSecure *>(cli)->setFingerprint(fingerprint);
+					static_cast<BearSSL::WiFiClientSecure*>(cli)->setFingerprint(fingerprint);
 				}
-				else if (gsCipSslAuth == 2 && CAcert.getCount() > 0) // certificate chain verification
+				else if (gsCipSslAuth == 2 && CAcert != nullptr) // certificate chain verification
 				{
-					static_cast<BearSSL::WiFiClientSecure *>(cli)->setTrustAnchors(&CAcert);
+					static_cast<BearSSL::WiFiClientSecure*>(cli)->setTrustAnchors(CAcert);
 				}
 				else
 				{
 					delete cli;
-					break; // error
+					break;  // error
 				}
 			}
 
@@ -1152,18 +1136,18 @@ void cmd_AT_CIPSTART()
 				break;
 
 			// Test if the remote host exists
-			IPAddress remoteIP;
-			uint16_t _timeout = 5000;
-			if (!WiFi.hostByName(remoteAddr, remoteIP, _timeout))
-			{
-				delete cli;
-				error = 100;
+		    IPAddress remoteIP;
+		    uint16_t _timeout = 5000;
+		    if (!WiFi.hostByName(remoteAddr, remoteIP, _timeout))
+		    {
+		    	delete cli;
+		    	error = 100;
 
-				Serial.println(F("DNS Fail"));
-				break;
-			}
+		    	Serial.println(F("DNS Fail"));
+		    	break;
+		    }
 
-			// Connect using remote host name, not ip address (necessary for TLS)
+		    // Connect using remote host name, not ip address (necessary for TLS)
 			if (!cli->connect(remoteAddr, remotePort))
 			{
 				Serial.println("connect fail");
@@ -1183,7 +1167,7 @@ void cmd_AT_CIPSTART()
 			clients[linkID].type = type;
 			clients[linkID].lastAvailableBytes = 0;
 
-			gsWasConnected = true; // Flag for CIPSTATUS command
+			gsWasConnected = true;  // Flag for CIPSTATUS command
 
 			error = 0;
 
@@ -1285,60 +1269,6 @@ void cmd_AT_CIPSEND()
 }
 
 /*
- * AT+CIPCLOSEMODE - Defines the closing mode of the connection.
- * Parsed but ignored for now.
- */
-void cmd_AT_CIPCLOSEMODE()
-{
-	uint8_t error = 1;
-
-	do
-	{
-		uint16_t offset = 16;
-		uint32_t inputVal = 0;
-		//		uint32_t linkId = 0;
-
-		// Read the input
-
-		if (inputBuffer[15] != '=')
-			break;
-
-		if (!readNumber(inputBuffer, offset, inputVal) || inputVal > 5)
-			break;
-
-		if (gsCipMux == 0)
-		{
-			// Check the <enable_abort> value and end of line
-			if (inputVal > 1 || inputBufferCnt != offset + 2)
-				break;
-		}
-		else
-		{
-			// Read the second number - <enable_abort> value
-			if (inputBuffer[offset] != ',')
-				break;
-
-			++offset;
-			//			linkId = inputVal;
-			if (!readNumber(inputBuffer, offset, inputVal) || inputVal > 1 || inputBufferCnt != offset + 2)
-				break;
-		}
-
-		// Check the client
-		//		WiFiClient *cli = clients[linkId].client;
-
-		//		if (cli != nullptr)  // Success only for an existing client
-		error = 0;
-
-	} while (0);
-
-	if (error > 0)
-		Serial.printf_P(MSG_ERROR);
-	else
-		Serial.printf_P(MSG_OK);
-}
-
-/*
  * AT+CIPCLOSE - Closes the TCP/UDP/SSL Connection
  */
 void cmd_AT_CIPCLOSE()
@@ -1417,311 +1347,50 @@ void cmd_AT_CIPCLOSE()
 }
 
 /*
- * AT+CIFSR - Gets the Local IP Address
+ * AT+CIPCLOSEMODE - Defines the closing mode of the connection.
+ * Parsed but ignored for now.
  */
-void cmd_AT_CIFSR()
-{
-	IPAddress ip = WiFi.localIP();
-	if (!ip.isSet())
-		Serial.println(F("+CISFR:STAIP,\"0.0.0.0\""));
-	else
-		Serial.printf_P(PSTR("+CISFR:STAIP,\"%s\"\r\n"), ip.toString().c_str());
-
-	Serial.printf_P(PSTR("+CIFSR:STAMAC,\"%s\"\r\n"), WiFi.macAddress().c_str());
-	Serial.printf_P(MSG_OK);
-}
-
-/*
- * AT+CIPMUX - Enable or Disable Multiple Connections
- */
-void cmd_AT_CIPMUX()
-{
-	bool error = true;
-
-	if (inputBuffer[9] == '?' && inputBufferCnt == 12)
-	{
-		Serial.printf_P(PSTR("+CIPMUX:%d\r\n\r\nOK\r\n"), gsCipMux);
-		error = false;
-	}
-	else if (inputBuffer[9] == '=')
-	{
-		uint32_t mux;
-		uint16_t offset = 10;
-
-		if (readNumber(inputBuffer, offset, mux) && mux <= 1 && inputBufferCnt == offset + 2)
-		{
-			bool openedError = false;
-
-			for (uint8_t i = 0; i <= 4; ++i)
-			{
-				if (clients[i].client != nullptr)
-				{
-					Serial.println(F("link is builded"));
-					openedError = true;
-					break;
-				}
-			}
-
-			if (!openedError)
-			{
-				gsCipMux = mux;
-				Serial.printf_P(MSG_OK);
-				error = false;
-			}
-		}
-	}
-
-	if (error)
-	{
-		Serial.printf_P(MSG_ERROR);
-	}
-}
-
-/*
- * AT+CIPSNTPCFG - configure SNTP time
- */
-void cmd_AT_CIPSNTPCFG() // FIXME:
-{
-	uint8_t error = 1;
-
-	if (inputBuffer[13] == '?' && inputBufferCnt == 16)
-	{
-		Serial.printf_P(PSTR("+CIPSNTPCFG:%d"), gsSTNPEnabled ? 1 : 0);
-
-		if (gsSTNPEnabled)
-		{
-			Serial.printf_P(PSTR(",%d"), gsSTNPTimezone);
-
-			for (uint8_t i = 0; i < 3; ++i)
-			{
-				const char *sn = sntp_getservername(i);
-				if (sn != nullptr)
-					Serial.printf_P(PSTR(",\"%s\""), sn);
-			}
-		}
-
-		Serial.println();
-
-		error = 0;
-	}
-
-	else if (inputBuffer[13] == '=')
-	{
-		uint16_t offset = 14;
-		error = 1;
-
-		do
-		{
-			uint32_t sntpEnabled;
-			uint32_t sntpTimezone;
-			String sntpServer[3];
-
-			bool tzNegative = false;
-
-			if (!readNumber(inputBuffer, offset, sntpEnabled) || sntpEnabled > 1)
-				break;
-
-			// If enabling, read additional parameters
-			if (sntpEnabled)
-			{
-				if (inputBuffer[offset] != ',')
-					break;
-				if (inputBuffer[++offset] == '-')
-				{
-					tzNegative = true;
-					++offset;
-				}
-
-				if (!readNumber(inputBuffer, offset, sntpTimezone) || sntpEnabled > 12)
-					break;
-
-				for (uint8_t i = 0; i < 3; ++i)
-				{
-					if (inputBuffer[offset] != ',')
-						break;
-
-					sntpServer[i] = readStringFromBuffer(inputBuffer, ++offset, true);
-				}
-			}
-
-			if (inputBufferCnt != offset + 2)
-				break;
-
-			gsSTNPEnabled = (sntpEnabled == 1);
-
-			if (gsSTNPEnabled)
-			{
-				for (uint8_t i = 0; i < 3; ++i)
-					gsSNTPServer[i] = sntpServer[i];
-
-				gsSTNPTimezone = (tzNegative ? -1 : +1) * sntpTimezone;
-
-				configTime(gsSTNPTimezone, 0, nullIfEmpty(gsSNTPServer[0]), nullIfEmpty(gsSNTPServer[1]), nullIfEmpty(gsSNTPServer[2]));
-			}
-
-			error = 0;
-
-		} while (0);
-	}
-
-	if (error == 0)
-	{
-		Serial.printf_P(MSG_OK);
-	}
-	else
-	{
-		Serial.printf_P(MSG_ERROR);
-	}
-}
-
-/*
- * AT+CIPSNTPTIME? - get time in asctime format
- * In case the time is not set correctly, returns 1. 1. 1970
- */
-void cmd_AT_CIPSNTPTIME()
-{
-	time_t now = time(nullptr);
-
-	if (gsSTNPEnabled && (now > 8 * 3600 * 2))
-		now += gsSTNPTimezone * 3600;
-	else
-		now = 0;
-
-	struct tm *info = localtime((const time_t *)&now);
-
-	Serial.printf_P(PSTR("+CIPSNTPTIME:%s"), asctime(info));
-	Serial.println(F("OK"));
-}
-
-/*
- * AT+CIPDINFO - Shows the Remote IP and Port with +IPD
- */
-void cmd_AT_CIPDINFO()
-{
-	if (inputBuffer[11] == '?' && inputBufferCnt == 14)
-	{
-		Serial.printf_P(PSTR("+CIPDINFO:%s\r\n\r\nOK\r\n"), gsCipdInfo ? "TRUE" : "FALSE");
-	}
-	else if (inputBuffer[11] == '=')
-	{
-		uint32_t ipdInfo;
-		uint16_t offset = 12;
-
-		if (readNumber(inputBuffer, offset, ipdInfo) && ipdInfo <= 1 && inputBufferCnt == offset + 2)
-		{
-			gsCipdInfo = ipdInfo;
-			Serial.printf_P(MSG_OK);
-		}
-		else
-		{
-			Serial.printf_P(MSG_ERROR);
-		}
-	}
-	else
-	{
-		Serial.printf_P(MSG_ERROR);
-	}
-}
-
-/*
- * AT+CIPRECVMODE - Set TCP Receive Mode
- */
-void cmd_AT_CIPRECVMODE()
-{
-	if (inputBuffer[14] == '?' && inputBufferCnt == 17)
-	{
-		Serial.printf_P(PSTR("+CIPRECVMODE:%d\r\n\r\nOK\r\n"), gsCipRecvMode);
-	}
-	else if (inputBuffer[14] == '=')
-	{
-		uint32_t recvMode;
-		uint16_t offset = 15;
-
-		if (readNumber(inputBuffer, offset, recvMode) && recvMode <= 1 && inputBufferCnt == offset + 2)
-		{
-			gsCipRecvMode = recvMode;
-			Serial.printf_P(MSG_OK);
-		}
-		else
-		{
-			Serial.printf_P(MSG_ERROR);
-		}
-	}
-	else
-	{
-		Serial.printf_P(MSG_ERROR);
-	}
-}
-
-/*
- * AT+CIPRECVDATA - Get TCP Data in Passive Receive Mode
- */
-void cmd_AT_CIPRECVDATA()
+void cmd_AT_CIPCLOSEMODE()
 {
 	uint8_t error = 1;
 
 	do
 	{
-		uint8_t linkId = 0;
-		uint16_t offset;
-		uint32_t size = 0;
+		uint16_t offset = 16;
+		uint32_t inputVal = 0;
+//		uint32_t linkId = 0;
 
-		// Test the input
+		// Read the input
 
-		if (inputBuffer[14] != '=')
+		if (inputBuffer[15] != '=')
 			break;
 
-		// Read linkId
-		if (inputBuffer[15] >= '0' && inputBuffer[15] <= '5' && inputBuffer[16] == ',')
+		if (!readNumber(inputBuffer, offset, inputVal) || inputVal > 5)
+			break;
+
+		if (gsCipMux == 0)
 		{
-			if (gsCipMux == 0)
-			{
-				Serial.println("MUX=0");
+			// Check the <enable_abort> value and end of line
+			if (inputVal > 1 || inputBufferCnt != offset + 2)
 				break;
-			}
-
-			linkId = inputBuffer[15] - '0';
-
-			offset = 17;
 		}
 		else
-			offset = 15;
-
-		client_t *cli = &(clients[linkId]);
-
-		// Test the link
-		if (cli->client == nullptr)
 		{
-			Serial.println(F("link is not valid"));
-			break;
+			// Read the second number - <enable_abort> value
+			if (inputBuffer[offset] != ',')
+				break;
+
+			++offset;
+//			linkId = inputVal;
+			if (!readNumber(inputBuffer, offset, inputVal) || inputVal > 1 || inputBufferCnt != offset + 2)
+				break;
 		}
 
-		if (!readNumber(inputBuffer, offset, size) || offset + 2 != inputBufferCnt)
-			break;
+		// Check the client
+//		WiFiClient *cli = clients[linkId].client;
 
-		if (size > 2048)
-		{
-			Serial.println(F("too long"));
-			break;
-		}
-
-		AT_DEBUG_PRINTF("--- linkId: %d, size: %d\r\n", linkId, size);
-
-		// Send the data
-
-		int bytes = SendData(linkId, size);
-
-		if (bytes > 0)
-		{
-			cli->lastAvailableBytes -= bytes;
+//		if (cli != nullptr)  // Success only for an existing client
 			error = 0;
-
-			// Check if the recv mode changed to 0. If so, then close the client.
-			if (gsCipRecvMode == 0)
-			{
-				DeleteClient(linkId);
-			}
-		}
 
 	} while (0);
 
@@ -1732,136 +1401,114 @@ void cmd_AT_CIPRECVDATA()
 }
 
 /*
- * AT+CIPRECVLEN - Get TCP Data Length in Passive Receive Mode
+ * AT+UART=baudrate,databits,stopbits,parity,flow - UART Configuration
  */
-void cmd_AT_CIPRECVLEN()
+void cmd_AT_UART(commands_t cmd)
 {
-	if (inputBuffer[13] == '?' && inputBufferCnt == 16)
-	{
-		Serial.print(F("+CIPRECVLEN:"));
-
-		for (uint8_t i = 0; i <= 4; ++i)
-		{
-			int avail = 0;
-
-			if (i > 0)
-				Serial.print(',');
-
-			if (clients[i].client != nullptr)
-			{
-				avail = clients[i].client->available();
-			}
-
-			Serial.print(avail);
-		}
-
-		Serial.println();
-		Serial.printf_P(MSG_OK);
-	}
-}
-
-/*
- * AT+CIPDNS - Sets User-defined DNS Servers
- */
-void cmd_AT_CIPDNS(commands_t cmd)
-{
-	uint16_t offset = 9;
-
-	if (cmd != CMD_AT_CIPDNS)
+	uint16_t offset = 7;
+	if (cmd == CMD_AT_UART_CUR || cmd == CMD_AT_UART_DEF)
 		offset += 4;
 
-	if (inputBuffer[offset] == '?' && inputBufferCnt == offset + 3)
+	if (inputBuffer[offset] == '?' && inputBufferCnt == offset+3)
 	{
-		dnsConfig_t cfg;
+		const char *cmdSuffix = "";
+		if (cmd == CMD_AT_UART_CUR)
+			cmdSuffix = suffix_CUR;
+		else if (cmd == CMD_AT_UART_DEF)
+			cmdSuffix = suffix_DEF;
 
-		if (cmd == CMD_AT_CIPDNS_DEF)
+		Serial.printf_P(PSTR("+UART%s:"), cmdSuffix);
+
+		/*
+		 * UART Register USC0:
+		 * 		UCSBN   4  //StopBits Count (2bit) 0:disable, 1:1bit, 2:1.5bit, 3:2bit
+		 * 		UCBN    2  //DataBits Count (2bin) 0:5bit, 1:6bit, 2:7bit, 3:8bit
+		 * 		UCPAE   1  //Parity Enable
+		 * 		UCPA    0  //Parity 0:even, 1:odd
+		 */
+
+		uint32_t uartConfig;
+		uint32_t baudRate;
+
+		if (cmd == CMD_AT_UART_DEF)
 		{
-			cfg = Settings::getDnsConfig();
+			uartConfig = Settings::getUartConfig();
+			baudRate = Settings::getUartBaudRate();
 		}
 		else
 		{
-			cfg = {WiFi.dnsIP(0), WiFi.dnsIP(1)};
+			uartConfig = USC0(0);
+			baudRate = Serial.baudRate();
 		}
 
-		const char *cmdSuffix = "";
-		if (cmd == CMD_AT_CIPDNS_CUR)
-			cmdSuffix = suffix_CUR;
-		else if (cmd == CMD_AT_CIPDNS_DEF)
-			cmdSuffix = suffix_DEF;
+		uint8_t databits = 5 + ((uartConfig >> UCBN) & 3);
+		uint8_t stopbits = (uartConfig >> UCSBN) & 3;
+		uint8_t parity = uartConfig & 3;
 
-		if (cfg.dns1 != 0)
-		{
-			Serial.printf_P(PSTR("+CIPDNS%s:%s\r\n"), cmdSuffix, IPAddress(cfg.dns1).toString().c_str());
-
-			if (cfg.dns2 != 0 && cfg.dns1 != cfg.dns2)
-			{
-				Serial.printf_P(PSTR("+CIPDNS%s:%s\r\n"), cmdSuffix, IPAddress(cfg.dns2).toString().c_str());
-			}
-		}
-		Serial.printf_P(MSG_OK);
+		Serial.printf("%d,%d,%d,%d,0\r\nOK\r\n", baudRate, databits, stopbits, parity);
 	}
 	else if (inputBuffer[offset] == '=')
 	{
 		uint8_t error = 1;
 
-		dnsConfig_t cfg = {0, 0};
-		uint32_t dnsEnable;
-
 		++offset;
 
 		do
 		{
-			if (!readNumber(inputBuffer, offset, dnsEnable) || dnsEnable > 1)
+			uint32_t baudRate;
+			uint32_t dataBits;
+			uint32_t stopBits;
+			uint32_t parity;
+			uint32_t flow;
+			SerialConfig uartConfig;
+
+			if (!readNumber(inputBuffer, offset, baudRate) || baudRate < 110 || baudRate > 921600 || inputBuffer[offset] != ',')
 				break;
 
-			// enable = 0 ... no dns data, enable = 1 ... one or two ip addresses
-			if ((dnsEnable == 0 && inputBufferCnt != offset + 2) ||
-				(dnsEnable == 1 && inputBuffer[offset] != ','))
+			++offset;
+
+			if (!readNumber(inputBuffer, offset, dataBits) || dataBits < 5 || dataBits > 8 || inputBuffer[offset] != ',')
 				break;
 
-			if (dnsEnable == 1)
+			++offset;
+
+			if (!readNumber(inputBuffer, offset, stopBits) || stopBits < 1 || stopBits > 3 || inputBuffer[offset] != ',')
+				break;
+
+			++offset;
+
+			if (!readNumber(inputBuffer, offset, parity) || parity > 2 || inputBuffer[offset] != ',')
+				break;
+
+			++offset;
+
+			if (!readNumber(inputBuffer, offset, flow) || flow > 3 || inputBufferCnt != offset + 2)
+				break;
+
+			if (flow != 0)
 			{
-				++offset;
-
-				if (!readIpAddress(inputBuffer, offset, cfg.dns1))
-					break;
-
-				if (cfg.dns1 == 0)
-				{
-					Serial.println(F("IP1 invalid"));
-					break;
-				}
-
-				if (inputBufferCnt != offset + 2)
-				{
-					if (inputBuffer[offset] != ',')
-						break;
-
-					++offset;
-
-					if (!readIpAddress(inputBuffer, offset, cfg.dns2) || inputBufferCnt != offset + 2)
-						break;
-
-					if (cfg.dns2 == 0)
-					{
-						Serial.println(F("IP2 invalid"));
-						break;
-					}
-				}
+				Serial.println(F("NOT IMPLEMENTED"));
+				break;
 			}
 
-			// We got the dns configuration
+			uartConfig = (SerialConfig) (((dataBits - 5) << UCBN) | (stopBits << UCSBN) | parity);
 
-			if (cmd != CMD_AT_CIPDNS_CUR)
-			{
-				Settings::setDnsConfig(cfg);
-			}
-
-			gsCipDnsCfg = cfg;
-
-			setDns();
+			AT_DEBUG_PRINTF("--- %d,%02x\r\n", baudRate, uartConfig);
 
 			error = 0;
+
+			// Restart the serial interface
+
+			Serial.flush();
+			Serial.end();
+			Serial.begin(baudRate, uartConfig);
+			delay(250);  // To let the line settle
+
+			if (cmd != CMD_AT_UART_CUR)
+			{
+				Settings::setUartBaudRate(baudRate);
+				Settings::setUartConfig(uartConfig);
+			}
 
 		} while (0);
 
@@ -1877,60 +1524,38 @@ void cmd_AT_CIPDNS(commands_t cmd)
 }
 
 /*
- * AT+SYSCPUFREQ - Set or Get the Current CPU Frequency
+ * AT+RESTORE - Restores the Factory Default Settings
  */
-void cmd_AT_SYSCPUFREQ()
+void cmd_AT_RESTORE()
 {
-	uint8_t error = 1;
+	Serial.printf_P(MSG_OK);
 
-	if (inputBuffer[13] == '?' && inputBufferCnt == 16)
-	{
-		uint8_t freq = system_get_cpu_freq();
+	// Reset the EEPROM configuration
+	Settings::reset();
 
-		Serial.printf("+SYSCPUFREQ:%d\r\n", freq);
-		error = 0;
-	}
-
-	else if (inputBuffer[13] == '=')
-	{
-		uint16_t offset = 14;
-		uint32_t freq;
-
-		if (readNumber(inputBuffer, offset, freq) && (freq == 80 || freq == 160))
-		{
-			if (system_update_cpu_freq(freq) != 0)
-				error = 0; // Success
-		}
-	}
-
-	if (error == 0)
-	{
-		Serial.printf_P(MSG_OK);
-	}
-	else
-	{
-		Serial.printf_P(MSG_ERROR);
-	}
+	ESP.reset();
 }
 
 /*
- * AT+RFMODE - Sets or queries current RF mode (custom command)
+ * AT+CIPSSLSIZE - Sets the Size of SSL Buffer - only sizes 512, 1024, 2048 and 4096 are supported
  */
-void cmd_AT_RFMODE()
+void cmd_AT_CIPSSLSIZE()
 {
-	if (inputBuffer[9] == '?' && inputBufferCnt == 12)
-	{
-		Serial.printf_P(PSTR("+RFMODE:%d\r\nOK\r\n"), wifi_get_phy_mode());
-	}
-	else if (inputBuffer[9] == '=')
-	{
-		uint16_t offset = 10;
-		uint32_t mode;
+	uint16_t offset = 13;
 
-		if (readNumber(inputBuffer, offset, mode) && mode >= 1 && mode <= 3 && inputBufferCnt == offset + 2)
+	if (inputBuffer[offset] == '=')
+	{
+		unsigned int sslSize = 0;
+
+		++offset;
+
+		if (readNumber(inputBuffer, offset, sslSize) && inputBufferCnt == offset + 2
+				&& (sslSize == 512 || sslSize == 1024 || sslSize == 2048 || sslSize == 4096 || sslSize == 16384))
 		{
-			phy_mode_t phymode = phy_mode_t(mode);
-			wifi_set_phy_mode(phymode);
+			if (sslSize == 16384)
+				sslSize = 0;  // default value
+
+			gsCipSslSize = sslSize;
 
 			Serial.printf_P(MSG_OK);
 		}
@@ -1971,7 +1596,7 @@ void cmd_AT_CIPSSLAUTH()
 			{
 				Serial.println(F("fp not valid"));
 			}
-			else if (sslAuth == 2 && CAcert.getCount() == 0)
+			else if (sslAuth == 2 && CAcert == nullptr)
 			{
 				Serial.println(F("CA cert not loaded"));
 			}
@@ -1984,7 +1609,7 @@ void cmd_AT_CIPSSLAUTH()
 		}
 	}
 
-	if (!error)
+	if (! error)
 	{
 		Serial.printf_P(MSG_OK);
 	}
@@ -2045,39 +1670,6 @@ void cmd_AT_CIPSSLFP()
 		{
 			memcpy(fingerprint, fp, sizeof(fingerprint));
 			fingerprintValid = true;
-
-			Serial.printf_P(MSG_OK);
-		}
-		else
-		{
-			Serial.printf_P(MSG_ERROR);
-		}
-	}
-	else
-	{
-		Serial.printf_P(MSG_ERROR);
-	}
-}
-
-/*
- * AT+CIPSSLSIZE - Sets the Size of SSL Buffer - only sizes 512, 1024, 2048 and 4096 are supported
- */
-void cmd_AT_CIPSSLSIZE()
-{
-	uint16_t offset = 13;
-
-	if (inputBuffer[offset] == '=')
-	{
-		unsigned int sslSize = 0;
-
-		++offset;
-
-		if (readNumber(inputBuffer, offset, sslSize) && inputBufferCnt == offset + 2 && (sslSize == 512 || sslSize == 1024 || sslSize == 2048 || sslSize == 4096 || sslSize == 16384))
-		{
-			if (sslSize == 16384)
-				sslSize = 0; // default value
-
-			gsCipSslSize = sslSize;
 
 			Serial.printf_P(MSG_OK);
 		}
@@ -2286,6 +1878,296 @@ void cmd_AT_CIPSSLCERT()
 }
 
 /*
+ * AT+CIPRECVMODE - Set TCP Receive Mode
+ */
+void cmd_AT_CIPRECVMODE()
+{
+	if (inputBuffer[14] == '?' && inputBufferCnt == 17)
+	{
+		Serial.printf_P(PSTR("+CIPRECVMODE:%d\r\n\r\nOK\r\n"), gsCipRecvMode);
+	}
+	else if (inputBuffer[14] == '=')
+	{
+		uint32_t recvMode;
+		uint16_t offset = 15;
+
+		if (readNumber(inputBuffer, offset, recvMode) && recvMode <= 1 && inputBufferCnt == offset + 2)
+		{
+			gsCipRecvMode = recvMode;
+			Serial.printf_P(MSG_OK);
+		}
+		else
+		{
+			Serial.printf_P(MSG_ERROR);
+		}
+	}
+	else
+	{
+		Serial.printf_P(MSG_ERROR);
+	}
+}
+
+/*
+ * AT+CIPRECVLEN - Get TCP Data Length in Passive Receive Mode
+ */
+void cmd_AT_CIPRECVLEN()
+{
+	if (inputBuffer[13] == '?' && inputBufferCnt == 16)
+	{
+		Serial.print(F("+CIPRECVLEN:"));
+
+		for (uint8_t i = 0; i <= 4; ++i)
+		{
+			int avail = 0;
+
+			if (i > 0)
+				Serial.print(',');
+
+			if (clients[i].client != nullptr)
+			{
+				avail = clients[i].client->available();
+			}
+
+			Serial.print(avail);
+		}
+
+		Serial.println();
+		Serial.printf_P(MSG_OK);
+	}
+}
+
+/*
+ * AT+CIPRECVDATA - Get TCP Data in Passive Receive Mode
+ */
+void cmd_AT_CIPRECVDATA()
+{
+	uint8_t error = 1;
+
+	do
+	{
+		uint8_t linkId = 0;
+		uint16_t offset;
+		uint32_t size = 0;
+
+		// Test the input
+
+		if (inputBuffer[14] != '=')
+			break;
+
+		// Read linkId
+		if (inputBuffer[15] >= '0' && inputBuffer[15] <= '5' && inputBuffer[16] == ',')
+		{
+			if (gsCipMux == 0)
+			{
+				Serial.println("MUX=0");
+				break;
+			}
+
+			linkId = inputBuffer[15] - '0';
+
+			offset = 17;
+		}
+		else
+			offset = 15;
+
+		client_t *cli = &(clients[linkId]);
+
+		// Test the link
+		if (cli->client == nullptr)
+		{
+			Serial.println(F("link is not valid"));
+			break;
+		}
+
+		if (!readNumber(inputBuffer, offset, size) || offset + 2 != inputBufferCnt)
+			break;
+
+		if (size > 2048)
+		{
+			Serial.println(F("too long"));
+			break;
+		}
+
+		AT_DEBUG_PRINTF("--- linkId: %d, size: %d\r\n", linkId, size);
+
+		// Send the data
+
+		int bytes = SendData(linkId, size);
+
+		if (bytes > 0)
+		{
+			cli->lastAvailableBytes -= bytes;
+			error = 0;
+
+			// Check if the recv mode changed to 0. If so, then close the client.
+			if (gsCipRecvMode == 0)
+			{
+				DeleteClient(linkId);
+			}
+		}
+
+	} while (0);
+
+	if (error > 0)
+		Serial.printf_P(MSG_ERROR);
+	else
+		Serial.printf_P(MSG_OK);
+}
+
+/*
+ * AT+CIPDNS - Sets User-defined DNS Servers
+ */
+void cmd_AT_CIPDNS(commands_t cmd)
+{
+	uint16_t offset = 9;
+
+	if (cmd != CMD_AT_CIPDNS)
+		offset += 4;
+
+	if (inputBuffer[offset] == '?' && inputBufferCnt == offset + 3)
+	{
+		dnsConfig_t cfg;
+
+		if (cmd == CMD_AT_CIPDNS_DEF)
+		{
+			cfg = Settings::getDnsConfig();
+		}
+		else
+		{
+			cfg = { WiFi.dnsIP(0), WiFi.dnsIP(1) };
+		}
+
+		const char *cmdSuffix = "";
+		if (cmd == CMD_AT_CIPDNS_CUR)
+			cmdSuffix = suffix_CUR;
+		else if (cmd == CMD_AT_CIPDNS_DEF)
+			cmdSuffix = suffix_DEF;
+
+		if (cfg.dns1 != 0)
+		{
+			Serial.printf_P(PSTR("+CIPDNS%s:%s\r\n"), cmdSuffix, IPAddress(cfg.dns1).toString().c_str());
+
+			if (cfg.dns2 != 0 && cfg.dns1 != cfg.dns2)
+			{
+				Serial.printf_P(PSTR("+CIPDNS%s:%s\r\n"), cmdSuffix, IPAddress(cfg.dns2).toString().c_str());
+			}
+		}
+		Serial.printf_P(MSG_OK);
+	}
+	else if (inputBuffer[offset] == '=')
+	{
+		uint8_t error = 1;
+
+		dnsConfig_t cfg = { 0, 0 };
+		uint32_t dnsEnable;
+
+		++offset;
+
+		do
+		{
+			if (!readNumber(inputBuffer, offset, dnsEnable) || dnsEnable > 1)
+				break;
+
+			// enable = 0 ... no dns data, enable = 1 ... one or two ip addresses
+			if ((dnsEnable == 0 && inputBufferCnt != offset + 2) ||
+					(dnsEnable == 1 && inputBuffer[offset] != ','))
+				break;
+
+			if (dnsEnable == 1)
+			{
+				++offset;
+
+				if (!readIpAddress(inputBuffer, offset, cfg.dns1))
+					break;
+
+				if (cfg.dns1 == 0)
+				{
+					Serial.println(F("IP1 invalid"));
+					break;
+				}
+
+				if (inputBufferCnt != offset + 2)
+				{
+					if (inputBuffer[offset] != ',')
+						break;
+
+					++offset;
+
+					if (!readIpAddress(inputBuffer, offset, cfg.dns2) || inputBufferCnt != offset + 2)
+						break;
+
+					if (cfg.dns2 == 0)
+					{
+						Serial.println(F("IP2 invalid"));
+						break;
+					}
+				}
+			}
+
+			// We got the dns configuration
+
+			if (cmd != CMD_AT_CIPDNS_CUR)
+			{
+				Settings::setDnsConfig(cfg);
+			}
+
+			gsCipDnsCfg = cfg;
+
+			setDns();
+
+			error = 0;
+
+		} while (0);
+
+		if (error == 0)
+			Serial.printf_P(MSG_OK);
+		else if (error == 1)
+			Serial.printf_P(MSG_ERROR);
+	}
+	else
+	{
+		Serial.printf_P(MSG_ERROR);
+	}
+}
+
+/*
+ * AT+SYSCPUFREQ - Set or Get the Current CPU Frequency
+ */
+void cmd_AT_SYSCPUFREQ()
+{
+	uint8_t error = 1;
+
+	if (inputBuffer[13] == '?' && inputBufferCnt == 16)
+	{
+		uint8_t freq = system_get_cpu_freq();
+
+		Serial.printf("+SYSCPUFREQ:%d\r\n", freq);
+		error = 0;
+	}
+
+	else if (inputBuffer[13] == '=')
+	{
+		uint16_t offset = 14;
+		uint32_t freq;
+
+		if (readNumber(inputBuffer, offset, freq) && (freq == 80 || freq == 160))
+		{
+			if (system_update_cpu_freq(freq) != 0)
+				error = 0;  // Success
+		}
+	}
+
+	if (error == 0)
+	{
+		Serial.printf_P(MSG_OK);
+	}
+	else
+	{
+		Serial.printf_P(MSG_ERROR);
+	}
+}
+
+/*
  * AT+CIPSSLMFLN - Check the capability of MFLN for a site
  * Format: AT+CIPSSLMFLN=site,port,length
  * Example: AT+CIPSSLMFLN="tls.mbed.org",443,512
@@ -2309,7 +2191,7 @@ void cmd_AT_CIPSSLMFLN()
 		uint8_t pos = 0;
 		error = 4;
 
-		while (pos < sizeof(remoteSite) - 1 && inputBuffer[offset] != '"' && inputBuffer[offset] >= ' ')
+		while (pos < sizeof(remoteSite)-1 && inputBuffer[offset] != '"' && inputBuffer[offset] >= ' ')
 		{
 			remoteSite[pos++] = inputBuffer[offset++];
 		}
@@ -2322,7 +2204,7 @@ void cmd_AT_CIPSSLMFLN()
 
 		// Read remote port
 
-		error = 100; // Unspecified error
+		error = 100;  // Unspecified error
 
 		if (!readNumber(inputBuffer, offset, remotePort) || remotePort > 65535)
 			break;
@@ -2452,6 +2334,7 @@ void cmd_AT_CIPSSLSTA()
 
 		Serial.printf_P(MSG_ERROR);
 	}
+
 }
 
 /*
@@ -2467,7 +2350,7 @@ void cmd_AT_SNTPTIME()
 		struct tm *info = localtime((const time_t *)&now);
 
 		Serial.printf_P(PSTR("+SNTPTIME:%ld,%04d-%02d-%02d %02d:%02d:%02d\r\n"),
-						now, info->tm_year + 1900, info->tm_mon + 1, info->tm_mday, info->tm_hour, info->tm_min, info->tm_sec);
+		            now, info->tm_year+1900, info->tm_mon+1, info->tm_mday, info->tm_hour, info->tm_min, info->tm_sec);
 
 		Serial.println(F("OK"));
 	}
@@ -2476,6 +2359,122 @@ void cmd_AT_SNTPTIME()
 		Serial.println(F("+SNTPTIME:Enable SNTP first (AT+CIPSNTPCFG)"));
 		Serial.printf_P(MSG_ERROR);
 	}
+}
+
+/*
+ * AT+CIPSNTPCFG - configure SNTP time
+ */
+void cmd_AT_CIPSNTPCFG()  // FIXME:
+{
+	uint8_t error = 1;
+
+	if (inputBuffer[13] == '?' && inputBufferCnt == 16)
+	{
+		Serial.printf_P(PSTR("+CIPSNTPCFG:%d"), gsSTNPEnabled ? 1 : 0);
+
+		if (gsSTNPEnabled)
+		{
+			Serial.printf_P(PSTR(",%d"), gsSTNPTimezone);
+
+			for (uint8_t i = 0; i < 3; ++i)
+			{
+				const char *sn = sntp_getservername(i);
+				if (sn != nullptr)
+					Serial.printf_P(PSTR(",\"%s\""), sn);
+			}
+		}
+
+		Serial.println();
+
+		error = 0;
+	}
+
+	else if (inputBuffer[13] == '=')
+	{
+		uint16_t offset = 14;
+		error = 1;
+
+		do
+		{
+			uint32_t sntpEnabled;
+			uint32_t sntpTimezone;
+			String sntpServer[3];
+
+			bool tzNegative = false;
+
+			if (!readNumber(inputBuffer, offset, sntpEnabled) || sntpEnabled > 1)
+				break;
+
+			// If enabling, read additional parameters
+			if (sntpEnabled)
+				{
+				  if (inputBuffer[offset] != ',')
+					  break;
+				if (inputBuffer[++offset] == '-')
+				{
+					tzNegative = true;
+					++offset;
+				}
+
+				if (!readNumber(inputBuffer, offset, sntpTimezone) || sntpEnabled > 12)
+					break;
+
+				for (uint8_t i = 0; i < 3; ++i)
+				{
+					if (inputBuffer[offset] != ',')
+						break;
+
+					sntpServer[i] = readStringFromBuffer(inputBuffer, ++offset, true);
+				}
+			}
+
+			if (inputBufferCnt != offset + 2)
+				break;
+
+			gsSTNPEnabled = (sntpEnabled == 1);
+
+			if (gsSTNPEnabled)
+			{
+				for (uint8_t i = 0; i < 3; ++ i)
+					gsSNTPServer[i] = sntpServer[i];
+
+				gsSTNPTimezone = (tzNegative ? -1 : +1) * sntpTimezone;
+
+				configTime(gsSTNPTimezone, 0, nullIfEmpty(gsSNTPServer[0]), nullIfEmpty(gsSNTPServer[1]), nullIfEmpty(gsSNTPServer[2]));
+			}
+
+			error = 0;
+
+		} while (0);
+	}
+
+	if (error == 0)
+	{
+		Serial.printf_P(MSG_OK);
+	}
+	else
+	{
+		Serial.printf_P(MSG_ERROR);
+	}
+}
+
+/*
+ * AT+CIPSNTPTIME? - get time in asctime format
+ * In case the time is not set correctly, returns 1. 1. 1970
+ */
+void cmd_AT_CIPSNTPTIME()
+{
+	time_t now = time(nullptr);
+
+	if (gsSTNPEnabled && (now > 8 * 3600 * 2))
+		now += gsSTNPTimezone * 3600;
+	else
+		now = 0;
+
+	struct tm *info = localtime((const time_t *)&now);
+
+	Serial.printf_P(PSTR("+CIPSNTPTIME:%s"), asctime(info));
+	Serial.println(F("OK"));
 }
 
 /*********************************************************************************************
@@ -2491,37 +2490,23 @@ commands_t findCommand(uint8_t *input, uint16_t inpLen)
 	if (inpLen == 4)
 		return CMD_AT;
 
+	char *inputCmd = (char *)calloc(strlen((char *)input + 2) + 1, sizeof(char));
+	strcpy(inputCmd, (char *)input + 2);
+
 	// Check the command list
 	for (unsigned int i = 0; i < sizeof(commandList) / sizeof(commandDef_t); ++i)
 	{
 		const char *cmd = commandList[i].text;
-		int commandLength;
-		char *inputCmd = (char *)input + 2;
+		String compareCmd = commandList[i].text;
+
 		inputCmd[strcspn(inputCmd, "\r\n")] = 0;
 
-		// Get input command length
-		if (strchr(inputCmd, '?') != NULL)
-		{
-			commandLength = (int)(strchr(inputCmd, '?') - inputCmd);
-		}
-		else if (strchr(inputCmd, '=') != NULL)
-		{
-			commandLength = (int)(strchr(inputCmd, '=') - inputCmd);
-		}
-		else if (strchr(inputCmd, '0') != NULL)
-		{
-			commandLength = (int)(strchr(inputCmd, '0') - inputCmd);
-		}
-		else if (strchr(inputCmd, '1') != NULL)
-		{
-			commandLength = (int)(strchr(inputCmd, '1') - inputCmd);
-		}
-		else
-		{
-			commandLength = strlen(inputCmd);
-		}
+		// Split input command on \r or \n or any number
+		inputCmd = strtok(inputCmd, "?=0123456789");
 
-		if (!memcmp(cmd, inputCmd, commandLength))
+		// Remove trailing ? for comparison
+		compareCmd.remove(compareCmd.lastIndexOf('?'));
+		if (!strcmp(compareCmd.c_str(), inputCmd))
 		{
 			// We have a command
 			switch (commandList[i].mode)
