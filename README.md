@@ -369,13 +369,14 @@ AT+CIPSSLCERT?
 ```
 +CIPSSLCERT:no cert
 
-OK
+ERROR
 ```
 
 or
 
 ```
-+CIPSSLCERT:DST Root CA X3
++CIPSSLCERT,1:DST Root CA X3
++CIPSSLCERT,2:DST Root CA X3
 
 OK
 ```
@@ -389,7 +390,7 @@ AT+CIPSSLCERT?2
 
 *Answer:*
 ```
-+CIPSSLCERT:DST Root CA X3
++CIPSSLCERT,2:DST Root CA X3
 
 OK
 ```
@@ -460,30 +461,16 @@ or with an error message. In case of a successful loading, the certificate is re
 
 The limit for the PEM certificate is 4096 characters total. 
 
-**Delete the first certificate:**
+**Delete a certificate:**
 
 *Command:*
 ```
-AT+CIPSSLCERT=DELETE
+AT+CIPSSLCERT=DELETE,1
 ```
 
 *Answer:*
 ```
-+CIPSSLCERT:deleted
-
-OK
-```
-
-**Query specific certificate:**
-
-*Command:*
-```
-AT+CIPSSLCERT=DELETE:2
-```
-
-*Answer:*
-```
-+CIPSSLCERT:deleted certificate 2
++CIPSSLCERT,1:deleted
 
 OK
 ```

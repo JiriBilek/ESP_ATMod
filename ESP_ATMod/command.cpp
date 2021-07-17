@@ -116,6 +116,7 @@ String readStringFromBuffer(unsigned char *inpBuf, uint16_t &offset, bool escape
 bool readNumber(unsigned char *inpBuf, uint16_t &offset, uint32_t &output);
 bool readIpAddress(unsigned char *inpBuf, uint16_t &offset, uint32_t &output);
 uint8_t readHex(char c);
+void printCertificateName(uint8_t certNumber);
 
 /*
  * Commands
@@ -1719,18 +1720,21 @@ void cmd_AT_CIPSSLCERT()
 {
 	uint16_t offset = 13; // offset to ? or =
 
-	if (inputBufferCnt == 15)
+	// Load certificate
+	if (inputBufferCnt == offset + 2)
 	{
+		if (CAcert.getCount() >= maximumCertificates)
+		{
+			Serial.printf_P(PSTR("Reached the maximum of %d certificates\r\n"), maximumCertificates);
+			Serial.printf_P(MSG_ERROR);
+			return;
+		}
+
 		PemCertificate = new char[MAX_PEM_CERT_LENGTH];
 		PemCertificatePos = 0;
 		PemCertificateCount = 0;
 
-		if (CAcert.getCount() >= maximumCertificates)
-		{
-			Serial.printf_P(PSTR("Reached the maximum of %d certificates"), maximumCertificates);
-			Serial.printf_P(MSG_ERROR);
-		}
-		else if (PemCertificate != nullptr)
+		if (PemCertificate != nullptr)
 		{
 			gsCertLoading = true;
 
@@ -1742,105 +1746,68 @@ void cmd_AT_CIPSSLCERT()
 			Serial.printf_P(MSG_ERROR);
 		}
 	}
-	else if (inputBuffer[offset] == '?' && (inputBufferCnt >= 16 && inputBufferCnt <= 18))
+	// Print all certificates
+	else if (inputBuffer[offset] == '?' && inputBufferCnt == offset + 3)
 	{
 		if (CAcert.getCount() == 0)
 		{
-			Serial.println(F("+CIPSSLCERT:no cert"));
+			Serial.println(F("+CIPSSLCERT:no certs loaded"));
+			Serial.printf_P(MSG_ERROR);
 		}
 		else
 		{
-			uint32_t certNumber;
-
-			++offset;
-			if (!readNumber(inputBuffer, offset, certNumber))
+			for (size_t i = 0; i < CAcert.getCount(); i++)
 			{
-				certNumber = 1;
+				Serial.printf_P(PSTR("+CIPSSLCERT,%d:"), i + 1);
+				printCertificateName(i);
 			}
 
-			if (certNumber > CAcert.getCount())
-			{
-				Serial.println(F("+CIPSSLCERT:no cert"));
-			}
-			else
-			{
-				Serial.print(F("+CIPSSLCERT:"));
+			Serial.printf_P(MSG_OK);
+		}
+	}
+	// Print specific certificate
+	else if (inputBuffer[offset] == '?' && inputBufferCnt >= 16 && inputBufferCnt <= 18)
+	{
+		uint32_t certNumber;
 
-				const br_x509_certificate *cert = &(CAcert.getX509Certs()[certNumber - 1]);
+		++offset;
+		if (!readNumber(inputBuffer, offset, certNumber) || certNumber == 0)
+		{
+			Serial.printf_P(MSG_ERROR);
+			return;
+		}
 
-				uint8_t *cnBytes = getCnFromDer(cert->data, cert->data_len);
-
-				if (cnBytes != nullptr)
-				{
-					char *cn = new char[cnBytes[0] + 1];
-
-					if (cn != nullptr)
-					{
-						memcpy(cn, &(cnBytes[1]), cnBytes[0]);
-						cn[cnBytes[0]] = '\0';
-
-						Serial.println(cn);
-
-						delete cn;
-					}
-					else
-					{
-						Serial.println(F("cert ok"));
-					}
-				}
-				else
-				{
-					Serial.println(F("cert ok"));
-				}
-			}
+		if (certNumber > CAcert.getCount())
+		{
+			Serial.printf_P(PSTR("+CIPSSLCERT,%d:no certificate\r\n"), certNumber);
+			Serial.printf_P(MSG_ERROR);
+			return;
+		}
+		else
+		{
+			Serial.printf_P(PSTR("+CIPSSLCERT,%d:"), certNumber);
+			printCertificateName(certNumber - 1);
 		}
 
 		Serial.printf_P(MSG_OK);
 	}
-	else if (!memcmp_P(&(inputBuffer[offset]), PSTR("=DELETE"), 7) && inputBufferCnt == 22)
+	// Delete specific certificate
+	else if (!memcmp_P(&(inputBuffer[offset]), PSTR("=DELETE,"), 8) && (inputBufferCnt >= 22 && inputBufferCnt <= 25))
 	{
 		if (CAcert.getCount() == 0)
 		{
-			Serial.println(F("+CIPSSLCERT:no cert"));
-		}
-		else
-		{
-			BearSSL::X509List certList;
-
-			// Delete latest certificate
-			for (int i = 1; i < CAcert.getCount(); i++)
-			{
-				const br_x509_certificate *cert = &(CAcert.getX509Certs()[i - 1]);
-				certList.append(cert->data, cert->data_len);
-			}
-
-			CAcert = BearSSL::X509List();
-
-			for (int i = 0; i < certList.getCount(); i++)
-			{
-				const br_x509_certificate *cert = &(certList.getX509Certs()[i]);
-				CAcert.append(cert->data, cert->data_len);
-			}
-		}
-
-		Serial.printf_P(MSG_OK);
-	}
-	else if (!memcmp_P(&(inputBuffer[offset]), PSTR("=DELETE"), 7) && (inputBufferCnt >= 22 && inputBufferCnt <= 25))
-	{
-		if (CAcert.getCount() == 0)
-		{
-			Serial.println(F("+CIPSSLCERT:no cert"));
+			Serial.println(F("+CIPSSLCERT:no certificates"));
 		}
 		else
 		{
 			offset = 21;
 			uint32_t certNumberToDelete;
 
-			if (readNumber(inputBuffer, offset, certNumberToDelete) && certNumberToDelete <= CAcert.getCount())
+			if (readNumber(inputBuffer, offset, certNumberToDelete) && certNumberToDelete <= CAcert.getCount() && certNumberToDelete != 0)
 			{
 				BearSSL::X509List certList;
 
-				// Delete latest certificate
+				// Delete certificate
 				for (int i = 0; i < CAcert.getCount(); i++)
 				{
 					if (certNumberToDelete != (i + 1))
@@ -1858,18 +1825,21 @@ void cmd_AT_CIPSSLCERT()
 					CAcert.append(cert->data, cert->data_len);
 				}
 
-				Serial.printf_P(PSTR("+CIPSSLCERT:deleted certificate %d"), certNumberToDelete);
+				Serial.printf_P(PSTR("+CIPSSLCERT,%d:deleted\r\n"), certNumberToDelete);
 				Serial.printf_P(MSG_OK);
+				return;
 			}
 			else if (certNumberToDelete > CAcert.getCount())
 			{
-				Serial.println(F("+CIPSSLCERT=DELETE:no cert"));
-			}
-			else
-			{
-				Serial.printf_P(MSG_ERROR);
+				Serial.println(F("+CIPSSLCERT=DELETE:no certificate"));
 			}
 		}
+
+		Serial.printf_P(MSG_ERROR);
+	}
+	else
+	{
+		Serial.printf_P(MSG_ERROR);
 	}
 }
 
@@ -2504,6 +2474,9 @@ commands_t findCommand(uint8_t *input, uint16_t inpLen)
 		if (!strcmp(compareCmd.c_str(), inputCmd))
 		{
 			// We have a command
+
+			// Free memory of inputCmd
+			free(inputCmd);
 			switch (commandList[i].mode)
 			{
 			case MODE_NO_CHECKING:
@@ -2654,4 +2627,33 @@ uint8_t readHex(char c)
 		c -= '0';
 
 	return c;
+}
+
+/*
+ * Prints the certificate name for a certain index
+ */
+void printCertificateName(uint8_t number)
+{
+	const br_x509_certificate *cert = &(CAcert.getX509Certs()[number]);
+
+	uint8_t *cnBytes = getCnFromDer(cert->data, cert->data_len);
+
+	if (cnBytes != nullptr)
+	{
+		char *cn = new char[cnBytes[0] + 1];
+
+		if (cn != nullptr)
+		{
+			memcpy(cn, &(cnBytes[1]), cnBytes[0]);
+			cn[cnBytes[0]] = '\0';
+
+			Serial.println(cn);
+
+			delete cn;
+		}
+		else
+		{
+			Serial.println(F("cert ok"));
+		}
+	}
 }
