@@ -1807,7 +1807,7 @@ void cmd_AT_CIPSSLCERT()
 				BearSSL::X509List certList;
 
 				// Delete certificate
-				for (int i = 0; i < CAcert.getCount(); i++)
+				for (size_t i = 0; i < CAcert.getCount(); i++)
 				{
 					if (certNumberToDelete != (i + 1))
 					{
@@ -1818,7 +1818,7 @@ void cmd_AT_CIPSSLCERT()
 
 				CAcert = BearSSL::X509List();
 
-				for (int i = 0; i < certList.getCount(); i++)
+				for (size_t i = 0; i < certList.getCount(); i++)
 				{
 					const br_x509_certificate *cert = &(certList.getX509Certs()[i]);
 					CAcert.append(cert->data, cert->data_len);

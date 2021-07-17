@@ -106,7 +106,7 @@ uint16_t dataRead = 0; // Number of bytes read from the input to a send buffer
 uint8_t fingerprint[20]; // SHA-1 certificate fingerprint for TLS connections
 bool fingerprintValid;
 BearSSL::X509List CAcert; // CA certificate for TLS validation
-int maximumCertificates;
+size_t maximumCertificates;
 
 char *PemCertificate = nullptr; // Buffer for loading a certificate
 uint16_t PemCertificatePos;		// Position in buffer while loading
