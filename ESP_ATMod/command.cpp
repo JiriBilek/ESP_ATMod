@@ -1117,9 +1117,9 @@ void cmd_AT_CIPSTART()
 				{
 					static_cast<BearSSL::WiFiClientSecure *>(cli)->setFingerprint(fingerprint);
 				}
-				else if (gsCipSslAuth == 2 && CAcert != nullptr) // certificate chain verification
+				else if (gsCipSslAuth == 2 && CAcert.getCount() > 0) // certificate chain verification
 				{
-					static_cast<BearSSL::WiFiClientSecure *>(cli)->setTrustAnchors(CAcert);
+					static_cast<BearSSL::WiFiClientSecure *>(cli)->setTrustAnchors(&CAcert);
 				}
 				else
 				{
@@ -1592,7 +1592,7 @@ void cmd_AT_CIPSSLAUTH()
 			{
 				Serial.println(F("fp not valid"));
 			}
-			else if (sslAuth == 2 && CAcert == nullptr)
+			else if (sslAuth == 2 && CAcert.getCount() == 0)
 			{
 				Serial.println(F("CA cert not loaded"));
 			}
