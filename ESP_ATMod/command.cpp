@@ -2656,4 +2656,8 @@ void printCertificateName(uint8_t number)
 			Serial.println(F("cert ok"));
 		}
 	}
+	else
+	{
+		Serial.println(F("cert ok"));
+	}
 }
