@@ -1752,7 +1752,6 @@ void cmd_AT_CIPSSLCERT()
 		if (CAcert.getCount() == 0)
 		{
 			Serial.println(F("+CIPSSLCERT:no certs loaded"));
-			Serial.printf_P(MSG_ERROR);
 		}
 		else
 		{
@@ -1761,9 +1760,9 @@ void cmd_AT_CIPSSLCERT()
 				Serial.printf_P(PSTR("+CIPSSLCERT,%d:"), i + 1);
 				printCertificateName(i);
 			}
-
-			Serial.printf_P(MSG_OK);
 		}
+
+		Serial.printf_P(MSG_OK);
 	}
 	// Print specific certificate
 	else if (inputBuffer[offset] == '?' && inputBufferCnt >= 16 && inputBufferCnt <= 18)
