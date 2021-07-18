@@ -65,6 +65,7 @@ extern "C"
 #include "command.h"
 #include "settings.h"
 #include "debug.h"
+#include "asnDecode.h"
 
 /*
  * Defines
@@ -198,6 +199,7 @@ void setup()
 			if (originalCertCount >= maximumCertificates)
 			{
 				Serial.printf_P(PSTR("\nCould not load %s. Reached the maximum of %d certificates"), filename.c_str(), maximumCertificates);
+				Serial.printf_P(MSG_ERROR);
 			}
 			else
 			{
@@ -212,6 +214,7 @@ void setup()
 						if (!file)
 						{
 							Serial.printf_P("\nFailed to open file for reading");
+							Serial.printf_P(MSG_ERROR);
 							return;
 						}
 
@@ -227,19 +230,29 @@ void setup()
 						// Append certificate to CAcert list
 						CAcert.append(fileContent.c_str());
 
-						if (CAcert.getCount() == originalCertCount)
+						if (checkCertificateDuplicates(CAcert.getCount() - 1))
+						{
+							Serial.println(F("Tried to load already existing certificate"));
+							Serial.printf_P(MSG_ERROR);
+						}
+						else if (CAcert.getCount() == originalCertCount)
 						{
 							Serial.printf_P(PSTR("\nFailed to add %s to the certificates list"), filename.c_str());
+							Serial.printf_P(MSG_ERROR);
 						}
 					}
 					else
 					{
 						Serial.printf_P(PSTR("\n%s is empty"), filename.c_str());
+						Serial.printf_P(MSG_ERROR);
 					}
 				}
 				else
 				{
+					if (!strcmp(filename.c_str(), ".gitkeep")) {
 					Serial.printf_P(PSTR("\n%s is not a .pem file"), filename.c_str());
+					Serial.printf_P(MSG_ERROR);
+					}
 				}
 			}
 		}
@@ -247,6 +260,7 @@ void setup()
 	else
 	{
 		Serial.printf_P("\nInizializing FS failed.");
+		Serial.printf_P(MSG_ERROR);
 	}
 
 	Serial.println(F("\r\nready"));
@@ -377,7 +391,8 @@ void loop()
 							// Process the certificate
 							PemCertificate[PemCertificatePos] = '\0';
 
-							int originalCertCount = CAcert.getCount();
+							size_t originalCertCount = CAcert.getCount();
+
 							CAcert.append(PemCertificate);
 
 							delete PemCertificate;
@@ -386,7 +401,17 @@ void loop()
 
 							gsCertLoading = false;
 
-							if (CAcert.getCount() == (originalCertCount + 1))
+							if(c == '\n')
+							{
+								c = inputBuffer[inputBufferCnt++];
+							}
+
+							if (checkCertificateDuplicates(CAcert.getCount() - 1))
+							{
+								Serial.println(F("Tried to load already existing certificate"));
+								Serial.printf_P(MSG_ERROR);
+							}
+							else if (CAcert.getCount() == (originalCertCount + 1))
 							{
 								Serial.printf_P(MSG_OK);
 							}
@@ -733,4 +758,40 @@ const char *nullIfEmpty(String &s)
 		return nullptr;
 
 	return s.c_str();
+}
+
+/*
+ * Checks if the newly added certificate is a duplicate
+ */
+bool checkCertificateDuplicates(size_t indexNewAdded)
+{
+	const br_x509_certificate *certToCheck = &(CAcert.getX509Certs()[indexNewAdded]);
+
+	for (size_t i = 0; i < CAcert.getCount(); i++)
+	{
+		const br_x509_certificate *cert2 = &(CAcert.getX509Certs()[i]);
+		if (!memcmp(certToCheck->data, cert2->data, sizeof(certToCheck->data)) && i != indexNewAdded)
+		{
+			BearSSL::X509List certList;
+
+			// Delete latest certificate
+			for (int i = 1; i < CAcert.getCount(); i++)
+			{
+				const br_x509_certificate *cert = &(CAcert.getX509Certs()[i - 1]);
+				certList.append(cert->data, cert->data_len);
+			}
+
+			CAcert = BearSSL::X509List();
+
+			for (int i = 0; i < certList.getCount(); i++)
+			{
+				const br_x509_certificate *cert = &(certList.getX509Certs()[i]);
+				CAcert.append(cert->data, cert->data_len);
+			}
+
+			return true;
+		}
+	}
+
+	return false;
 }
