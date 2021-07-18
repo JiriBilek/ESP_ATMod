@@ -123,7 +123,6 @@ uint8_t gsCwDhcp = 3;				// command AT+CWDHCP_CUR
 bool gsFlag_Connecting = false;		// Connecting in progress (CWJAP) - other commands ignored
 int8_t gsLinkIdReading = -1;		// Link id where the data is read
 bool gsCertLoading = false;			// AT+CIPSSLCERT in progress
-bool gsCertLastInput = false;		// Prevent processing wrong command when certificate was the last input
 bool gsWasConnected = false;		// Connection flag for AT+CIPSTATUS
 uint8_t gsCipSslAuth = 0;			// command AT+CIPSSLAUTH: 0 = none, 1 = fingerprint, 2 = certificate chain
 uint8_t gsCipRecvMode = 0;			// command AT+CIPRECVMODE
@@ -193,7 +192,7 @@ void setup()
 			// Get filename
 			String filename = dir.fileName();
 
-			int originalCertCount = CAcert.getCount();
+			size_t originalCertCount = CAcert.getCount();
 
 			// Check if maximum certificates has not been reached yet
 			if (originalCertCount >= maximumCertificates)
@@ -227,10 +226,18 @@ void setup()
 
 						file.close();
 
-						// Append certificate to CAcert list
-						CAcert.append(fileContent.c_str());
+						// Append certificate to seperate X509List
+						BearSSL::X509List importCertList;
+						importCertList.append(fileContent.c_str());
 
-						if (checkCertificateDuplicates(CAcert.getCount() - 1))
+						if (importCertList.getCount() != 1)
+						{
+							Serial.printf_P(PSTR("\nFailed to add %s to the certificates list"), filename.c_str());
+							Serial.printf_P(MSG_ERROR);
+							return;
+						}
+
+						if (checkCertificateDuplicates(importCertList))
 						{
 							Serial.println(F("Tried to load already existing certificate"));
 							Serial.printf_P(MSG_ERROR);
@@ -249,9 +256,10 @@ void setup()
 				}
 				else
 				{
-					if (!strcmp(filename.c_str(), ".gitkeep")) {
-					Serial.printf_P(PSTR("\n%s is not a .pem file"), filename.c_str());
-					Serial.printf_P(MSG_ERROR);
+					if (strcmp(filename.c_str(), ".gitkeep"))
+					{
+						Serial.printf_P(PSTR("\n%s is not a .pem file"), filename.c_str());
+						Serial.printf_P(MSG_ERROR);
 					}
 				}
 			}
@@ -393,7 +401,16 @@ void loop()
 
 							size_t originalCertCount = CAcert.getCount();
 
-							CAcert.append(PemCertificate);
+							// Append certificate to seperate X509List
+							BearSSL::X509List importCertList;
+							importCertList.append(PemCertificate);
+
+							if (importCertList.getCount() != 1)
+							{
+								Serial.println(F("Loading certificate failed"));
+								Serial.printf_P(MSG_ERROR);
+								return;
+							}
 
 							delete PemCertificate;
 							PemCertificate = nullptr;
@@ -401,12 +418,7 @@ void loop()
 
 							gsCertLoading = false;
 
-							if(c == '\n')
-							{
-								c = inputBuffer[inputBufferCnt++];
-							}
-
-							if (checkCertificateDuplicates(CAcert.getCount() - 1))
+							if (checkCertificateDuplicates(importCertList))
 							{
 								Serial.println(F("Tried to load already existing certificate"));
 								Serial.printf_P(MSG_ERROR);
@@ -438,10 +450,14 @@ void loop()
 				Serial.printf_P(MSG_ERROR); // Invalid data
 			}
 
-			// Reading certificate stopped, so certificated is last input
 			if (!gsCertLoading)
 			{
-				gsCertLastInput = true;
+				// Read everything left before continuing
+				while (Serial.available() > 0)
+				{
+					// Read the incoming byte
+					int incomingByte = Serial.read();
+				}
 			}
 		}
 		else if (inputBufferCnt < INPUT_BUFFER_LEN)
@@ -546,18 +562,7 @@ void loop()
 	}
 	else if (lineCompleted) // Check for a new command
 	{
-		// Process command if certificate was not the last input
-		if (!gsCertLastInput)
-		{
-			processCommandBuffer();
-		}
-		else
-		{
-			gsCertLastInput = false;
-
-			// Discard the input buffer
-			inputBufferCnt = 0;
-		}
+		processCommandBuffer();
 
 		// Discard the garbage that may have come during the processing of the command
 		while (Serial.available())
@@ -763,35 +768,21 @@ const char *nullIfEmpty(String &s)
 /*
  * Checks if the newly added certificate is a duplicate
  */
-bool checkCertificateDuplicates(size_t indexNewAdded)
+bool checkCertificateDuplicates(BearSSL::X509List &importCertList)
 {
-	const br_x509_certificate *certToCheck = &(CAcert.getX509Certs()[indexNewAdded]);
+	const br_x509_certificate *importedCert = &(importCertList.getX509Certs()[0]);
 
 	for (size_t i = 0; i < CAcert.getCount(); i++)
 	{
-		const br_x509_certificate *cert2 = &(CAcert.getX509Certs()[i]);
-		if (!memcmp(certToCheck->data, cert2->data, sizeof(certToCheck->data)) && i != indexNewAdded)
+		const br_x509_certificate *cert = &(CAcert.getX509Certs()[i]);
+		if (!memcmp(importedCert->data, cert->data, importedCert->data_len))
 		{
-			BearSSL::X509List certList;
-
-			// Delete latest certificate
-			for (int i = 1; i < CAcert.getCount(); i++)
-			{
-				const br_x509_certificate *cert = &(CAcert.getX509Certs()[i - 1]);
-				certList.append(cert->data, cert->data_len);
-			}
-
-			CAcert = BearSSL::X509List();
-
-			for (int i = 0; i < certList.getCount(); i++)
-			{
-				const br_x509_certificate *cert = &(certList.getX509Certs()[i]);
-				CAcert.append(cert->data, cert->data_len);
-			}
-
 			return true;
 		}
 	}
+
+	// Certificate is not a duplicate
+	CAcert.append(importedCert->data, importedCert->data_len);
 
 	return false;
 }
