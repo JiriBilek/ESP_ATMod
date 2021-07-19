@@ -72,7 +72,8 @@
  * Defines
  */
 
-enum asnTypes {
+enum asnTypes
+{
 	ASN_INTEGER = 0x02,
 	ASN_OBJECT_IDENTIFER = 0x06,
 	ASN_SEQUENCE = 0x10,
@@ -80,7 +81,8 @@ enum asnTypes {
 	ASN_PRINTABLE_STRING = 0x13
 };
 
-enum asnMethods {
+enum asnMethods
+{
 	ASN_CONSTRUCTED = 0x20,
 	ASN_UNIVERSAL = 0x00,
 	ASN_APPLICATION = 0x40,
@@ -92,7 +94,8 @@ enum asnMethods {
  * Local types
  */
 
-typedef struct {
+typedef struct
+{
 	uint8_t tag;
 	uint16_t length;
 	uint16_t dataPos;
@@ -216,7 +219,7 @@ uint8_t *getCnFromDer(uint8_t *der, uint16_t length)
 
 		// Check the ID 2.5.4.3 - commonName
 
-		if (header.length == 3 && ! memcmp(der + header.dataPos, "\x55\x04\x03", 3))
+		if (header.length == 3 && !memcmp(der + header.dataPos, "\x55\x04\x03", 3))
 		{
 			// 'attributeValue'
 			header = readHeader(der, attrPos, attrEnd);
@@ -229,7 +232,7 @@ uint8_t *getCnFromDer(uint8_t *der, uint16_t length)
 			if (header.tag != ASN_PRINTABLE_STRING)
 				return nullptr;
 
-			return (der + header.dataPos - 1);  // the last byte before the string should be the length - assume max 127 bytes
+			return (der + header.dataPos - 1); // the last byte before the string should be the length - assume max 127 bytes
 		}
 	}
 
@@ -245,7 +248,7 @@ uint8_t *getCnFromDer(uint8_t *der, uint16_t length)
  */
 static asnHeader_t readHeader(uint8_t *der, uint16_t &pos, uint16_t length)
 {
-	asnHeader_t hdr = { 0, 0, 0 };
+	asnHeader_t hdr = {0, 0, 0};
 
 	// Checking
 	if (der == nullptr || pos >= length)
@@ -260,7 +263,7 @@ static asnHeader_t readHeader(uint8_t *der, uint16_t &pos, uint16_t length)
 		hdr.length = der[pos + 1];
 		hdrsize = 2;
 	}
-	else if (der[pos + 1] == 0x82)  // Omitting other length on purpose
+	else if (der[pos + 1] == 0x82) // Omitting other length on purpose
 	{
 		hdr.length = (der[pos + 2] << 8) | der[pos + 3];
 		hdrsize = 4;
@@ -270,10 +273,10 @@ static asnHeader_t readHeader(uint8_t *der, uint16_t &pos, uint16_t length)
 
 	// Check the length
 	if (pos + hdrsize > length)
-		return hdr;  // out of buffer
+		return hdr; // out of buffer
 
 	hdr.dataPos = pos + hdrsize;
-	pos += hdrsize + hdr.length;  // advance to the next tag in the same level
+	pos += hdrsize + hdr.length; // advance to the next tag in the same level
 
 	return hdr;
 }

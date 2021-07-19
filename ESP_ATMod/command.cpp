@@ -36,84 +36,87 @@
  * Constants
  */
 
-const char * suffix_CUR = "_CUR";
-const char * suffix_DEF = "_DEF";
+const char *suffix_CUR = "_CUR";
+const char *suffix_DEF = "_DEF";
 
 /*
  * Command list
  */
 
-enum cmdMode_t {
-	MODE_NO_CHECKING,  // no checking
-	MODE_EXACT_MATCH,  // exact match
-	MODE_QUERY_SET     // '?' or '=' follows
+enum cmdMode_t
+{
+	MODE_NO_CHECKING, // no checking
+	MODE_EXACT_MATCH, // exact match
+	MODE_QUERY_SET	  // '?' or '=' follows
 };
 
-typedef struct {
+typedef struct
+{
 	const char *text;
 	const cmdMode_t mode;
 	const commands_t cmd;
 } commandDef_t;
 
 static const commandDef_t commandList[] = {
-		{ "E", MODE_NO_CHECKING, CMD_ATE },
-		{ "+GMR", MODE_EXACT_MATCH, CMD_AT_GMR },
-		{ "+RST", MODE_EXACT_MATCH, CMD_AT_RST },
-		{ "+SYSRAM?", MODE_EXACT_MATCH, CMD_AT_SYSRAM },
-		{ "+RFMODE", MODE_QUERY_SET, CMD_AT_RFMODE },
-		{ "+UART_CUR", MODE_QUERY_SET, CMD_AT_UART_CUR },
-		{ "+UART_DEF", MODE_QUERY_SET, CMD_AT_UART_DEF },
-		{ "+UART", MODE_QUERY_SET, CMD_AT_UART },
-		{ "+RESTORE", MODE_EXACT_MATCH, CMD_AT_RESTORE },
-		{ "+CWAUTOCONN", MODE_QUERY_SET, CMD_AT_CWAUTOCONN },
-		{ "+CWDHCP_CUR", MODE_QUERY_SET, CMD_AT_CWDHCP_CUR },
-		{ "+CWDHCP_DEF", MODE_QUERY_SET, CMD_AT_CWDHCP_DEF },
-		{ "+CWDHCP", MODE_QUERY_SET, CMD_AT_CWDHCP },
-		{ "+CWJAP_CUR", MODE_QUERY_SET, CMD_AT_CWJAP_CUR },
-		{ "+CWJAP_DEF", MODE_QUERY_SET, CMD_AT_CWJAP_DEF },
-		{ "+CWJAP", MODE_QUERY_SET, CMD_AT_CWJAP },
-		{ "+CWMODE_CUR", MODE_QUERY_SET, CMD_AT_CWMODE_CUR },
-		{ "+CWMODE_DEF", MODE_QUERY_SET, CMD_AT_CWMODE_DEF },
-		{ "+CWMODE", MODE_QUERY_SET, CMD_AT_CWMODE },
-		{ "+CWQAP", MODE_EXACT_MATCH, CMD_AT_CWQAP },
-		{ "+CIFSR", MODE_EXACT_MATCH, CMD_AT_CIFSR },
-		{ "+CIPCLOSEMODE", MODE_NO_CHECKING, CMD_AT_CIPCLOSEMODE },
-		{ "+CIPCLOSE", MODE_NO_CHECKING, CMD_AT_CIPCLOSE },
-		{ "+CIPDINFO", MODE_QUERY_SET, CMD_AT_CIPDINFO },
-		{ "+CIPMUX", MODE_QUERY_SET, CMD_AT_CIPMUX },
-		{ "+CIPSEND", MODE_NO_CHECKING, CMD_AT_CIPSEND },
-		{ "+CIPSTATUS", MODE_EXACT_MATCH, CMD_AT_CIPSTATUS },
-		{ "+CIPSTART", MODE_NO_CHECKING, CMD_AT_CIPSTART },
-		{ "+CIPSTA_CUR", MODE_QUERY_SET, CMD_AT_CIPSTA_CUR },
-		{ "+CIPSTA_DEF", MODE_QUERY_SET, CMD_AT_CIPSTA_DEF },
-		{ "+CIPSTA", MODE_QUERY_SET, CMD_AT_CIPSTA },
-		{ "+CIPSSLSIZE", MODE_QUERY_SET, CMD_AT_CIPSSLSIZE },
-		{ "+CIPSSLAUTH", MODE_QUERY_SET, CMD_AT_CIPSSLAUTH },
-		{ "+CIPSSLFP", MODE_QUERY_SET, CMD_AT_CIPSSLFP },
-		{ "+CIPSSLCERT", MODE_NO_CHECKING, CMD_AT_CIPSSLCERT },
-		{ "+CIPSSLMFLN", MODE_QUERY_SET, CMD_AT_CIPSSLMFLN },
-		{ "+CIPSSLSTA", MODE_NO_CHECKING, CMD_AT_CIPSSLSTA },
-		{ "+CIPRECVMODE", MODE_QUERY_SET, CMD_AT_CIPRECVMODE },
-		{ "+CIPRECVLEN", MODE_QUERY_SET, CMD_AT_CIPRECVLEN },
-		{ "+CIPRECVDATA", MODE_QUERY_SET, CMD_AT_CIPRECVDATA },
-		{ "+CIPDNS_CUR", MODE_QUERY_SET, CMD_AT_CIPDNS_CUR },
-		{ "+CIPDNS_DEF", MODE_QUERY_SET, CMD_AT_CIPDNS_DEF },
-		{ "+CIPDNS", MODE_QUERY_SET, CMD_AT_CIPDNS },
-		{ "+SYSCPUFREQ", MODE_QUERY_SET, CMD_AT_SYSCPUFREQ },
-		{ "+CIPSNTPCFG", MODE_QUERY_SET, CMD_AT_CIPSNTPCFG },
-		{ "+SNTPTIME?", MODE_EXACT_MATCH, CMD_AT_SNTPTIME },
-		{ "+CIPSNTPTIME?", MODE_EXACT_MATCH, CMD_AT_CIPSNTPTIME }
-};
+	{"E", MODE_NO_CHECKING, CMD_ATE},
+	{"+GMR", MODE_EXACT_MATCH, CMD_AT_GMR},
+	{"+RST", MODE_EXACT_MATCH, CMD_AT_RST},
+	{"+SYSRAM?", MODE_EXACT_MATCH, CMD_AT_SYSRAM},
+	{"+RFMODE", MODE_QUERY_SET, CMD_AT_RFMODE},
+	{"+UART_CUR", MODE_QUERY_SET, CMD_AT_UART_CUR},
+	{"+UART_DEF", MODE_QUERY_SET, CMD_AT_UART_DEF},
+	{"+UART", MODE_QUERY_SET, CMD_AT_UART},
+	{"+RESTORE", MODE_EXACT_MATCH, CMD_AT_RESTORE},
+	{"+CWAUTOCONN", MODE_QUERY_SET, CMD_AT_CWAUTOCONN},
+	{"+CWDHCP_CUR", MODE_QUERY_SET, CMD_AT_CWDHCP_CUR},
+	{"+CWDHCP_DEF", MODE_QUERY_SET, CMD_AT_CWDHCP_DEF},
+	{"+CWDHCP", MODE_QUERY_SET, CMD_AT_CWDHCP},
+	{"+CWJAP_CUR", MODE_QUERY_SET, CMD_AT_CWJAP_CUR},
+	{"+CWJAP_DEF", MODE_QUERY_SET, CMD_AT_CWJAP_DEF},
+	{"+CWJAP", MODE_QUERY_SET, CMD_AT_CWJAP},
+	{"+CWMODE_CUR", MODE_QUERY_SET, CMD_AT_CWMODE_CUR},
+	{"+CWMODE_DEF", MODE_QUERY_SET, CMD_AT_CWMODE_DEF},
+	{"+CWMODE", MODE_QUERY_SET, CMD_AT_CWMODE},
+	{"+CWQAP", MODE_EXACT_MATCH, CMD_AT_CWQAP},
+	{"+CIFSR", MODE_EXACT_MATCH, CMD_AT_CIFSR},
+	{"+CIPCLOSEMODE", MODE_NO_CHECKING, CMD_AT_CIPCLOSEMODE},
+	{"+CIPCLOSE", MODE_NO_CHECKING, CMD_AT_CIPCLOSE},
+	{"+CIPDINFO", MODE_QUERY_SET, CMD_AT_CIPDINFO},
+	{"+CIPMUX", MODE_QUERY_SET, CMD_AT_CIPMUX},
+	{"+CIPSEND", MODE_NO_CHECKING, CMD_AT_CIPSEND},
+	{"+CIPSTATUS", MODE_EXACT_MATCH, CMD_AT_CIPSTATUS},
+	{"+CIPSTART", MODE_NO_CHECKING, CMD_AT_CIPSTART},
+	{"+CIPSTA_CUR", MODE_QUERY_SET, CMD_AT_CIPSTA_CUR},
+	{"+CIPSTA_DEF", MODE_QUERY_SET, CMD_AT_CIPSTA_DEF},
+	{"+CIPSTA", MODE_QUERY_SET, CMD_AT_CIPSTA},
+	{"+CIPSSLSIZE", MODE_QUERY_SET, CMD_AT_CIPSSLSIZE},
+	{"+CIPSSLAUTH", MODE_QUERY_SET, CMD_AT_CIPSSLAUTH},
+	{"+CIPSSLFP", MODE_QUERY_SET, CMD_AT_CIPSSLFP},
+	{"+CIPSSLCERTMAX", MODE_QUERY_SET, CMD_AT_CIPSSLCERTMAX},
+	{"+CIPSSLCERT", MODE_NO_CHECKING, CMD_AT_CIPSSLCERT},
+	{"+CIPSSLMFLN", MODE_QUERY_SET, CMD_AT_CIPSSLMFLN},
+	{"+CIPSSLSTA", MODE_NO_CHECKING, CMD_AT_CIPSSLSTA},
+	{"+CIPRECVMODE", MODE_QUERY_SET, CMD_AT_CIPRECVMODE},
+	{"+CIPRECVLEN", MODE_QUERY_SET, CMD_AT_CIPRECVLEN},
+	{"+CIPRECVDATA", MODE_QUERY_SET, CMD_AT_CIPRECVDATA},
+	{"+CIPDNS_CUR", MODE_QUERY_SET, CMD_AT_CIPDNS_CUR},
+	{"+CIPDNS_DEF", MODE_QUERY_SET, CMD_AT_CIPDNS_DEF},
+	{"+CIPDNS", MODE_QUERY_SET, CMD_AT_CIPDNS},
+	{"+SYSCPUFREQ", MODE_QUERY_SET, CMD_AT_SYSCPUFREQ},
+	{"+CIPSNTPCFG", MODE_QUERY_SET, CMD_AT_CIPSNTPCFG},
+	{"+SNTPTIME?", MODE_EXACT_MATCH, CMD_AT_SNTPTIME},
+	{"+CIPSNTPTIME?", MODE_EXACT_MATCH, CMD_AT_CIPSNTPTIME}};
 
 /*
  * Static functions
  */
 
-commands_t findCommand(uint8_t* input, uint16_t inpLen);
+commands_t findCommand(uint8_t *input, uint16_t inpLen);
 String readStringFromBuffer(unsigned char *inpBuf, uint16_t &offset, bool escape);
 bool readNumber(unsigned char *inpBuf, uint16_t &offset, uint32_t &output);
 bool readIpAddress(unsigned char *inpBuf, uint16_t &offset, uint32_t &output);
 uint8_t readHex(char c);
+void printCertificateName(uint8_t certNumber);
 
 /*
  * Commands
@@ -144,6 +147,7 @@ static void cmd_AT_RESTORE();
 static void cmd_AT_CIPSSLSIZE();
 static void cmd_AT_CIPSSLAUTH();
 static void cmd_AT_CIPSSLFP();
+static void cmd_AT_CIPSSLCERTMAX();
 static void cmd_AT_CIPSSLCERT();
 static void cmd_AT_CIPRECVMODE();
 static void cmd_AT_CIPRECVLEN();
@@ -168,19 +172,19 @@ void processCommandBuffer(void)
 		cmd_AT();
 
 	// ------------------------------------------------------------------------------------ ATE
-	else if (cmd == CMD_ATE)  // ATE0, ATE1 - echo enabled / disabled
+	else if (cmd == CMD_ATE) // ATE0, ATE1 - echo enabled / disabled
 		cmd_ATE();
 
 	// ------------------------------------------------------------------------------------ AT+GMR
-	else if (cmd == CMD_AT_GMR)  // AT+GMR - firmware version
+	else if (cmd == CMD_AT_GMR) // AT+GMR - firmware version
 		cmd_AT_GMR();
 
 	// ------------------------------------------------------------------------------------ AT+RST
-	else if (cmd == CMD_AT_RST)  // AT+RST - soft reset
+	else if (cmd == CMD_AT_RST) // AT+RST - soft reset
 		cmd_AT_RST();
 
 	// ------------------------------------------------------------------------------------ AT+CWAUTOCONN
-	else if (cmd == CMD_AT_CWAUTOCONN)  // AT+CWAUTOCONN - auto connect to AP
+	else if (cmd == CMD_AT_CWAUTOCONN) // AT+CWAUTOCONN - auto connect to AP
 		cmd_AT_CWAUTOCONN();
 
 	// ------------------------------------------------------------------------------------ AT+CWMODE
@@ -189,11 +193,11 @@ void processCommandBuffer(void)
 		cmd_AT_CWMODE(cmd);
 
 	// ------------------------------------------------------------------------------------ AT+CIPMUX
-	else if (cmd == CMD_AT_CIPMUX)  // AT+CIPMUX - Enable or Disable Multiple Connections
+	else if (cmd == CMD_AT_CIPMUX) // AT+CIPMUX - Enable or Disable Multiple Connections
 		cmd_AT_CIPMUX();
 
 	// ------------------------------------------------------------------------------------ AT+CIPDINFO
-	else if (cmd == CMD_AT_CIPDINFO)  // AT+CIPDINFO - Shows the Remote IP and Port with +IPD
+	else if (cmd == CMD_AT_CIPDINFO) // AT+CIPDINFO - Shows the Remote IP and Port with +IPD
 		cmd_AT_CIPDINFO();
 
 	// ------------------------------------------------------------------------------------ AT+CWDHCP
@@ -207,23 +211,23 @@ void processCommandBuffer(void)
 		cmd_AT_CWJAP(cmd);
 
 	// ------------------------------------------------------------------------------------ AT+CWQAP
-	else if (cmd == CMD_AT_CWQAP)  // AT+CWQAP - Disconnects from the AP
+	else if (cmd == CMD_AT_CWQAP) // AT+CWQAP - Disconnects from the AP
 		cmd_AT_CWQAP();
 
 	// ------------------------------------------------------------------------------------ AT+SYSRAM
-	else if (cmd == CMD_AT_SYSRAM)  // AT+SYSRAM? - Checks the Remaining Space of RAM
+	else if (cmd == CMD_AT_SYSRAM) // AT+SYSRAM? - Checks the Remaining Space of RAM
 		cmd_AT_SYSRAM();
 
 	// ------------------------------------------------------------------------------------ AT+RFMODE
-	else if (cmd == CMD_AT_RFMODE)  // AT+RFMODE - Sets or queries current RF mode (custom command)
+	else if (cmd == CMD_AT_RFMODE) // AT+RFMODE - Sets or queries current RF mode (custom command)
 		cmd_AT_RFMODE();
 
 	// ------------------------------------------------------------------------------------ AT+CIPSTATUS
-	else if (cmd == CMD_AT_CIPSTATUS)  // AT+CIPSTATUS - Gets the Connection Status
+	else if (cmd == CMD_AT_CIPSTATUS) // AT+CIPSTATUS - Gets the Connection Status
 		cmd_AT_CIPSTATUS();
 
 	// ------------------------------------------------------------------------------------ AT+CIFSR
-	else if (cmd == CMD_AT_CIFSR)  // AT+CIFSR - Gets the Local IP Address
+	else if (cmd == CMD_AT_CIFSR) // AT+CIFSR - Gets the Local IP Address
 		cmd_AT_CIFSR();
 
 	// ------------------------------------------------------------------------------------ AT+CIPSTA
@@ -237,15 +241,15 @@ void processCommandBuffer(void)
 		cmd_AT_CIPSTART();
 
 	// ------------------------------------------------------------------------------------ AT+CIPSEND
-	else if (cmd == CMD_AT_CIPSEND)  // AT+CIPSEND - Sends Data
+	else if (cmd == CMD_AT_CIPSEND) // AT+CIPSEND - Sends Data
 		cmd_AT_CIPSEND();
 
 	// ------------------------------------------------------------------------------------ AT+CIPCLOSE
-	else if (cmd == CMD_AT_CIPCLOSE)  // AT+CIPCLOSE - Closes the TCP/UDP/SSL Connection
+	else if (cmd == CMD_AT_CIPCLOSE) // AT+CIPCLOSE - Closes the TCP/UDP/SSL Connection
 		cmd_AT_CIPCLOSE();
 
 	// ------------------------------------------------------------------------------------ AT+CIPCLOSE
-	else if (cmd == CMD_AT_CIPCLOSEMODE)  // AT+CIPCLOSEMODE - Defines the closing mode - parsed but ignored for now
+	else if (cmd == CMD_AT_CIPCLOSEMODE) // AT+CIPCLOSEMODE - Defines the closing mode - parsed but ignored for now
 		cmd_AT_CIPCLOSEMODE();
 
 	// ------------------------------------------------------------------------------------ AT+UART
@@ -254,7 +258,7 @@ void processCommandBuffer(void)
 		cmd_AT_UART(cmd);
 
 	// ------------------------------------------------------------------------------------ AT+RESTORE
-	else if (cmd == CMD_AT_RESTORE)  // AT+RESTORE - Restores the Factory Default Settings
+	else if (cmd == CMD_AT_RESTORE) // AT+RESTORE - Restores the Factory Default Settings
 		cmd_AT_RESTORE();
 
 	// ------------------------------------------------------------------------------------ AT+CIPSSLSIZE
@@ -263,27 +267,31 @@ void processCommandBuffer(void)
 		cmd_AT_CIPSSLSIZE();
 
 	// ------------------------------------------------------------------------------------ AT+CIPSSLAUTH
-	else if (cmd == CMD_AT_CIPSSLAUTH)  // AT+CIPSSLAUTH - Authentication type
+	else if (cmd == CMD_AT_CIPSSLAUTH) // AT+CIPSSLAUTH - Authentication type
 		cmd_AT_CIPSSLAUTH();
 
 	// ------------------------------------------------------------------------------------ AT+CIPSSLFP
-	else if (cmd == CMD_AT_CIPSSLFP)  // AT+CIPSSLFP - Shows or stores certificate fingerprint
+	else if (cmd == CMD_AT_CIPSSLFP) // AT+CIPSSLFP - Shows or stores certificate fingerprint
 		cmd_AT_CIPSSLFP();
 
+	// ------------------------------------------------------------------------------------ AT+CIPSSLCERTMAX
+	else if (cmd == CMD_AT_CIPSSLCERTMAX) // AT+CIPSSLCERTMAX - Get or set the maximum certificate amount
+		cmd_AT_CIPSSLCERTMAX();
+
 	// ------------------------------------------------------------------------------------ AT+CIPSSLCERT
-	else if (cmd == CMD_AT_CIPSSLCERT)  // AT+CIPSSLCERT - Load CA certificate in PEM format
+	else if (cmd == CMD_AT_CIPSSLCERT) // AT+CIPSSLCERT - Load CA certificate in PEM format
 		cmd_AT_CIPSSLCERT();
 
 	// ------------------------------------------------------------------------------------ AT+CIPRECVMODE
-	else if (cmd == CMD_AT_CIPRECVMODE)  // AT+CIPRECVMODE - Set TCP Receive Mode
+	else if (cmd == CMD_AT_CIPRECVMODE) // AT+CIPRECVMODE - Set TCP Receive Mode
 		cmd_AT_CIPRECVMODE();
 
 	// ------------------------------------------------------------------------------------ AT+CIPRECVLEN
-	else if (cmd == CMD_AT_CIPRECVLEN)  // AT+CIPRECVLEN - Get TCP Data Length in Passive Receive Mode
+	else if (cmd == CMD_AT_CIPRECVLEN) // AT+CIPRECVLEN - Get TCP Data Length in Passive Receive Mode
 		cmd_AT_CIPRECVLEN();
 
 	// ------------------------------------------------------------------------------------ AT+CIPRECVDATA
-	else if (cmd == CMD_AT_CIPRECVDATA)  // AT+CIPRECVDATA - Get TCP Data in Passive Receive Mode
+	else if (cmd == CMD_AT_CIPRECVDATA) // AT+CIPRECVDATA - Get TCP Data in Passive Receive Mode
 		cmd_AT_CIPRECVDATA();
 
 	// ------------------------------------------------------------------------------------ AT+CIPDNS
@@ -292,27 +300,27 @@ void processCommandBuffer(void)
 		cmd_AT_CIPDNS(cmd);
 
 	// ------------------------------------------------------------------------------------ AT+SYSCPUFREQ
-	else if (cmd == CMD_AT_SYSCPUFREQ)  // AT+SYSCPUFREQ - Set or Get the Current CPU Frequency
+	else if (cmd == CMD_AT_SYSCPUFREQ) // AT+SYSCPUFREQ - Set or Get the Current CPU Frequency
 		cmd_AT_SYSCPUFREQ();
 
 	// ------------------------------------------------------------------------------------ AT+CIPSSLMFLN
-	else if (cmd == CMD_AT_CIPSSLMFLN)  // AT+CIPSSLMFLN - Check the capability of MFLN for a site
+	else if (cmd == CMD_AT_CIPSSLMFLN) // AT+CIPSSLMFLN - Check the capability of MFLN for a site
 		cmd_AT_CIPSSLMFLN();
 
 	// ------------------------------------------------------------------------------------ AT+CIPSSLSTA
-	else if (cmd == CMD_AT_CIPSSLSTA)  // AT+CIPSSLSTA - Check the MFLN status for a connection
+	else if (cmd == CMD_AT_CIPSSLSTA) // AT+CIPSSLSTA - Check the MFLN status for a connection
 		cmd_AT_CIPSSLSTA();
 
 	// ------------------------------------------------------------------------------------ AT+SNTPTIME?
-	else if (cmd == CMD_AT_SNTPTIME)  // AT+SNTPTIME? - get time
+	else if (cmd == CMD_AT_SNTPTIME) // AT+SNTPTIME? - get time
 		cmd_AT_SNTPTIME();
 
 	// ------------------------------------------------------------------------------------ AT+CIPSNTPCFG
-	else if (cmd == CMD_AT_CIPSNTPCFG)  // AT+CIPSNTPCFG - configure SNTP time
+	else if (cmd == CMD_AT_CIPSNTPCFG) // AT+CIPSNTPCFG - configure SNTP time
 		cmd_AT_CIPSNTPCFG();
 
 	// ------------------------------------------------------------------------------------ AT+CIPSNTPTIME?
-	else if (cmd == CMD_AT_CIPSNTPTIME)  // AT+CIPSNTPTIME? - get time in asctime format
+	else if (cmd == CMD_AT_CIPSNTPTIME) // AT+CIPSNTPTIME? - get time in asctime format
 		cmd_AT_CIPSNTPTIME();
 
 	else
@@ -413,7 +421,7 @@ void cmd_AT_CWAUTOCONN()
  */
 void cmd_AT_CWMODE(commands_t cmd)
 {
-	uint16_t offset = 9;  // offset to ? or =
+	uint16_t offset = 9; // offset to ? or =
 	if (cmd != CMD_AT_CWMODE)
 		offset += 4;
 
@@ -436,7 +444,7 @@ void cmd_AT_CWMODE(commands_t cmd)
 
 		if (readNumber(inputBuffer, offset, mode) && mode <= 3 && inputBufferCnt == offset + 2)
 		{
-			if (mode == 1)  // Only MODE 1 is supported
+			if (mode == 1) // Only MODE 1 is supported
 				Serial.printf_P(MSG_OK);
 			else
 				Serial.println(F("ERROR NOT SUPPORTED"));
@@ -533,7 +541,7 @@ void cmd_AT_CWDHCP(commands_t cmd)
 {
 	bool error = true;
 
-	uint16_t offset = 9;  // offset to ? or =
+	uint16_t offset = 9; // offset to ? or =
 	if (cmd != CMD_AT_CWDHCP)
 		offset += 4;
 
@@ -568,13 +576,13 @@ void cmd_AT_CWDHCP(commands_t cmd)
 		{
 			++offset;
 
-			const WiFiMode_t dhcpToMode[3] = { WIFI_AP, WIFI_STA, WIFI_AP_STA };
+			const WiFiMode_t dhcpToMode[3] = {WIFI_AP, WIFI_STA, WIFI_AP_STA};
 
-			if (dhcpToMode[mode] == WiFi.getMode())  // The mode must match the current mode
+			if (dhcpToMode[mode] == WiFi.getMode()) // The mode must match the current mode
 			{
 				if (readNumber(inputBuffer, offset, en) && en <= 1 && inputBufferCnt == offset + 2)
 				{
-					gsCwDhcp = 1 | en << 1;  // Only Station DHCP is supported
+					gsCwDhcp = 1 | en << 1; // Only Station DHCP is supported
 
 					setDhcpMode();
 
@@ -599,7 +607,7 @@ void cmd_AT_CWDHCP(commands_t cmd)
  */
 void cmd_AT_CWJAP(commands_t cmd)
 {
-	uint16_t offset = 8;  // offset to ? or =
+	uint16_t offset = 8; // offset to ? or =
 	if (cmd != CMD_AT_CWJAP)
 		offset += 4;
 
@@ -614,14 +622,14 @@ void cmd_AT_CWJAP(commands_t cmd)
 			struct station_config conf;
 
 			if (cmd == CMD_AT_CWJAP_DEF)
-		        wifi_station_get_config_default(&conf);
+				wifi_station_get_config_default(&conf);
 			else
-			    wifi_station_get_config(&conf);
+				wifi_station_get_config(&conf);
 
 			char ssid[33];
 
 			memcpy(ssid, conf.ssid, sizeof(conf.ssid));
-			ssid[32] = 0;  // Nullterm in case of 32 char ssid
+			ssid[32] = 0; // Nullterm in case of 32 char ssid
 
 			const char *cmdSuffix = "";
 			if (cmd == CMD_AT_CWJAP_CUR)
@@ -633,8 +641,8 @@ void cmd_AT_CWJAP(commands_t cmd)
 
 			// +CWJAP_CUR:<ssid>,<bssid>,<channel>,<rssi>
 			Serial.printf_P(PSTR("\"%s\",\"%02x:%02x:%02x:%02x:%02x:%02x\",%d,%d\r\n"), ssid,
-					conf.bssid[0], conf.bssid[1], conf.bssid[2], conf.bssid[3], conf.bssid[4], conf.bssid[5],
-					WiFi.channel(), WiFi.RSSI());
+							conf.bssid[0], conf.bssid[1], conf.bssid[2], conf.bssid[3], conf.bssid[4], conf.bssid[5],
+							WiFi.channel(), WiFi.RSSI());
 		}
 		Serial.printf_P(MSG_OK);
 	}
@@ -642,7 +650,8 @@ void cmd_AT_CWJAP(commands_t cmd)
 	{
 		bool error = true;
 
-		do {
+		do
+		{
 			String ssid;
 			String pwd;
 			String bssid;
@@ -694,7 +703,7 @@ void cmd_AT_CWJAP(commands_t cmd)
 				}
 
 				if (WiFi.status() == WL_CONNECTED)
-					break;  // Still connected
+					break; // Still connected
 			}
 
 			uint8_t *pBssid = nullptr;
@@ -792,7 +801,7 @@ void cmd_AT_CIPSTATUS()
 	else
 	{
 		bool statusPrinted = false;
-		uint8_t maxCli = 0;  // Maximum client number
+		uint8_t maxCli = 0; // Maximum client number
 		if (gsCipMux == 1)
 			maxCli = 4;
 
@@ -807,9 +816,9 @@ void cmd_AT_CIPSTATUS()
 					statusPrinted = true;
 				}
 
-				const char types_text[3][4] = { "TCP", "UDP", "SSL" };
+				const char types_text[3][4] = {"TCP", "UDP", "SSL"};
 				Serial.printf_P(PSTR("+CIPSTATUS:%d,\"%s\",\"%s\",%d,%d,0\r\n"), i, types_text[clients[i].type],
-						cli->remoteIP().toString().c_str(), cli->remotePort(), cli->localPort());
+								cli->remoteIP().toString().c_str(), cli->remotePort(), cli->localPort());
 			}
 		}
 
@@ -835,10 +844,10 @@ void cmd_AT_CIPSTATUS()
 void cmd_AT_CIFSR()
 {
 	IPAddress ip = WiFi.localIP();
-	if (! ip.isSet())
+	if (!ip.isSet())
 		Serial.println(F("+CISFR:STAIP,\"0.0.0.0\""));
 	else
-	Serial.printf_P(PSTR("+CISFR:STAIP,\"%s\"\r\n"), ip.toString().c_str());
+		Serial.printf_P(PSTR("+CISFR:STAIP,\"%s\"\r\n"), ip.toString().c_str());
 
 	Serial.printf_P(PSTR("+CIFSR:STAMAC,\"%s\"\r\n"), WiFi.macAddress().c_str());
 	Serial.printf_P(MSG_OK);
@@ -864,7 +873,7 @@ void cmd_AT_CIPSTA(commands_t cmd)
 		}
 		else
 		{
-			cfg = { WiFi.localIP(), WiFi.gatewayIP(), WiFi.subnetMask() };
+			cfg = {WiFi.localIP(), WiFi.gatewayIP(), WiFi.subnetMask()};
 		}
 
 		const char *cmdSuffix = "";
@@ -914,7 +923,7 @@ void cmd_AT_CIPSTA(commands_t cmd)
 
 				error = 0;
 			}
-			else  // read gateway and mask
+			else // read gateway and mask
 			{
 				++offset;
 
@@ -935,11 +944,11 @@ void cmd_AT_CIPSTA(commands_t cmd)
 			{
 				// Save the network configuration
 				Settings::setNetConfig(cfg);
-				Settings::setDhcpMode(1);  // Stop DHCP
+				Settings::setDhcpMode(1); // Stop DHCP
 			}
 
 			gsCipStaCfg = cfg;
-			gsCwDhcp = 1;  // Stop DHCP
+			gsCwDhcp = 1; // Stop DHCP
 
 			// Reconfigure (stop DHCP and set the static addresses)
 			setDhcpMode();
@@ -966,13 +975,13 @@ void cmd_AT_CIPSTART()
 	 * AT+CIPMUX=0:  AT+CIPSTART=<type>,<remote IP>,<remote port>[,<TCP keep alive>]
 	 * AT+CIPMUX=1:  AT+CIPSTART=<link ID>,<type>,<remote IP>,<remote port>[,<TCP keep alive>]
 	 */
-	uint8_t error = 1;  // 1 = generic error, 0 = ok
+	uint8_t error = 1; // 1 = generic error, 0 = ok
 	uint16_t offset = 11;
 
 	// Parse the input
 
 	uint8_t linkID = 0;
-	clientTypes_t type = TYPE_NONE;  // 0 = TCP, 1 = UDP, 2 = SSL
+	clientTypes_t type = TYPE_NONE; // 0 = TCP, 1 = UDP, 2 = SSL
 	char remoteAddr[41];
 	uint32_t remotePort = 0;
 
@@ -981,7 +990,8 @@ void cmd_AT_CIPSTART()
 		if (inputBuffer[offset] != '=')
 			break;
 
-		++offset;  error = 2;
+		++offset;
+		error = 2;
 
 		// Read link ID
 		if (gsCipMux == 1)
@@ -1012,7 +1022,8 @@ void cmd_AT_CIPSTART()
 		else
 			break;
 
-		offset += 3;  error = 4;
+		offset += 3;
+		error = 4;
 
 		if (inputBuffer[offset] != '"' || inputBuffer[offset + 1] != ',' || inputBuffer[offset + 2] != '"')
 			break;
@@ -1023,7 +1034,7 @@ void cmd_AT_CIPSTART()
 
 		uint8_t pos = 0;
 
-		while (pos < sizeof(remoteAddr)-1 && inputBuffer[offset] != '"' && inputBuffer[offset] >= ' ')
+		while (pos < sizeof(remoteAddr) - 1 && inputBuffer[offset] != '"' && inputBuffer[offset] >= ' ')
 		{
 			remoteAddr[pos++] = inputBuffer[offset++];
 		}
@@ -1036,7 +1047,7 @@ void cmd_AT_CIPSTART()
 
 		// Read remote port
 
-		error = 100;  // Unspecified error
+		error = 100; // Unspecified error
 
 		if (!readNumber(inputBuffer, offset, remotePort) || remotePort > 65535)
 			break;
@@ -1088,33 +1099,33 @@ void cmd_AT_CIPSTART()
 
 			error = 99;
 
-			if (type == 0)  // TCP
+			if (type == 0) // TCP
 			{
 				cli = new WiFiClient();
 			}
-			else if (type == 2)  // SSL
+			else if (type == 2) // SSL
 			{
 				cli = new BearSSL::WiFiClientSecure();
 
 				if (gsCipSslSize != 16384)
-					static_cast<BearSSL::WiFiClientSecure*>(cli)->setBufferSizes(gsCipSslSize, 512);
+					static_cast<BearSSL::WiFiClientSecure *>(cli)->setBufferSizes(gsCipSslSize, 512);
 
 				if (gsCipSslAuth == 0)
 				{
-					static_cast<BearSSL::WiFiClientSecure*>(cli)->setInsecure();
+					static_cast<BearSSL::WiFiClientSecure *>(cli)->setInsecure();
 				}
 				else if (gsCipSslAuth == 1 && fingerprintValid)
 				{
-					static_cast<BearSSL::WiFiClientSecure*>(cli)->setFingerprint(fingerprint);
+					static_cast<BearSSL::WiFiClientSecure *>(cli)->setFingerprint(fingerprint);
 				}
-				else if (gsCipSslAuth == 2 && CAcert != nullptr) // certificate chain verification
+				else if (gsCipSslAuth == 2 && CAcert.getCount() > 0) // certificate chain verification
 				{
-					static_cast<BearSSL::WiFiClientSecure*>(cli)->setTrustAnchors(CAcert);
+					static_cast<BearSSL::WiFiClientSecure *>(cli)->setTrustAnchors(&CAcert);
 				}
 				else
 				{
 					delete cli;
-					break;  // error
+					break; // error
 				}
 			}
 
@@ -1123,18 +1134,18 @@ void cmd_AT_CIPSTART()
 				break;
 
 			// Test if the remote host exists
-		    IPAddress remoteIP;
-		    uint16_t _timeout = 5000;
-		    if (!WiFi.hostByName(remoteAddr, remoteIP, _timeout))
-		    {
-		    	delete cli;
-		    	error = 100;
+			IPAddress remoteIP;
+			uint16_t _timeout = 5000;
+			if (!WiFi.hostByName(remoteAddr, remoteIP, _timeout))
+			{
+				delete cli;
+				error = 100;
 
-		    	Serial.println(F("DNS Fail"));
-		    	break;
-		    }
+				Serial.println(F("DNS Fail"));
+				break;
+			}
 
-		    // Connect using remote host name, not ip address (necessary for TLS)
+			// Connect using remote host name, not ip address (necessary for TLS)
 			if (!cli->connect(remoteAddr, remotePort))
 			{
 				Serial.println("connect fail");
@@ -1154,7 +1165,7 @@ void cmd_AT_CIPSTART()
 			clients[linkID].type = type;
 			clients[linkID].lastAvailableBytes = 0;
 
-			gsWasConnected = true;  // Flag for CIPSTATUS command
+			gsWasConnected = true; // Flag for CIPSTATUS command
 
 			error = 0;
 
@@ -1345,7 +1356,7 @@ void cmd_AT_CIPCLOSEMODE()
 	{
 		uint16_t offset = 16;
 		uint32_t inputVal = 0;
-//		uint32_t linkId = 0;
+		//		uint32_t linkId = 0;
 
 		// Read the input
 
@@ -1368,16 +1379,16 @@ void cmd_AT_CIPCLOSEMODE()
 				break;
 
 			++offset;
-//			linkId = inputVal;
+			//			linkId = inputVal;
 			if (!readNumber(inputBuffer, offset, inputVal) || inputVal > 1 || inputBufferCnt != offset + 2)
 				break;
 		}
 
 		// Check the client
-//		WiFiClient *cli = clients[linkId].client;
+		//		WiFiClient *cli = clients[linkId].client;
 
-//		if (cli != nullptr)  // Success only for an existing client
-			error = 0;
+		//		if (cli != nullptr)  // Success only for an existing client
+		error = 0;
 
 	} while (0);
 
@@ -1396,7 +1407,7 @@ void cmd_AT_UART(commands_t cmd)
 	if (cmd == CMD_AT_UART_CUR || cmd == CMD_AT_UART_DEF)
 		offset += 4;
 
-	if (inputBuffer[offset] == '?' && inputBufferCnt == offset+3)
+	if (inputBuffer[offset] == '?' && inputBufferCnt == offset + 3)
 	{
 		const char *cmdSuffix = "";
 		if (cmd == CMD_AT_UART_CUR)
@@ -1478,7 +1489,7 @@ void cmd_AT_UART(commands_t cmd)
 				break;
 			}
 
-			uartConfig = (SerialConfig) (((dataBits - 5) << UCBN) | (stopBits << UCSBN) | parity);
+			uartConfig = (SerialConfig)(((dataBits - 5) << UCBN) | (stopBits << UCSBN) | parity);
 
 			AT_DEBUG_PRINTF("--- %d,%02x\r\n", baudRate, uartConfig);
 
@@ -1489,7 +1500,7 @@ void cmd_AT_UART(commands_t cmd)
 			Serial.flush();
 			Serial.end();
 			Serial.begin(baudRate, uartConfig);
-			delay(250);  // To let the line settle
+			delay(250); // To let the line settle
 
 			if (cmd != CMD_AT_UART_CUR)
 			{
@@ -1536,11 +1547,10 @@ void cmd_AT_CIPSSLSIZE()
 
 		++offset;
 
-		if (readNumber(inputBuffer, offset, sslSize) && inputBufferCnt == offset + 2
-				&& (sslSize == 512 || sslSize == 1024 || sslSize == 2048 || sslSize == 4096 || sslSize == 16384))
+		if (readNumber(inputBuffer, offset, sslSize) && inputBufferCnt == offset + 2 && (sslSize == 512 || sslSize == 1024 || sslSize == 2048 || sslSize == 4096 || sslSize == 16384))
 		{
 			if (sslSize == 16384)
-				sslSize = 0;  // default value
+				sslSize = 0; // default value
 
 			gsCipSslSize = sslSize;
 
@@ -1583,7 +1593,7 @@ void cmd_AT_CIPSSLAUTH()
 			{
 				Serial.println(F("fp not valid"));
 			}
-			else if (sslAuth == 2 && CAcert == nullptr)
+			else if (sslAuth == 2 && CAcert.getCount() == 0)
 			{
 				Serial.println(F("CA cert not loaded"));
 			}
@@ -1596,7 +1606,7 @@ void cmd_AT_CIPSSLAUTH()
 		}
 	}
 
-	if (! error)
+	if (!error)
 	{
 		Serial.printf_P(MSG_OK);
 	}
@@ -1672,12 +1682,54 @@ void cmd_AT_CIPSSLFP()
 }
 
 /*
+ * AT+CIPSSLCERTMAX - Get or set the maximum certificates amount
+ */
+void cmd_AT_CIPSSLCERTMAX()
+{
+	if (inputBuffer[16] == '?' && inputBufferCnt == 19)
+	{
+		Serial.printf_P(PSTR("+CIPSSLCERTMAX:%d\r\nOK\r\n"), maximumCertificates);
+	}
+	else if (inputBuffer[16] == '=')
+	{
+		uint16_t offset = 17;
+		uint32_t max;
+
+		if (readNumber(inputBuffer, offset, max))
+		{
+			maximumCertificates = max;
+			Settings::setMaximumCertificates(maximumCertificates);
+
+			Serial.printf_P(MSG_OK);
+		}
+		else
+		{
+			Serial.printf_P(MSG_ERROR);
+		}
+	}
+	else
+	{
+		Serial.printf_P(MSG_ERROR);
+	}
+}
+
+/*
  * AT+CIPSSLCERT - Load CA certificate in PEM format
  */
 void cmd_AT_CIPSSLCERT()
 {
-	if (inputBufferCnt == 15)
+	uint16_t offset = 13; // offset to ? or =
+
+	// Load certificate
+	if (inputBufferCnt == offset + 2)
 	{
+		if (CAcert.getCount() >= maximumCertificates)
+		{
+			Serial.printf_P(PSTR("Reached the maximum of %d certificates\r\n"), maximumCertificates);
+			Serial.printf_P(MSG_ERROR);
+			return;
+		}
+
 		PemCertificate = new char[MAX_PEM_CERT_LENGTH];
 		PemCertificatePos = 0;
 		PemCertificateCount = 0;
@@ -1689,68 +1741,105 @@ void cmd_AT_CIPSSLCERT()
 			Serial.printf_P(MSG_OK);
 			Serial.print('>');
 		}
-		else  // OOM
+		else // OOM
 		{
 			Serial.printf_P(MSG_ERROR);
 		}
 	}
-	else if (inputBuffer[13] == '?' && inputBufferCnt == 16)
+	// Print all certificates
+	else if (inputBuffer[offset] == '?' && inputBufferCnt == offset + 3)
 	{
-		if (CAcert == nullptr)
+		if (CAcert.getCount() == 0)
 		{
-			Serial.println(F("+CIPSSLCERT:no cert"));
+			Serial.println(F("+CIPSSLCERT:no certs loaded"));
 		}
 		else
 		{
-			Serial.print(F("+CIPSSLCERT:"));
-
-			const br_x509_certificate *cert = &(CAcert->getX509Certs()[0]);
-
-			uint8_t *cnBytes = getCnFromDer(cert->data, cert->data_len);
-
-			if (cnBytes != nullptr)
+			for (size_t i = 0; i < CAcert.getCount(); i++)
 			{
-				char *cn = new char[cnBytes[0] + 1];
-
-				if (cn != nullptr)
-				{
-					memcpy(cn, &(cnBytes[1]), cnBytes[0]);
-					cn[cnBytes[0]] = '\0';
-
-					Serial.println(cn);
-
-					delete cn;
-				}
-				else
-				{
-					Serial.println(F("cert ok"));
-				}
-			}
-			else
-			{
-				Serial.println(F("cert ok"));
+				Serial.printf_P(PSTR("+CIPSSLCERT,%d:"), i + 1);
+				printCertificateName(i);
 			}
 		}
 
 		Serial.printf_P(MSG_OK);
 	}
-	else if (!memcmp_P(&(inputBuffer[13]), PSTR("=DELETE"), 7) && inputBufferCnt == 22)
+	// Print specific certificate
+	else if (inputBuffer[offset] == '?' && inputBufferCnt >= 16 && inputBufferCnt <= 18)
 	{
-		if (CAcert == nullptr)
+		uint32_t certNumber;
+
+		++offset;
+		if (!readNumber(inputBuffer, offset, certNumber) || certNumber == 0)
 		{
-			Serial.println(F("+CIPSSLCERT:no cert"));
+			Serial.printf_P(MSG_ERROR);
+			return;
+		}
+
+		if (certNumber > CAcert.getCount())
+		{
+			Serial.printf_P(PSTR("+CIPSSLCERT,%d:no certificate\r\n"), certNumber);
+			Serial.printf_P(MSG_ERROR);
+			return;
 		}
 		else
 		{
-			delete CAcert;
-			CAcert = nullptr;
-
-			Serial.print(F("+CIPSSLCERT:deleted"));
+			Serial.printf_P(PSTR("+CIPSSLCERT,%d:"), certNumber);
+			printCertificateName(certNumber - 1);
 		}
 
 		Serial.printf_P(MSG_OK);
 	}
+	// Delete specific certificate
+	else if (!memcmp_P(&(inputBuffer[offset]), PSTR("=DELETE,"), 8) && (inputBufferCnt >= 22 && inputBufferCnt <= 25))
+	{
+		if (CAcert.getCount() == 0)
+		{
+			Serial.println(F("+CIPSSLCERT:no certificates"));
+		}
+		else
+		{
+			offset = 21;
+			uint32_t certNumberToDelete;
 
+			if (readNumber(inputBuffer, offset, certNumberToDelete) && certNumberToDelete <= CAcert.getCount() && certNumberToDelete != 0)
+			{
+				BearSSL::X509List certList;
+
+				// Delete certificate
+				for (size_t i = 0; i < CAcert.getCount(); i++)
+				{
+					if (certNumberToDelete != (i + 1))
+					{
+						const br_x509_certificate *cert = &(CAcert.getX509Certs()[i]);
+						certList.append(cert->data, cert->data_len);
+					}
+				}
+
+				CAcert = BearSSL::X509List();
+
+				for (size_t i = 0; i < certList.getCount(); i++)
+				{
+					const br_x509_certificate *cert = &(certList.getX509Certs()[i]);
+					CAcert.append(cert->data, cert->data_len);
+				}
+
+				Serial.printf_P(PSTR("+CIPSSLCERT,%d:deleted\r\n"), certNumberToDelete);
+				Serial.printf_P(MSG_OK);
+				return;
+			}
+			else if (certNumberToDelete > CAcert.getCount())
+			{
+				Serial.println(F("+CIPSSLCERT=DELETE:no certificate"));
+			}
+		}
+
+		Serial.printf_P(MSG_ERROR);
+	}
+	else
+	{
+		Serial.printf_P(MSG_ERROR);
+	}
 }
 
 /*
@@ -1910,7 +1999,7 @@ void cmd_AT_CIPDNS(commands_t cmd)
 		}
 		else
 		{
-			cfg = { WiFi.dnsIP(0), WiFi.dnsIP(1) };
+			cfg = {WiFi.dnsIP(0), WiFi.dnsIP(1)};
 		}
 
 		const char *cmdSuffix = "";
@@ -1934,7 +2023,7 @@ void cmd_AT_CIPDNS(commands_t cmd)
 	{
 		uint8_t error = 1;
 
-		dnsConfig_t cfg = { 0, 0 };
+		dnsConfig_t cfg = {0, 0};
 		uint32_t dnsEnable;
 
 		++offset;
@@ -1946,7 +2035,7 @@ void cmd_AT_CIPDNS(commands_t cmd)
 
 			// enable = 0 ... no dns data, enable = 1 ... one or two ip addresses
 			if ((dnsEnable == 0 && inputBufferCnt != offset + 2) ||
-					(dnsEnable == 1 && inputBuffer[offset] != ','))
+				(dnsEnable == 1 && inputBuffer[offset] != ','))
 				break;
 
 			if (dnsEnable == 1)
@@ -2029,7 +2118,7 @@ void cmd_AT_SYSCPUFREQ()
 		if (readNumber(inputBuffer, offset, freq) && (freq == 80 || freq == 160))
 		{
 			if (system_update_cpu_freq(freq) != 0)
-				error = 0;  // Success
+				error = 0; // Success
 		}
 	}
 
@@ -2067,7 +2156,7 @@ void cmd_AT_CIPSSLMFLN()
 		uint8_t pos = 0;
 		error = 4;
 
-		while (pos < sizeof(remoteSite)-1 && inputBuffer[offset] != '"' && inputBuffer[offset] >= ' ')
+		while (pos < sizeof(remoteSite) - 1 && inputBuffer[offset] != '"' && inputBuffer[offset] >= ' ')
 		{
 			remoteSite[pos++] = inputBuffer[offset++];
 		}
@@ -2080,7 +2169,7 @@ void cmd_AT_CIPSSLMFLN()
 
 		// Read remote port
 
-		error = 100;  // Unspecified error
+		error = 100; // Unspecified error
 
 		if (!readNumber(inputBuffer, offset, remotePort) || remotePort > 65535)
 			break;
@@ -2210,7 +2299,6 @@ void cmd_AT_CIPSSLSTA()
 
 		Serial.printf_P(MSG_ERROR);
 	}
-
 }
 
 /*
@@ -2226,7 +2314,7 @@ void cmd_AT_SNTPTIME()
 		struct tm *info = localtime((const time_t *)&now);
 
 		Serial.printf_P(PSTR("+SNTPTIME:%ld,%04d-%02d-%02d %02d:%02d:%02d\r\n"),
-		            now, info->tm_year+1900, info->tm_mon+1, info->tm_mday, info->tm_hour, info->tm_min, info->tm_sec);
+						now, info->tm_year + 1900, info->tm_mon + 1, info->tm_mday, info->tm_hour, info->tm_min, info->tm_sec);
 
 		Serial.println(F("OK"));
 	}
@@ -2240,7 +2328,7 @@ void cmd_AT_SNTPTIME()
 /*
  * AT+CIPSNTPCFG - configure SNTP time
  */
-void cmd_AT_CIPSNTPCFG()  // FIXME:
+void cmd_AT_CIPSNTPCFG() // FIXME:
 {
 	uint8_t error = 1;
 
@@ -2283,9 +2371,9 @@ void cmd_AT_CIPSNTPCFG()  // FIXME:
 
 			// If enabling, read additional parameters
 			if (sntpEnabled)
-				{
-				  if (inputBuffer[offset] != ',')
-					  break;
+			{
+				if (inputBuffer[offset] != ',')
+					break;
 				if (inputBuffer[++offset] == '-')
 				{
 					tzNegative = true;
@@ -2311,7 +2399,7 @@ void cmd_AT_CIPSNTPCFG()  // FIXME:
 
 			if (gsSTNPEnabled)
 			{
-				for (uint8_t i = 0; i < 3; ++ i)
+				for (uint8_t i = 0; i < 3; ++i)
 					gsSNTPServer[i] = sntpServer[i];
 
 				gsSTNPTimezone = (tzNegative ? -1 : +1) * sntpTimezone;
@@ -2366,22 +2454,35 @@ commands_t findCommand(uint8_t *input, uint16_t inpLen)
 	if (inpLen == 4)
 		return CMD_AT;
 
+	char *inputCmd = (char *)calloc(strlen((char *)input + 2) + 1, sizeof(char));
+	strcpy(inputCmd, (char *)input + 2);
+
 	// Check the command list
 	for (unsigned int i = 0; i < sizeof(commandList) / sizeof(commandDef_t); ++i)
 	{
 		const char *cmd = commandList[i].text;
+		String compareCmd = commandList[i].text;
 
-		if (!memcmp(cmd, input + 2, strlen(cmd)))
+		inputCmd[strcspn(inputCmd, "\r\n")] = 0;
+
+		// Split input command on \r or \n or any number
+		inputCmd = strtok(inputCmd, "?=0123456789");
+
+		// Remove trailing ? for comparison
+		compareCmd.remove(compareCmd.lastIndexOf('?'));
+		if (!strcmp(compareCmd.c_str(), inputCmd))
 		{
 			// We have a command
 
+			// Free memory of inputCmd
+			free(inputCmd);
 			switch (commandList[i].mode)
 			{
 			case MODE_NO_CHECKING:
 				break;
 
 			case MODE_EXACT_MATCH:
-				if (inpLen != strlen(cmd) + 4)  // Check exact length
+				if (inpLen != strlen(cmd) + 4) // Check exact length
 					return CMD_ERROR;
 				break;
 
@@ -2393,7 +2494,7 @@ commands_t findCommand(uint8_t *input, uint16_t inpLen)
 				if (c == '?' && inpLen != strlen(cmd) + 5) // Check exact length
 					return CMD_ERROR;
 			}
-				break;
+			break;
 
 			default:
 				return CMD_ERROR;
@@ -2427,14 +2528,14 @@ String readStringFromBuffer(unsigned char *inpBuf, uint16_t &offset, bool escape
 			if (!escape || inpBuf[offset] != '\\')
 				*ps++ = inpBuf[offset];
 			else if (inpBuf[offset] < ' ')
-				break;  // Incorrect escaped char
+				break; // Incorrect escaped char
 			else
-				*ps++ = inpBuf[++offset];  // Write next char
+				*ps++ = inpBuf[++offset]; // Write next char
 
 			++offset;
 
 			if (ps - s > (int)sizeof(s))
-				break;  // Buffer overflow
+				break; // Buffer overflow
 		}
 
 		if (inpBuf[offset] == '"' && ps != s)
@@ -2525,4 +2626,37 @@ uint8_t readHex(char c)
 		c -= '0';
 
 	return c;
+}
+
+/*
+ * Prints the certificate name for a certain index
+ */
+void printCertificateName(uint8_t number)
+{
+	const br_x509_certificate *cert = &(CAcert.getX509Certs()[number]);
+
+	uint8_t *cnBytes = getCnFromDer(cert->data, cert->data_len);
+
+	if (cnBytes != nullptr)
+	{
+		char *cn = new char[cnBytes[0] + 1];
+
+		if (cn != nullptr)
+		{
+			memcpy(cn, &(cnBytes[1]), cnBytes[0]);
+			cn[cnBytes[0]] = '\0';
+
+			Serial.println(cn);
+
+			delete cn;
+		}
+		else
+		{
+			Serial.println(F("cert ok"));
+		}
+	}
+	else
+	{
+		Serial.println(F("cert ok"));
+	}
 }

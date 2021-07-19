@@ -28,9 +28,8 @@
  * Functions
  */
 
-void onStationConnected(const WiFiEventStationModeConnected& evt);
+void onStationConnected(const WiFiEventStationModeConnected &evt);
 void onStationGotIP(const WiFiEventStationModeGotIP &evt);
-void onStationDisconnected(const WiFiEventStationModeDisconnected& evt);
-
+void onStationDisconnected(const WiFiEventStationModeDisconnected &evt);
 
 #endif /* WIFIEVENTS_H_ */

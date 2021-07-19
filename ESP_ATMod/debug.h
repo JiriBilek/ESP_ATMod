@@ -20,7 +20,6 @@
 #ifndef DEBUG_H_
 #define DEBUG_H_
 
-
 /*
  * Debug flag
  */
@@ -28,20 +27,27 @@
 
 #if defined(AT_DEBUG)
 
-#define AT_DEBUG_PRINTF(format, args...) do { \
-	char buf[200];	\
-	sprintf(buf, format, args); \
-	Serial.print(buf); \
-} while(0);
+#define AT_DEBUG_PRINTF(format, args...) \
+	do                                   \
+	{                                    \
+		char buf[200];                   \
+		sprintf(buf, format, args);      \
+		Serial.print(buf);               \
+	} while (0);
 
 #define AT_DEBUG_PRINT(string) Serial.print(string);
 
 #else
 
-#define AT_DEBUG_PRINTF(format, args...) do {} while(0);
-#define AT_DEBUG_PRINT(string) do {} while(0);
+#define AT_DEBUG_PRINTF(format, args...) \
+	do                                   \
+	{                                    \
+	} while (0);
+#define AT_DEBUG_PRINT(string) \
+	do                         \
+	{                          \
+	} while (0);
 
 #endif
-
 
 #endif /* DEBUG_H_ */
