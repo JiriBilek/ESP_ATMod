@@ -134,6 +134,11 @@ int8_t gsSTNPTimezone = 0;			// command AT+CIPSNTPCFG
 String gsSNTPServer[3];				// command AT+CIPSNTPCFG
 
 /*
+ * Local prototypes
+ */
+static bool checkCertificateDuplicates(BearSSL::X509List &importCertList);
+
+/*
  *  The setup function is called once at startup of the sketch
  */
 void setup()
@@ -239,7 +244,7 @@ void setup()
 
 						if (checkCertificateDuplicates(importCertList))
 						{
-							Serial.println(F("Tried to load already existing certificate"));
+							Serial.println(F("\nTried to load already existing certificate"));
 							Serial.printf_P(MSG_ERROR);
 						}
 						else if (CAcert.getCount() == originalCertCount)
@@ -456,7 +461,7 @@ void loop()
 				while (Serial.available() > 0)
 				{
 					// Read the incoming byte
-					int incomingByte = Serial.read();
+					Serial.read();
 				}
 			}
 		}
