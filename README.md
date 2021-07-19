@@ -84,7 +84,7 @@ Certificates are stored in the ESP's filesystem with LittleFS. To add a certific
 
 ## AT Command List
 
-In the following table, the list of supported AT commands is given. In the comment, only a difference between this implementation and the original Espressif's AT command firmware is given. Please refer to the Espressif's documentation for further information.
+In the following table, the list of supported AT commands is given. In the comment, only a difference between this implementation and the original Espressif's AT command firmware is given. The commands are implemented according to the Espressif's documentation, including the command order. Please refer to the [Espressif's documentation](https://www.espressif.com/sites/default/files/documentation/4a-esp8266_at_instruction_set_en.pdf) for further information.
 
 | Command | Description |
 | - | - |
@@ -110,6 +110,7 @@ In the following table, the list of supported AT commands is given. In the comme
 | [**TCP/IP AT Commands**](https://docs.espressif.com/projects/esp-at/en/latest/AT_Command_Set/TCP-IP_AT_Commands.html) |  |
 | AT+CIPSTATUS | Obtain the TCP/UDP/SSL connection status and information. |
 | AT+CIPSTART |Establish TCP connection, or SSL connection. Only one TLS connection at a time. |
+| [AT+CIPSSLSIZE](https://github.com/JiriBilek/ESP_ATMod#atcipsslsize---set-the-tls-receiver-buffer-size) | Change the size of the receiver buffer (512, 1024, 2048 or 4096 bytes) |
 | AT+CIPSEND |  Send data in the normal transmission mode or Wi-Fi passthrough mode. |
 | AT+CIPCLOSEMODE | Set the Close Mode of TCP Connection |
 | AT+CIPCLOSE | Close TCP/SSL connection. |
@@ -128,7 +129,6 @@ In the following table, the list of supported AT commands is given. In the comme
 | [AT+RFMODE](https://github.com/JiriBilek/ESP_ATMod#atrfmode---get-and-change-the-physical-wifi-mode) | Set the physical wifi mode. |
 | [AT+CIPSSLAUTH](https://github.com/JiriBilek/ESP_ATMod#atcipsslauth---set-and-query-the-tls-authentication-mode) | Set and query the TLS authentication mode. |
 | [AT+CIPSSLFP](https://github.com/JiriBilek/ESP_ATMod#atcipsslfp---load-or-print-tls-server-certificate-sha-1-fingerprint) | Load or print the TLS server certificate fingerprint. |
-| [AT+CIPSSLSIZE](https://github.com/JiriBilek/ESP_ATMod#atcipsslsize---set-the-tls-receiver-buffer-size) | Change the size of the receiver buffer (512, 1024, 2048 or 4096 bytes) |
 | [AT+CIPSSLCERTMAX](https://github.com/JiriBilek/ESP_ATMod#atcipsslcertmax---query-or-set-maximum-certificates-to-load) | Query or set the maximum amount of certificates that can be loaded. |
 | [AT+CIPSSLCERT](https://github.com/JiriBilek/ESP_ATMod#atcipsslcert---load-query-or-delete-tls-ca-certificate) | Load, query or delete TLS CA certificate. |
 | [AT+CIPSSLMFLN](https://github.com/JiriBilek/ESP_ATMod#atcipsslmfln---checks-if-the-given-site-supports-the-mfln-tls-extension) | Check if the site supports Maximum Fragment Length Negotiation (MFLN). |
@@ -136,6 +136,22 @@ In the following table, the list of supported AT commands is given. In the comme
 | [AT+SNTPTIME](https://github.com/JiriBilek/ESP_ATMod#atsystime---returns-the-current-time-utc) | Get SNTP time. |
 
 ## Changed Commands
+
+### **AT+CIPSSLSIZE - Set the TLS Receiver Buffer Size**
+
+Sets the TLS receiver buffer size. The size can be 512, 1024, 2048, 4096 or 16384 (default) bytes according to [RFC3546](https://tools.ietf.org/html/rfc3546). The value is used for all subsequent TLS connections, the opened connections are not affected.
+
+*Command:*
+
+```
+AT+CIPSSLSIZE=512
+```
+
+*Answer:*
+```
+
+OK
+``` 
 
 ### **AT+CIPRECVMODE, AT+CIPRECVDATA, AT+CIPRECVLEN in SSL mode**
 
@@ -305,22 +321,6 @@ OK
 ```
 
 The fingerprint consists of exactly 20 bytes. They are set as hex values and may be divided with ':'.
-
-### **AT+CIPSSLSIZE - Set the TLS Receiver Buffer Size**
-
-Sets the TLS receiver buffer size. The size can be 512, 1024, 2048, 4096 or 16384 (default) bytes according to [RFC3546](https://tools.ietf.org/html/rfc3546). The value is used for all subsequent TLS connections, the opened connections are not affected.
-
-*Command:*
-
-```
-AT+CIPSSLSIZE=512
-```
-
-*Answer:*
-```
-
-OK
-``` 
 
 ### **AT+CIPSSLCERTMAX - Query or set maximum certificates to load**
 
