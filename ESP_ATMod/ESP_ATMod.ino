@@ -136,7 +136,7 @@ String gsSNTPServer[3];				// command AT+CIPSNTPCFG
 /*
  * Local prototypes
  */
-static bool checkCertificateDuplicates(BearSSL::X509List &importCertList);
+static bool checkCertificateDuplicatesAndLoad(BearSSL::X509List &importCertList);
 
 /*
  *  The setup function is called once at startup of the sketch
@@ -242,7 +242,7 @@ void setup()
 							return;
 						}
 
-						if (checkCertificateDuplicates(importCertList))
+						if (checkCertificateDuplicatesAndLoad(importCertList))
 						{
 							Serial.println(F("\nTried to load already existing certificate"));
 							Serial.printf_P(MSG_ERROR);
@@ -423,7 +423,7 @@ void loop()
 
 							gsCertLoading = false;
 
-							if (checkCertificateDuplicates(importCertList))
+							if (checkCertificateDuplicatesAndLoad(importCertList))
 							{
 								Serial.println(F("Tried to load already existing certificate"));
 								Serial.printf_P(MSG_ERROR);
@@ -773,7 +773,7 @@ const char *nullIfEmpty(String &s)
 /*
  * Checks if the newly added certificate is a duplicate
  */
-bool checkCertificateDuplicates(BearSSL::X509List &importCertList)
+bool checkCertificateDuplicatesAndLoad(BearSSL::X509List &importCertList)
 {
 	const br_x509_certificate *importedCert = &(importCertList.getX509Certs()[0]);
 
