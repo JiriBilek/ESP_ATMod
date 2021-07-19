@@ -39,9 +39,9 @@
  * 0.2.7: fix 'busy p...' text sending while connecting - send on every received char
  * 0.2.8: add AT+CIPCLOSEMODE
  * 0.3.0: Stored certificates in filesystem with LittleFS
+ * 0.3.1: AT+CWLAP, AT+CWLAPOPT and 'busy p...' fix
  *
  * TODO:
- * - Implement AT+CWLAP
  * - Implement AP mode
  * - TLS Security - persistent fingerprint and single certificate, AT+CIPSSLAUTH_DEF
  */
@@ -71,7 +71,7 @@ extern "C"
  * Defines
  */
 
-const char APP_VERSION[] = "0.3.0";
+const char APP_VERSION[] = "0.3.1";
 
 /*
  * Constants
@@ -120,7 +120,8 @@ bool gsEchoEnabled = true;			// command ATE
 uint8_t gsCipMux = 0;				// command AT+CIPMUX
 uint8_t gsCipdInfo = 0;				// command AT+CIPDINFO
 uint8_t gsCwDhcp = 3;				// command AT+CWDHCP_CUR
-bool gsFlag_Connecting = false;		// Connecting in progress (CWJAP) - other commands ignored
+bool gsFlag_Connecting = false;		// Connecting in progress
+bool gsFlag_Busy = false;			// Command is busy other commands will be ignored
 int8_t gsLinkIdReading = -1;		// Link id where the data is read
 bool gsCertLoading = false;			// AT+CIPSSLCERT in progress
 bool gsWasConnected = false;		// Connection flag for AT+CIPSTATUS
@@ -513,6 +514,7 @@ void loop()
 		case STATION_GOT_IP:
 			Serial.println(F("\r\nOK"));
 			gsFlag_Connecting = false;
+			gsFlag_Busy = false;
 
 			// Set up time to allow for certificate validation
 			if (gsSTNPEnabled && time(nullptr) < 8 * 3600 * 2)
@@ -530,16 +532,19 @@ void loop()
 		case STATION_NO_AP_FOUND:
 			Serial.println(F("\r\n+CWJAP:3\r\nFAIL"));
 			gsFlag_Connecting = false;
+			gsFlag_Busy = false;
 			break;
 
 		case STATION_CONNECT_FAIL:
 			Serial.println(F("\r\n+CWJAP:4\r\nFAIL"));
 			gsFlag_Connecting = false;
+			gsFlag_Busy = false;
 			break;
 
 		case STATION_WRONG_PASSWORD:
 			Serial.println(F("\r\n+CWJAP:2\r\nFAIL"));
 			gsFlag_Connecting = false;
+			gsFlag_Busy = false;
 			break;
 
 			//		case STATION_IDLE:
@@ -554,7 +559,7 @@ void loop()
 	}
 
 	// Check for a new command while connecting
-	if (gsFlag_Connecting)
+	if (gsFlag_Busy)
 	{
 		// Check for busy condition
 		if (inputBufferCnt != 0)
