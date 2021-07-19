@@ -2454,53 +2454,48 @@ commands_t findCommand(uint8_t *input, uint16_t inpLen)
 	if (inpLen == 4)
 		return CMD_AT;
 
-	char *inputCmd = (char *)calloc(strlen((char *)input + 2) + 1, sizeof(char));
-	strcpy(inputCmd, (char *)input + 2);
-
 	// Check the command list
 	for (unsigned int i = 0; i < sizeof(commandList) / sizeof(commandDef_t); ++i)
 	{
 		const char *cmd = commandList[i].text;
-		String compareCmd = commandList[i].text;
 
-		inputCmd[strcspn(inputCmd, "\r\n")] = 0;
-
-		// Split input command on \r or \n or any number
-		inputCmd = strtok(inputCmd, "?=0123456789");
-
-		// Remove trailing ? for comparison
-		compareCmd.remove(compareCmd.lastIndexOf('?'));
-		if (!strcmp(compareCmd.c_str(), inputCmd))
+		if (!memcmp(cmd, input + 2, strlen(cmd)))
 		{
-			// We have a command
+			// Potentionally, we have a command
 
-			// Free memory of inputCmd
-			free(inputCmd);
 			switch (commandList[i].mode)
 			{
-			case MODE_NO_CHECKING:
-				break;
-
 			case MODE_EXACT_MATCH:
-				if (inpLen != strlen(cmd) + 4) // Check exact length
-					return CMD_ERROR;
+				if (inpLen == strlen(cmd) + 4) // Check exact length
+					return commandList[i].cmd;
 				break;
 
 			case MODE_QUERY_SET:
 			{
 				char c = input[strlen(cmd) + 2];
-				if (c != '=' && c != '?')
-					return CMD_ERROR;
-				if (c == '?' && inpLen != strlen(cmd) + 5) // Check exact length
-					return CMD_ERROR;
+				if (c == '=' || c == '?')
+				{
+					if (c == '?' && inpLen != strlen(cmd) + 5) // Check exact length
+						return CMD_ERROR;
+
+					return commandList[i].cmd;
+				}
+			}
+			break;
+
+			case MODE_NO_CHECKING:
+			{
+				// The input must not continue with an alphabetic character
+				char c = input[strlen(cmd) + 2];
+
+				if (!isAlpha(c))
+					return commandList[i].cmd;
 			}
 			break;
 
 			default:
-				return CMD_ERROR;
+				return CMD_ERROR;  // should not be reached
 			}
-
-			return commandList[i].cmd;
 		}
 	}
 
