@@ -766,8 +766,10 @@ void cmd_AT_CWLAPOPT()
 		}
 
 		uint32_t readRssiFilter;
-		readNumber(inputBuffer, offset, readRssiFilter);
-		rssiFilter = readRssiFilter * signNumber;
+		if (readNumber(inputBuffer, offset, readRssiFilter))
+		{
+			rssiFilter = readRssiFilter * signNumber;
+		}
 
 		offset++;
 
