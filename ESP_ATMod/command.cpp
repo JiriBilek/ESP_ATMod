@@ -131,7 +131,7 @@ void prinScanResult(int networksFound);
  */
 uint32_t sort_enable = 0;
 uint32_t printMask = 0x7FF;
-uint32_t rssiFilter = -100;
+int rssiFilter = -100;
 uint32_t authmodeMask = 0xFFFF;
 
 /*
@@ -758,7 +758,16 @@ void cmd_AT_CWLAPOPT()
 
 		offset++;
 
-		readNumber(inputBuffer, offset, rssiFilter);
+		int signNumber = 1;
+		if (inputBuffer[offset] == '-')
+		{
+			signNumber = -1;
+			offset++;
+		}
+
+		uint32_t readRssiFilter;
+		readNumber(inputBuffer, offset, readRssiFilter);
+		rssiFilter = readRssiFilter * signNumber;
 
 		offset++;
 
@@ -2638,13 +2647,6 @@ bool readNumber(unsigned char *inpBuf, uint16_t &offset, uint32_t &output)
 {
 	bool ret = false;
 	uint32_t out = 0;
-	size_t signNumber = 1;
-
-	if (inpBuf[offset] == '-')
-	{
-		signNumber = -1;
-		inpBuf[offset++];
-	}
 
 	while (inpBuf[offset] >= '0' && inpBuf[offset] <= '9')
 	{
@@ -2653,7 +2655,7 @@ bool readNumber(unsigned char *inpBuf, uint16_t &offset, uint32_t &output)
 	}
 
 	if (ret)
-		output = out * signNumber;
+		output = out;
 
 	return ret;
 }
@@ -2754,8 +2756,8 @@ void printCertificateName(uint8_t number)
  */
 int compWifiRssi(const void *elem1, const void *elem2)
 {
-	size_t f = *((size_t *)elem1);
-	size_t s = *((size_t *)elem2);
+	int f = *((int *)elem1);
+	int s = *((int *)elem2);
 	if (WiFi.RSSI(f) > WiFi.RSSI(s))
 		return -1;
 	if (WiFi.RSSI(f) < WiFi.RSSI(s))
@@ -2766,7 +2768,7 @@ int compWifiRssi(const void *elem1, const void *elem2)
 /*
  * Print scanned wifi network information
  */
-void printCWLAP(size_t indices[], size_t size)
+void printCWLAP(int indices[], size_t size)
 {
 	for (size_t i = 0; i < size; i++)
 	{
@@ -2867,7 +2869,7 @@ void prinScanResult(int networksFound)
 {
 	if (sort_enable == 0)
 	{
-		size_t indices[networksFound];
+		int indices[networksFound];
 		for (size_t i = 0; i < networksFound; i++)
 		{
 			indices[i] = i;
@@ -2878,7 +2880,7 @@ void prinScanResult(int networksFound)
 	}
 	else if (sort_enable == 1)
 	{
-		size_t indices[networksFound];
+		int indices[networksFound];
 		for (size_t i = 0; i < networksFound; i++)
 		{
 			indices[i] = i;
