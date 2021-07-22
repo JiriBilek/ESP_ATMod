@@ -2760,9 +2760,9 @@ int compWifiRssi(const void *elem1, const void *elem2)
 {
 	int f = *((int *)elem1);
 	int s = *((int *)elem2);
-	if (WiFi.RSSI(f) > WiFi.RSSI(s))
+	if (WiFi.RSSI(f) > WiFi.RSSI(s)) // @suppress("Invalid arguments")
 		return -1;
-	if (WiFi.RSSI(f) < WiFi.RSSI(s))
+	if (WiFi.RSSI(f) < WiFi.RSSI(s)) // @suppress("Invalid arguments")
 		return 1;
 	return 0;
 }
@@ -2786,7 +2786,7 @@ void printCWLAP(int indices[], size_t size)
 
 		if (show)
 		{
-			if (WiFi.RSSI(indices[i]) > rssiFilter)
+			if (WiFi.RSSI(indices[i]) > rssiFilter) // @suppress("Invalid arguments")
 			{
 				String result = "+CWLAP:(";
 
@@ -2797,22 +2797,22 @@ void printCWLAP(int indices[], size_t size)
 				}
 				if (printMask & (1 << 1))
 				{
-					result += WiFi.SSID(indices[i]);
+					result += WiFi.SSID(indices[i]); // @suppress("Invalid arguments")
 					result += ",";
 				}
 				if (printMask & (1 << 2))
 				{
-					result += WiFi.RSSI(indices[i]);
+					result += WiFi.RSSI(indices[i]); // @suppress("Invalid arguments")
 					result += ",";
 				}
 				if (printMask & (1 << 3))
 				{
-					result += WiFi.BSSIDstr(indices[i]).c_str();
+					result += WiFi.BSSIDstr(indices[i]).c_str(); // @suppress("Invalid arguments") // @suppress("Method cannot be resolved")
 					result += ",";
 				}
 				if (printMask & (1 << 4))
 				{
-					result += WiFi.channel(indices[i]);
+					result += WiFi.channel(indices[i]); // @suppress("Invalid arguments")
 					result += ",";
 				}
 				if (printMask & (1 << 5))
