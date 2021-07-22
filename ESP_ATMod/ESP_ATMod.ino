@@ -40,6 +40,7 @@
  * 0.2.8: add AT+CIPCLOSEMODE
  * 0.3.0: Stored certificates in filesystem with LittleFS
  * 0.3.1: AT+CWLAP, AT+CWLAPOPT and 'busy p...' fix
+ * 0.3.2: AT+CWHOSTNAME
  *
  * TODO:
  * - Implement AP mode
@@ -71,7 +72,7 @@ extern "C"
  * Defines
  */
 
-const char APP_VERSION[] = "0.3.1";
+const char APP_VERSION[] = "0.3.2";
 
 /*
  * Constants
