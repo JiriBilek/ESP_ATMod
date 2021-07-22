@@ -84,7 +84,8 @@ extern bool gsEchoEnabled;		// command ATE
 extern uint8_t gsCipMux;		// command AT+CIPMUX
 extern uint8_t gsCipdInfo;		// command AT+CIPDINFO
 extern uint8_t gsCwDhcp;		// command AT+CWDHCP
-extern bool gsFlag_Connecting;	// Connecting in progress (CWJAP) - other commands ignored
+extern bool gsFlag_Connecting;	// Connecting in progress
+extern bool gsFlag_Busy;		// Command is busy other commands ignored
 extern int8_t gsLinkIdReading;	// Link id for which are the data read
 extern bool gsCertLoading;		// AT+CIPSSLCERT in progress
 extern bool gsWasConnected;		// Connection flag for AT+CIPSTATUS

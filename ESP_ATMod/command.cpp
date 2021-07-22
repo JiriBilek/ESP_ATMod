@@ -73,6 +73,8 @@ static const commandDef_t commandList[] = {
 	{"+CWJAP", MODE_QUERY_SET, CMD_AT_CWJAP},
 	{"+CWJAP_CUR", MODE_QUERY_SET, CMD_AT_CWJAP_CUR},
 	{"+CWJAP_DEF", MODE_QUERY_SET, CMD_AT_CWJAP_DEF},
+	{"+CWLAPOPT", MODE_QUERY_SET, CMD_AT_CWLAPOPT},
+	{"+CWLAP", MODE_EXACT_MATCH, CMD_AT_CWLAP},
 	{"+CWQAP", MODE_EXACT_MATCH, CMD_AT_CWQAP},
 	{"+CWDHCP", MODE_QUERY_SET, CMD_AT_CWDHCP},
 	{"+CWDHCP_CUR", MODE_QUERY_SET, CMD_AT_CWDHCP_CUR},
@@ -108,8 +110,7 @@ static const commandDef_t commandList[] = {
 	{"+CIPSSLCERT", MODE_QUERY_SET, CMD_AT_CIPSSLCERT},
 	{"+CIPSSLMFLN", MODE_QUERY_SET, CMD_AT_CIPSSLMFLN},
 	{"+CIPSSLSTA", MODE_NO_CHECKING, CMD_AT_CIPSSLSTA},
-	{"+SNTPTIME?", MODE_EXACT_MATCH, CMD_AT_SNTPTIME}
-};
+	{"+SNTPTIME?", MODE_EXACT_MATCH, CMD_AT_SNTPTIME}};
 
 /*
  * Static functions
@@ -121,6 +122,17 @@ bool readNumber(unsigned char *inpBuf, uint16_t &offset, uint32_t &output);
 bool readIpAddress(unsigned char *inpBuf, uint16_t &offset, uint32_t &output);
 uint8_t readHex(char c);
 void printCertificateName(uint8_t certNumber);
+int compWifiRssi(const void *elem1, const void *elem2);
+void printCWLAP(int networksFound);
+void printScanResult(int networksFound);
+
+/*
+ * Variables
+ */
+uint32_t sort_enable = 0;
+uint32_t printMask = 0x7FF;
+int rssiFilter = -100;
+uint32_t authmodeMask = 0xFFFF;
 
 /*
  * Commands
@@ -136,6 +148,8 @@ static void cmd_AT_SYSRAM();
 
 static void cmd_AT_CWMODE(commands_t cmd);
 static void cmd_AT_CWJAP(commands_t cmd);
+static void cmd_AT_CWLAPOPT();
+static void cmd_AT_CWLAP();
 static void cmd_AT_CWQAP();
 static void cmd_AT_CWDHCP(commands_t cmd);
 static void cmd_AT_CWAUTOCONN();
@@ -212,6 +226,14 @@ void processCommandBuffer(void)
 	else if (cmd == CMD_AT_CWJAP || cmd == CMD_AT_CWJAP_CUR || cmd == CMD_AT_CWJAP_DEF)
 		// AT+CWJAP="ssid","pwd" [,"bssid"] - Connects to an AP, only ssid, pwd and bssid supported
 		cmd_AT_CWJAP(cmd);
+
+	// ------------------------------------------------------------------------------------ AT+CWLAPOPT
+	else if (cmd == CMD_AT_CWLAPOPT) // AT+CWLAPOPT - Set the configuration for the command AT+CWLAP.
+		cmd_AT_CWLAPOPT();
+
+	// ------------------------------------------------------------------------------------ AT+CWLAP
+	else if (cmd == CMD_AT_CWLAP) // AT+CWLAP - List available APs.
+		cmd_AT_CWLAP();
 
 	// ------------------------------------------------------------------------------------ AT+CWQAP
 	else if (cmd == CMD_AT_CWQAP) // AT+CWQAP - Disconnects from the AP
@@ -690,6 +712,7 @@ void cmd_AT_CWJAP(commands_t cmd)
 			WiFi.persistent(false);
 
 			gsFlag_Connecting = true;
+			gsFlag_Busy = true;
 
 			// Hack: while connecting we need the autoreconnect feature to be switched on
 			//       otherwise the connection fails (?)
@@ -708,6 +731,73 @@ void cmd_AT_CWJAP(commands_t cmd)
 	{
 		Serial.printf_P(MSG_ERROR);
 	}
+}
+
+/*
+ * AT+CWLAPOPT - Set the configuration for the command AT+CWLAP.
+ */
+void cmd_AT_CWLAPOPT()
+{
+	bool error = false;
+
+	if (inputBuffer[11] == '=')
+	{
+		uint16_t offset = 12;
+
+		if (!readNumber(inputBuffer, offset, sort_enable))
+		{
+			error = true;
+		}
+
+		offset++;
+
+		if (!readNumber(inputBuffer, offset, printMask))
+		{
+			error = true;
+		}
+
+		offset++;
+
+		int signNumber = 1;
+		if (inputBuffer[offset] == '-')
+		{
+			signNumber = -1;
+			offset++;
+		}
+
+		uint32_t readRssiFilter;
+		if (readNumber(inputBuffer, offset, readRssiFilter))
+		{
+			rssiFilter = readRssiFilter * signNumber;
+		}
+
+		offset++;
+
+		readNumber(inputBuffer, offset, authmodeMask);
+
+		if (error)
+		{
+			Serial.printf_P(MSG_ERROR);
+		}
+		else
+		{
+			Serial.printf_P(MSG_OK);
+		}
+	}
+	else
+	{
+		Serial.printf_P(MSG_ERROR);
+	}
+}
+
+/*
+ * AT+CWLAP - List available APs.
+ */
+void cmd_AT_CWLAP()
+{
+	// Print found networks with printScanResult once the scan has finished
+	WiFi.scanNetworksAsync(printScanResult);
+	gsFlag_Busy = true;
 }
 
 /*
@@ -2660,5 +2750,148 @@ void printCertificateName(uint8_t number)
 	else
 	{
 		Serial.println(F("cert ok"));
+	}
+}
+
+/*
+ * Compare wifi networks by RSSI
+ */
+int compWifiRssi(const void *elem1, const void *elem2)
+{
+	int f = *((int *)elem1);
+	int s = *((int *)elem2);
+	if (WiFi.RSSI(f) > WiFi.RSSI(s))
+		return -1;
+	if (WiFi.RSSI(f) < WiFi.RSSI(s))
+		return 1;
+	return 0;
+}
+
+/*
+ * Print scanned wifi network information
+ */
+void printCWLAP(int indices[], size_t size)
+{
+	for (size_t i = 0; i < size; i++)
+	{
+		bool show = false;
+		if (authmodeMask & (1 << WiFi.encryptionType(indices[i])))
+		{
+			show = true;
+		}
+		else if (WiFi.encryptionType(indices[i]) > 8)
+		{
+			show = true;
+		}
+
+		if (show)
+		{
+			if (WiFi.RSSI(indices[i]) > rssiFilter)
+			{
+				String result = "+CWLAP:(";
+
+				if (printMask & (1 << 0))
+				{
+					result += WiFi.encryptionType(indices[i]);
+					result += ",";
+				}
+				if (printMask & (1 << 1))
+				{
+					result += WiFi.SSID(indices[i]);
+					result += ",";
+				}
+				if (printMask & (1 << 2))
+				{
+					result += WiFi.RSSI(indices[i]);
+					result += ",";
+				}
+				if (printMask & (1 << 3))
+				{
+					result += WiFi.BSSIDstr(indices[i]).c_str();
+					result += ",";
+				}
+				if (printMask & (1 << 4))
+				{
+					result += WiFi.channel(indices[i]);
+					result += ",";
+				}
+				if (printMask & (1 << 5))
+				{
+					// freq_offset here
+					result += 0;
+					result += ",";
+				}
+				if (printMask & (1 << 6))
+				{
+					// freqcal_val here
+					result += 0;
+					result += ",";
+				}
+				if (printMask & (1 << 7))
+				{
+					// pairwise_cipher here
+					result += 0;
+					result += ",";
+				}
+				if (printMask & (1 << 8))
+				{
+					// group_cipher here
+					result += 0;
+					result += ",";
+				}
+				if (printMask & (1 << 9))
+				{
+					// bgn here
+					result += 0;
+					result += ",";
+				}
+				if (printMask & (1 << 10))
+				{
+					// wps here
+					result += 0;
+					result += ",";
+				}
+
+				// Remove trailing comma
+				result.remove(result.lastIndexOf(','));
+				result += ")";
+				Serial.printf("%s\n", result.c_str());
+			}
+		}
+	}
+
+	gsFlag_Busy = false;
+	Serial.printf_P(MSG_OK);
+}
+
+/*
+ * Print the networks found from scanning
+ */
+void printScanResult(int networksFound)
+{
+	if (sort_enable == 0)
+	{
+		int indices[networksFound];
+		for (int i = 0; i < networksFound; i++)
+		{
+			indices[i] = i;
+		}
+
+		// Print the unsorted networks
+		printCWLAP(indices, sizeof(indices) / sizeof(indices[0]));
+	}
+	else if (sort_enable == 1)
+	{
+		int indices[networksFound];
+		for (int i = 0; i < networksFound; i++)
+		{
+			indices[i] = i;
+		}
+
+		// Sort by RSSI
+		qsort(indices, sizeof(indices) / sizeof(indices[0]), sizeof(indices[0]), compWifiRssi);
+
+		// Print the sorted networks
+		printCWLAP(indices, sizeof(indices) / sizeof(indices[0]));
 	}
 }

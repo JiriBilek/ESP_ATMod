@@ -2,7 +2,7 @@
 
 This firmware comes as an [Arduino esp8266](https://github.com/esp8266/Arduino#arduino-on-esp8266) sketch.
 
-This file refers to version 0.3.0 of the firmware.
+This file refers to version 0.3.1 of the firmware.
 
 ## Purpose
 
@@ -101,6 +101,8 @@ In the following table, the list of supported AT commands is given. In the comme
 | AT+CWMODE | Set the Wi-Fi mode (Station/SoftAP/Station+SoftAP). (Only AT+CWMODE=1 implemented) |
 | AT+CWJAP, AT+CWJAP_CUR | Connect to an AP, parameter &lt;pci_en&gt; not implemented |
 | AT+CWJAP_DEF | Connect to AP, saved to flash. Parameter &lt;pci_en&gt; not implemented |
+| AT+CWLAPOPT | Set the configuration for the command AT+CWLAP. |
+| AT+CWLAP | List available APs. |
 | AT+CWQAP | Disconnect from an AP. |
 | AT+CWDHCP, AT+CWDHCP_CUR | Enable/disable DHCP - only station mode enabling works |
 | AT+CWDHCP_DEF | Enable/disable DHCP saved to flash - only station mode enabling works |
