@@ -2892,6 +2892,6 @@ void printScanResult(int networksFound)
 		qsort(indices, sizeof(indices) / sizeof(indices[0]), sizeof(indices[0]), compWifiRssi);
 
 		// Print the sorted networks
-		printCWLAP(indices, sizeof(indices) / sizeof(*indices));
+		printCWLAP(indices, sizeof(indices) / sizeof(indices[0]));
 	}
 }
