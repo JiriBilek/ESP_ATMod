@@ -2,7 +2,7 @@
 
 This firmware comes as an [Arduino esp8266](https://github.com/esp8266/Arduino#arduino-on-esp8266) sketch.
 
-This file refers to version 0.3.1 of the firmware.
+This file refers to version 0.3.2 of the firmware.
 
 ## Purpose
 
@@ -104,17 +104,18 @@ In the following table, the list of supported AT commands is given. In the comme
 | AT+CWLAPOPT | Set the configuration for the command AT+CWLAP. |
 | AT+CWLAP | List available APs. |
 | AT+CWQAP | Disconnect from an AP. |
-| AT+CWDHCP, AT+CWDHCP_CUR | Enable/disable DHCP - only station mode enabling works |
-| AT+CWDHCP_DEF | Enable/disable DHCP saved to flash - only station mode enabling works |
+| AT+CWDHCP, AT+CWDHCP_CUR | Enable/disable DHCP - only station mode enabling works. |
+| AT+CWDHCP_DEF | Enable/disable DHCP saved to flash - only station mode enabling works. |
 | AT+CWAUTOCONN | Connect to an AP automatically when powered on. |
 | AT+CIPSTA, AT+CIPSTA_CUR | Query/Set the IP address of an ESP station. |
-| AT+CIPSTA_DEF | Set and/or print current IP address, gateway and network mask, stored in flash |
+| AT+CIPSTA_DEF | Set and/or print current IP address, gateway and network mask, stored in flash. |
+| AT+CWHOSTNAME | Query/Set the host name of an ESP Station. |
 | [**TCP/IP AT Commands**](https://docs.espressif.com/projects/esp-at/en/latest/AT_Command_Set/TCP-IP_AT_Commands.html) |  |
 | AT+CIPSTATUS | Obtain the TCP/UDP/SSL connection status and information. |
 | AT+CIPSTART |Establish TCP connection, or SSL connection. Only one TLS connection at a time. |
 | [AT+CIPSSLSIZE](https://github.com/JiriBilek/ESP_ATMod#atcipsslsize---set-the-tls-receiver-buffer-size) | Change the size of the receiver buffer (512, 1024, 2048 or 4096 bytes) |
 | AT+CIPSEND |  Send data in the normal transmission mode or Wi-Fi passthrough mode. |
-| AT+CIPCLOSEMODE | Set the Close Mode of TCP Connection |
+| AT+CIPCLOSEMODE | Set the Close Mode of TCP Connection. |
 | AT+CIPCLOSE | Close TCP/SSL connection. |
 | AT+CIFSR | Obtain the local IP address and MAC address. |
 | AT+CIPMUX | Enable/disable the multiple connections mode. Max. 5 conections, only one of them can be TLS |
