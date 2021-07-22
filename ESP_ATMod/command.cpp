@@ -83,6 +83,7 @@ static const commandDef_t commandList[] = {
 	{"+CIPSTA", MODE_QUERY_SET, CMD_AT_CIPSTA},
 	{"+CIPSTA_CUR", MODE_QUERY_SET, CMD_AT_CIPSTA_CUR},
 	{"+CIPSTA_DEF", MODE_QUERY_SET, CMD_AT_CIPSTA_DEF},
+	{"+CWHOSTNAME", MODE_QUERY_SET, CMD_AT_CWHOSTNAME},
 
 	{"+CIPSTATUS", MODE_EXACT_MATCH, CMD_AT_CIPSTATUS},
 	{"+CIPSTART", MODE_NO_CHECKING, CMD_AT_CIPSTART},
@@ -154,6 +155,7 @@ static void cmd_AT_CWQAP();
 static void cmd_AT_CWDHCP(commands_t cmd);
 static void cmd_AT_CWAUTOCONN();
 static void cmd_AT_CIPSTA(commands_t cmd);
+static void cmd_AT_CWHOSTNAME();
 
 static void cmd_AT_CIPSTATUS();
 static void cmd_AT_CIPSTART();
@@ -252,6 +254,11 @@ void processCommandBuffer(void)
 	else if (cmd == CMD_AT_CIPSTA || cmd == CMD_AT_CIPSTA_CUR || cmd == CMD_AT_CIPSTA_DEF)
 		// AT+CIPSTA - Sets or prints the network configuration
 		cmd_AT_CIPSTA(cmd);
+
+	// ------------------------------------------------------------------------------------ AT+CWHOSTNAME
+	else if (cmd == CMD_AT_CWHOSTNAME)
+		// AT+CWHOSTNAME - Query/Set the host name of an ESP station
+		cmd_AT_CWHOSTNAME();
 
 	// ------------------------------------------------------------------------------------ AT+CIPSTATUS
 	else if (cmd == CMD_AT_CIPSTATUS) // AT+CIPSTATUS - Gets the Connection Status
@@ -1017,6 +1024,40 @@ void cmd_AT_CIPSTA(commands_t cmd)
 		if (error == 0)
 			Serial.printf_P(MSG_OK);
 		else if (error == 1)
+			Serial.printf_P(MSG_ERROR);
+	}
+	else
+	{
+		Serial.printf_P(MSG_ERROR);
+	}
+}
+
+/*
+ * AT+CWHOSTNAME - Query/Set the host name of an ESP station
+ */
+void cmd_AT_CWHOSTNAME()
+{
+	uint16_t offset = 13; // offset to ? or =
+
+	if (inputBuffer[offset] == '?' && inputBufferCnt == offset + 3)
+	{
+		Serial.printf_P(PSTR("+CWHOSTNAME:%s\r\n"), WiFi.hostname().c_str());
+		Serial.printf_P(MSG_OK);
+	}
+	else if (inputBuffer[offset] == '=')
+	{
+		String hostname = readStringFromBuffer(inputBuffer, ++offset, false);
+
+		if (hostname.isEmpty())
+		{
+			Serial.printf_P(MSG_ERROR);
+			return;
+		}
+
+		WiFi.hostname(hostname);
+		if (WiFi.hostname() == hostname)
+			Serial.printf_P(MSG_OK);
+		else
 			Serial.printf_P(MSG_ERROR);
 	}
 	else
