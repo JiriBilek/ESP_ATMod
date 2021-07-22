@@ -124,7 +124,7 @@ uint8_t readHex(char c);
 void printCertificateName(uint8_t certNumber);
 int compWifiRssi(const void *elem1, const void *elem2);
 void printCWLAP(int networksFound);
-void prinScanResult(int networksFound);
+void printScanResult(int networksFound);
 
 /*
  * Variables
@@ -796,7 +796,7 @@ void cmd_AT_CWLAPOPT()
 void cmd_AT_CWLAP()
 {
 	// Print found networks with printScanResult once the scan has finished
-	WiFi.scanNetworksAsync(prinScanResult);
+	WiFi.scanNetworksAsync(printScanResult);
 	gsFlag_Busy = true;
 }
 
@@ -2867,29 +2867,29 @@ void printCWLAP(int indices[], size_t size)
 /*
  * Print the networks found from scanning
  */
-void prinScanResult(int networksFound)
+void printScanResult(int networksFound)
 {
 	if (sort_enable == 0)
 	{
 		int indices[networksFound];
-		for (size_t i = 0; i < networksFound; i++)
+		for (int i = 0; i < networksFound; i++)
 		{
 			indices[i] = i;
 		}
 
 		// Print the unsorted networks
-		printCWLAP(indices, sizeof indices / sizeof *indices);
+		printCWLAP(indices, sizeof(indices) / sizeof(indices[0]));
 	}
 	else if (sort_enable == 1)
 	{
 		int indices[networksFound];
-		for (size_t i = 0; i < networksFound; i++)
+		for (int i = 0; i < networksFound; i++)
 		{
 			indices[i] = i;
 		}
 
 		// Sort by RSSI
-		qsort(indices, sizeof(indices) / sizeof(*indices), sizeof(*indices), compWifiRssi);
+		qsort(indices, sizeof(indices) / sizeof(indices[0]), sizeof(indices[0]), compWifiRssi);
 
 		// Print the sorted networks
 		printCWLAP(indices, sizeof(indices) / sizeof(*indices));
