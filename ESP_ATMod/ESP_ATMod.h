@@ -40,6 +40,7 @@ typedef struct
 	clientTypes_t type;
 	uint16_t sendLength;
 	uint16_t lastAvailableBytes;
+	uint32_t lastActivityMillis;
 } client_t;
 
 typedef struct
@@ -60,6 +61,9 @@ typedef struct
  */
 
 extern client_t clients[5];
+
+extern const uint8_t SERVERS_COUNT;
+extern WiFiServer servers[];
 
 const uint16_t INPUT_BUFFER_LEN = 100;
 
@@ -97,6 +101,8 @@ extern uint16_t gsCipSslSize;	// command AT+CIPSSLSIZE
 extern bool gsSTNPEnabled;		// command AT+CIPSNTPCFG
 extern int8_t gsSTNPTimezone;	// command AT+CIPSNTPCFG
 extern String gsSNTPServer[3];	// command AT+CIPSNTPCFG
+extern uint8_t gsServersMaxConn;	// command AT+CIPSERVERMAXCONN
+extern uint32_t gsServerConnTimeout;	// command AT+CIPSSTO
 
 extern const char APP_VERSION[];
 extern const char MSG_OK[] PROGMEM;

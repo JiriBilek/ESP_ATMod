@@ -41,6 +41,7 @@
  * 0.3.0: Stored certificates in filesystem with LittleFS
  * 0.3.1: AT+CWLAP, AT+CWLAPOPT and 'busy p...' fix
  * 0.3.2: AT+CWHOSTNAME
+ * 0.3.3: AT+CIPSERVER, AT+CIPSTO, AT+CIPSERVERMAXCONN [J.A]
  *
  * TODO:
  * - Implement AP mode
@@ -94,11 +95,14 @@ WiFiEventHandler onConnectedHandler;
 WiFiEventHandler onGotIPHandler;
 WiFiEventHandler onDisconnectedHandler;
 
-client_t clients[5] = {{nullptr, TYPE_NONE, 0, 0},
-					   {nullptr, TYPE_NONE, 0, 0},
-					   {nullptr, TYPE_NONE, 0, 0},
-					   {nullptr, TYPE_NONE, 0, 0},
-					   {nullptr, TYPE_NONE, 0, 0}};
+client_t clients[5] = {{nullptr, TYPE_NONE, 0, 0, 0},
+					   {nullptr, TYPE_NONE, 0, 0, 0},
+					   {nullptr, TYPE_NONE, 0, 0, 0},
+					   {nullptr, TYPE_NONE, 0, 0, 0},
+					   {nullptr, TYPE_NONE, 0, 0, 0}};
+
+WiFiServer servers[] = {WiFiServer(0), WiFiServer(0), WiFiServer(0), WiFiServer(0), WiFiServer(0)};
+const uint8_t SERVERS_COUNT = sizeof(servers) / sizeof(WiFiServer);
 
 uint8_t sendBuffer[2048];
 uint16_t dataRead = 0; // Number of bytes read from the input to a send buffer
@@ -134,6 +138,8 @@ uint16_t gsCipSslSize = 16384;		// command AT+CIPSSLSIZE
 bool gsSTNPEnabled = true;			// command AT+CIPSNTPCFG
 int8_t gsSTNPTimezone = 0;			// command AT+CIPSNTPCFG
 String gsSNTPServer[3];				// command AT+CIPSNTPCFG
+uint8_t gsServersMaxConn = 5;			// command AT+CIPSERVERMAXCONN
+uint32_t gsServerConnTimeout = 180000;	// command AT+CIPSSTO
 
 /*
  * Local prototypes
@@ -296,6 +302,9 @@ void loop()
 		if (gsCipMux == 1)
 			maxCli = 4;
 
+		uint8_t freeLinkId = 255;
+		uint8_t serversConnCount = 0;
+
 		for (uint8_t i = 0; i <= maxCli; ++i)
 		{
 			WiFiClient *cli = clients[i].client;
@@ -306,6 +315,8 @@ void loop()
 
 				if (avail > clients[i].lastAvailableBytes) // For RECVMODE it is every non zero avail
 				{
+					clients[i].lastActivityMillis = millis();
+
 					if (gsCipRecvMode == 0)
 					{
 						SendData(i, 0);
@@ -334,6 +345,70 @@ void loop()
 					Serial.println(F("CLOSED"));
 
 					DeleteClient(i);
+					cli = nullptr;
+				}
+			}
+
+			if (cli != nullptr)
+			{
+				boolean isServer = false;
+				for (uint8_t j = 0; j < SERVERS_COUNT; ++j)
+				{
+					if (servers[j].status() == CLOSED)
+						continue;
+					if (cli->localPort() == servers[j].port())
+					{
+						isServer = true;
+						break;
+					}
+				}
+				if (isServer)
+				{
+					if (gsServerConnTimeout != 0 && cli->available() == 0
+							&& millis() - clients[i].lastActivityMillis > gsServerConnTimeout)
+					{
+						if (gsCipMux == 1)
+							Serial.printf_P(PSTR("%d,"), i);
+						Serial.println(F("CLOSED"));
+						DeleteClient(i);
+					}
+					else
+					{
+						serversConnCount++;
+					}
+				}
+			}
+			else if (freeLinkId == 255)
+			{
+				freeLinkId = i;
+			}
+		}
+
+		// handle server clients. check for a new connection only if we can add it
+		for (uint8_t i = 0; i < SERVERS_COUNT; ++i)
+		{
+			if (freeLinkId == 255 || serversConnCount >= gsServersMaxConn)
+				break;
+			if (servers[i].status() == CLOSED)
+				continue;
+			WiFiClient cli = servers[i].available();
+			if (!cli)
+				continue;
+			clients[freeLinkId].client = new WiFiClient(cli);
+			clients[freeLinkId].type = TYPE_TCP;
+			clients[freeLinkId].lastAvailableBytes = 0;
+			clients[freeLinkId].lastActivityMillis = millis();
+			Serial.printf_P(PSTR("%d,CONNECT\r\n"), freeLinkId);
+			gsWasConnected = true; // Flag for CIPSTATUS command
+
+			serversConnCount++;
+			freeLinkId = 255;
+			for (uint8_t j = 0; j <= maxCli; ++j)
+			{
+				if (clients[j].client == nullptr)
+				{
+					freeLinkId = j;
+					break;
 				}
 			}
 		}
@@ -362,7 +437,10 @@ void loop()
 				size_t s = clients[gsLinkIdReading].client->write(sendBuffer, clients[gsLinkIdReading].sendLength);
 
 				if (s == clients[gsLinkIdReading].sendLength)
+				{
 					Serial.println(F("\r\nSEND OK"));
+					clients[gsLinkIdReading].lastActivityMillis = millis();
+				}
 				else
 				{
 					Serial.println(F("\r\nSEND FAIL"));

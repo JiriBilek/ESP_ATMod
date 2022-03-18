@@ -94,6 +94,9 @@ static const commandDef_t commandList[] = {
 	{"+CIFSR", MODE_EXACT_MATCH, CMD_AT_CIFSR},
 	{"+CIPMUX", MODE_QUERY_SET, CMD_AT_CIPMUX},
 	{"+CIPDINFO", MODE_QUERY_SET, CMD_AT_CIPDINFO},
+	{"+CIPSERVER", MODE_NO_CHECKING, CMD_AT_CIPSERVER},
+	{"+CIPSERVERMAXCONN", MODE_QUERY_SET, CMD_AT_CIPSERVERMAXCONN},
+	{"+CIPSTO", MODE_QUERY_SET, CMD_AT_CIPSTO},
 	{"+CIPRECVMODE", MODE_QUERY_SET, CMD_AT_CIPRECVMODE},
 	{"+CIPRECVDATA", MODE_QUERY_SET, CMD_AT_CIPRECVDATA},
 	{"+CIPRECVLEN", MODE_QUERY_SET, CMD_AT_CIPRECVLEN},
@@ -165,6 +168,9 @@ static void cmd_AT_CIPCLOSEMODE();
 static void cmd_AT_CIPCLOSE();
 static void cmd_AT_CIFSR();
 static void cmd_AT_CIPMUX();
+static void cmd_AT_CIPSERVER();
+static void cmd_AT_CIPSERVERMAXCONN();
+static void cmd_AT_CIPSTO();
 static void cmd_AT_CIPDINFO();
 static void cmd_AT_CIPRECVMODE();
 static void cmd_AT_CIPRECVDATA();
@@ -297,6 +303,18 @@ void processCommandBuffer(void)
 	// ------------------------------------------------------------------------------------ AT+CIPDINFO
 	else if (cmd == CMD_AT_CIPDINFO) // AT+CIPDINFO - Shows the Remote IP and Port with +IPD
 		cmd_AT_CIPDINFO();
+
+	// ------------------------------------------------------------------------------------ AT+CIPSERVER
+	else if (cmd == CMD_AT_CIPSERVER) // AT+CIPCIPSERVER - Deletes/Creates TCP Server
+		cmd_AT_CIPSERVER();
+
+	// ------------------------------------------------------------------------------------ AT+CIPSERVERMAXCONN
+	else if (cmd == CMD_AT_CIPSERVERMAXCONN) // AT+CIPSERVERMAXCONN - Set the Maximum Connections Allowed by Server
+		cmd_AT_CIPSERVERMAXCONN();
+
+	// ------------------------------------------------------------------------------------ AT+CIPSTO
+	else if (cmd == CMD_AT_CIPSTO) // AT+CIPSTO - Sets the TCP Server Timeout
+		cmd_AT_CIPSTO();
 
 	// ------------------------------------------------------------------------------------ AT+CIPRECVMODE
 	else if (cmd == CMD_AT_CIPRECVMODE) // AT+CIPRECVMODE - Set TCP Receive Mode
@@ -1627,7 +1645,15 @@ void cmd_AT_CIPMUX()
 					break;
 				}
 			}
-
+			for (uint8_t i = 0; i < SERVERS_COUNT; ++i)
+			{
+				if (servers[i].status() != CLOSED)
+				{
+					Serial.println(F("CIPSERVER must be 0"));
+					openedError = true;
+					break;
+				}
+			}
 			if (!openedError)
 			{
 				gsCipMux = mux;
@@ -1641,6 +1667,167 @@ void cmd_AT_CIPMUX()
 	{
 		Serial.printf_P(MSG_ERROR);
 	}
+}
+
+/*
+ * AT+CIPCIPSERVER - Deletes/Creates TCP Server
+ */
+void cmd_AT_CIPSERVER()
+{
+
+	if (!gsCipMux)
+	{
+		Serial.printf_P(MSG_ERROR);
+		return;
+	}
+	uint8_t error = 1; // 1 = generic error, 0 = ok
+	uint16_t offset = strlen("AT+CIPSERVER");
+
+	bool stop = false;
+	uint32_t port = 0;
+
+	do
+	{
+		if (inputBuffer[offset] != '=')
+			break;
+
+		++offset;
+		if (inputBuffer[offset] != '0' && inputBuffer[offset] != '1')
+		  break;
+		stop = inputBuffer[offset] == '0';
+		++offset;
+
+		if (inputBufferCnt > offset + 2)
+		{
+			if (inputBuffer[offset] != ',')
+				break;
+
+			++offset;
+			error = 2;
+
+			if (!readNumber(inputBuffer, offset, port) || port > 65535 || inputBufferCnt != offset + 2)
+				break;
+
+		}
+		else if (!stop)
+		{
+			port = 333; // default AT fw server port
+		}
+
+		error = 0;
+	} while (0);
+
+	if (!error)
+	{
+		if (stop)
+		{
+			error = 3; // not found running
+			for (int i = 0; i < SERVERS_COUNT; i++)
+			{
+				if (servers[i].status() == CLOSED)
+					continue;
+				if (servers[i].port() == port || port == 0)
+				{
+					servers[i].close();
+					error = 0;
+					break;
+				}
+			}
+		}
+		else
+		{
+			for (int i = 0; i < SERVERS_COUNT; i++)
+			{
+				if (servers[i].status() == CLOSED)
+					continue;
+				if (servers[i].port() == port)
+				{
+					error = 4; // already running
+					break;
+				}
+			}
+			if (!error)
+			{
+				for (int i = 0; i < SERVERS_COUNT; i++)
+				{
+					if (servers[i].status() == CLOSED)
+					{
+						servers[i].begin(port);
+						if (servers[i].status() == CLOSED)
+						{
+							error = 5;
+						}
+						break;
+					}
+				}
+			}
+		}
+	}
+	if (error == 3 || error == 4)
+	{
+		Serial.println("no change");
+	}
+	Serial.printf_P(error ? MSG_ERROR : MSG_OK);
+}
+
+/*
+ * AT+CIPSERVERMAXCONN - Set the Maximum Connections Allowed by Server
+ */
+void cmd_AT_CIPSERVERMAXCONN()
+{
+	uint16_t offset = strlen("AT+CIPSERVERMAXCONN");
+
+	if (inputBuffer[offset] == '?')
+	{
+		Serial.printf_P(PSTR("+CIPSERVERMAXCONN:%d\r\n"), gsServersMaxConn);
+		Serial.printf_P(MSG_OK);
+		return;
+	}
+
+	uint8_t error = 1; // 1 = generic error, 0 = ok
+	uint32_t max = 0;
+	do
+	{
+		if (inputBuffer[offset] != '=')
+			break;
+		++offset;
+		if (!readNumber(inputBuffer, offset, max) || max < 1 || max > 5 || inputBufferCnt != offset + 2)
+			break;
+		gsServersMaxConn = max;
+		error = 0;
+	} while (0);
+
+	Serial.printf_P(error ? MSG_ERROR : MSG_OK);
+}
+
+/*
+ * AT+CIPSTO - Sets the TCP Server Timeout
+ */
+void cmd_AT_CIPSTO()
+{
+	uint16_t offset = strlen("AT+CIPSTO");
+
+	if (inputBuffer[offset] == '?')
+	{
+		Serial.printf_P(PSTR("+CIPSTO:%d\r\n"), gsServerConnTimeout / 1000);
+		Serial.printf_P(MSG_OK);
+		return;
+	}
+
+	uint8_t error = 1; // 1 = generic error, 0 = ok
+	uint32_t to = 0;
+	do
+	{
+		if (inputBuffer[offset] != '=')
+			break;
+		++offset;
+		if (!readNumber(inputBuffer, offset, to) || to > 7200 || inputBufferCnt != offset + 2)
+			break;
+		gsServerConnTimeout = to * 1000;
+		error = 0;
+	} while (0);
+
+	Serial.printf_P(error ? MSG_ERROR : MSG_OK);
 }
 
 /*
