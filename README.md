@@ -2,7 +2,7 @@
 
 This firmware comes as an [Arduino esp8266](https://github.com/esp8266/Arduino#arduino-on-esp8266) sketch.
 
-This file refers to version 0.3.2 of the firmware.
+This file refers to version 0.3.3 of the firmware.
 
 ## Purpose
 
@@ -127,6 +127,9 @@ In the following table, the list of supported AT commands is given. In the comme
 | [AT+CIPRECVLEN](https://github.com/JiriBilek/ESP_ATMod#atciprecvmode-atciprecvdata-atciprecvlen-in-ssl-mode) | Obtain socket data length in passive receiving mode. |
 | AT+CIPDNS, AT+CIPDNS_CUR | Query/Set DNS server information. |
 | AT+CIPDNS_DEF | Default DNS setting, stored in flash |
+| [AT+CIPSERVER](#atcipserver-atcipservermaxconn-and-atcipsto) | Deletes/Creates TCP Server |
+| AT+CIPSERVERMAXCONN | Set the maximum connections allowed by server |
+| AT+CIPSTO | Sets the TCP Server Timeout |
 | **New commands** |  |
 | [AT+SYSCPUFREQ](https://github.com/JiriBilek/ESP_ATMod#atsyscpufreq---set-or-query-the-current-cpu-frequency) | Set or query the current CPU frequency. |
 | [AT+RFMODE](https://github.com/JiriBilek/ESP_ATMod#atrfmode---get-and-change-the-physical-wifi-mode) | Set the physical wifi mode. |
@@ -165,6 +168,16 @@ Commands
 - AT+CIPRECVLEN (Get TCP or SSL Data Length in Passive Receive Mode)
 
 Works in SSL mode in the same way as in TCP mode.
+
+### **AT+CIPSERVER, AT+CIPSERVERMAXCONN and AT+CIPSTO**
+
+The standard AT firmware supports only one server. This firmware support up to 5 server with same AT+CIPCIPSERVER command.
+
+In standard AT firmware 1.7 executing `AT+CIPSERVER=1,<port>` again even if the port is different prints no change and OK. Here it starts a new server. "no change" is returned only if maximum count of servers is reached.
+
+In standard AT firmware 1.7 executing AT+CIPSERVER=0 stops the one server. Here it stops the first one. Executing `AT+CIPSERVER=0,<port>` stops the server listening on `<port>`.
+
+CIPSERVERMAXCONN and CIPSTO are global settings, They apply to all servers.
 
 ## New Commands
 
