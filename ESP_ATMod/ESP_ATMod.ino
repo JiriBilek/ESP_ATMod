@@ -183,7 +183,7 @@ void setup()
 	// Set the WiFi defaults
 	WiFi.mode(WIFI_STA);
 	WiFi.persistent(false);
-	WiFi.setAutoReconnect(false);
+	WiFi.setAutoReconnect(true);
 
 	// Set the SNTP defaults
 	gsSNTPServer[0] = "pool.ntp.org";
