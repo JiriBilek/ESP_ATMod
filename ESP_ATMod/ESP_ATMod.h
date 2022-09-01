@@ -97,6 +97,7 @@ extern uint8_t gsCipSslAuth;	// command AT+CIPSSLAUTH: 0 = none, 1 = fingerprint
 extern uint8_t gsCipRecvMode;	// command AT+CIPRECVMODE
 extern ipConfig_t gsCipStaCfg;	// command AT+CIPSTA_CUR
 extern dnsConfig_t gsCipDnsCfg; // command AT+CIPDNS
+extern ipConfig_t gsCipApCfg;	// command AT+CIPAP_CUR
 extern uint16_t gsCipSslSize;	// command AT+CIPSSLSIZE
 extern bool gsSTNPEnabled;		// command AT+CIPSNTPCFG
 extern int8_t gsSTNPTimezone;	// command AT+CIPSNTPCFG
@@ -116,6 +117,7 @@ extern const uint16_t MAX_PEM_CERT_LENGTH;
 void DeleteClient(uint8_t index);
 void setDhcpMode();
 void setDns();
+bool applyCipAp();
 int SendData(int clientIndex, int maxSize);
 
 const char *nullIfEmpty(String &s);

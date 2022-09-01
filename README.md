@@ -2,7 +2,7 @@
 
 This firmware comes as an [Arduino esp8266](https://github.com/esp8266/Arduino#arduino-on-esp8266) sketch.
 
-This file refers to version 0.3.3 of the firmware.
+This file refers to version 0.3.4 of the firmware.
 
 ## Purpose
 
@@ -18,7 +18,7 @@ The firmware does not (and likely will not) implement the whole set of AT comman
 
 The major differences are:
 
-1. Only the station mode (AT+CWMODE=1) is supported, no AP or mixed mode.
+~~1. Only the station mode (AT+CWMODE=1) is supported, no AP or mixed mode.~~
 
 2. Only TCP mode (with or without TLS) is supported, no UDP.
 
@@ -98,17 +98,21 @@ In the following table, the list of supported AT commands is given. In the comme
 | AT+UART_DEF | Default UART configuration, saved in flash. |
 | AT+SYSRAM | Query current remaining heap size and minimum heap size. |
 | [**Wi-Fi AT Commands**](https://docs.espressif.com/projects/esp-at/en/latest/AT_Command_Set/Wi-Fi_AT_Commands.html#wi-fi-at-commandss) |  |
-| AT+CWMODE | Set the Wi-Fi mode (Station/SoftAP/Station+SoftAP). (Only AT+CWMODE=1 implemented) |
+| AT+CWMODE | Set the Wi-Fi mode (Station/SoftAP/Station+SoftAP). |
 | AT+CWJAP, AT+CWJAP_CUR | Connect to an AP, parameter &lt;pci_en&gt; not implemented |
 | AT+CWJAP_DEF | Connect to AP, saved to flash. Parameter &lt;pci_en&gt; not implemented |
 | AT+CWLAPOPT | Set the configuration for the command AT+CWLAP. |
 | AT+CWLAP | List available APs. |
 | AT+CWQAP | Disconnect from an AP. |
+| AT+CWSAP, AT+CWSAP_CUR | Start SoftAP, parameter &lt;ecn&gt; is not used. WPA_WPA2_PSK is used, if &lt;pwd&gt; is not empty. |
+| AT+CWSAP_DEF | Connect to AP, saved to flash. Parameter &lt;ecn&gt; is not used. WPA_WPA2_PSK is used, if &lt;pwd&gt; is not empty. |
 | AT+CWDHCP, AT+CWDHCP_CUR | Enable/disable DHCP - only station mode enabling works. |
 | AT+CWDHCP_DEF | Enable/disable DHCP saved to flash - only station mode enabling works. |
 | AT+CWAUTOCONN | Connect to an AP automatically when powered on. |
 | AT+CIPSTA, AT+CIPSTA_CUR | Query/Set the IP address of an ESP station. |
 | AT+CIPSTA_DEF | Set and/or print current IP address, gateway and network mask, stored in flash. |
+| AT+CIPAP, AT+CIPAP_CUR | Query/Set the current IP address of the SoftAP. |
+| AT+CIPAP_DEF | Set and/or print SoftAP IP address, gateway and network mask, stored in flash. |
 | AT+CWHOSTNAME | Query/Set the host name of an ESP Station. |
 | [**TCP/IP AT Commands**](https://docs.espressif.com/projects/esp-at/en/latest/AT_Command_Set/TCP-IP_AT_Commands.html) |  |
 | AT+CIPSTATUS | Obtain the TCP/UDP/SSL connection status and information. |

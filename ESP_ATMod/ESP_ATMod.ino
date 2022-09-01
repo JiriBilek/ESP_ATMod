@@ -42,9 +42,11 @@
  * 0.3.1: AT+CWLAP, AT+CWLAPOPT and 'busy p...' fix
  * 0.3.2: AT+CWHOSTNAME
  * 0.3.3: AT+CIPSERVER, AT+CIPSTO, AT+CIPSERVERMAXCONN [J.A]
+ * 0.3.4: SoftAP mode AT+CWMODE, AT+CWSAP, AT+CIPAP [J.A]
  *
  * TODO:
- * - Implement AP mode
+ * - Implement AP mode DHCP settings and AT+CWLIF
+ * - Implement UDP
  * - TLS Security - persistent fingerprint and single certificate, AT+CIPSSLAUTH_DEF
  */
 
@@ -134,6 +136,7 @@ uint8_t gsCipSslAuth = 0;			// command AT+CIPSSLAUTH: 0 = none, 1 = fingerprint,
 uint8_t gsCipRecvMode = 0;			// command AT+CIPRECVMODE
 ipConfig_t gsCipStaCfg = {0, 0, 0}; // command AT+CIPSTA
 dnsConfig_t gsCipDnsCfg = {0, 0};	// command AT+CIPDNS
+ipConfig_t gsCipApCfg = {0, 0, 0}; // command AT+CIPAP
 uint16_t gsCipSslSize = 16384;		// command AT+CIPSSLSIZE
 bool gsSTNPEnabled = true;			// command AT+CIPSNTPCFG
 int8_t gsSTNPTimezone = 0;			// command AT+CIPSNTPCFG
@@ -156,11 +159,25 @@ void setup()
 
 	// Default DNS configuration
 	gsCipDnsCfg = Settings::getDnsConfig();
-	setDns();
 
 	// Default DHCP configuration
 	gsCwDhcp = Settings::getDhcpMode();
-	setDhcpMode();
+
+	// Default SoftAP configuration
+	gsCipApCfg = Settings::getApIpConfig();
+
+	// apply CIPSTA_DEF values if STA started automatically
+	if (WiFi.getMode() != WIFI_AP)
+	{
+		setDns();
+		setDhcpMode();
+	}
+
+	// apply CIPAP_DEF values if SoftAP started automatically
+	if (WiFi.getMode() != WIFI_STA)
+	{
+		applyCipAp();
+	}
 
 	// Default UART configuration
 	uint32_t baudrate = Settings::getUartBaudRate();
@@ -181,7 +198,6 @@ void setup()
 	onDisconnectedHandler = WiFi.onStationModeDisconnected(&onStationDisconnected);
 
 	// Set the WiFi defaults
-	WiFi.mode(WIFI_STA);
 	WiFi.persistent(false);
 	WiFi.setAutoReconnect(true);
 
@@ -742,6 +758,21 @@ void setDns()
 		dns_setserver(0, IPAddress(64, 6, 64, 6));
 		dns_setserver(1, nullptr);
 	}
+}
+
+/*
+ * wraps WiFi.softAPConfig, because it does a restart of the DHCP server
+ * even if the settings didn't change.
+ */
+bool applyCipAp()
+{
+	if (!gsCipApCfg.ip)
+		return true;
+	ip_info apInfo;
+	wifi_get_ip_info(SOFTAP_IF, &apInfo);
+	if (gsCipApCfg.ip == apInfo.ip.addr && gsCipApCfg.gw == apInfo.gw.addr && gsCipApCfg.mask == apInfo.netmask.addr)
+		return true;
+  return WiFi.softAPConfig(gsCipApCfg.ip, gsCipApCfg.gw, gsCipApCfg.mask);
 }
 
 /*
