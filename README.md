@@ -18,11 +18,9 @@ The firmware does not (and likely will not) implement the whole set of AT comman
 
 The major differences are:
 
-~~1. Only the station mode (AT+CWMODE=1) is supported, no AP or mixed mode.~~
+1. Only TCP mode (with or without TLS) is supported, no UDP.
 
-2. Only TCP mode (with or without TLS) is supported, no UDP.
-
-3. In multiplex mode (AT+CWMODE=1), 5 simultaneous connections are available. Due to memory constraints, there can be only one TLS (SSL) connection at a time with standard buffer size, more concurrent TLS connections can be made with a reduced buffer size (AT+CIPSSLSIZE). When the buffer size is 512 bytes, all 5 concurrent connections can be TLS.
+2. In multiplex mode (AT+CIPMUX=1), 5 simultaneous connections are available. Due to memory constraints, there can be only one TLS (SSL) connection at a time with standard buffer size, more concurrent TLS connections can be made with a reduced buffer size (AT+CIPSSLSIZE). When the buffer size is 512 bytes, all 5 concurrent connections can be TLS.
 
 New features:
 
@@ -33,7 +31,8 @@ New features:
 ## Status
 
 The firmware is still in work-in-progress state. It has been tested and is running on my devices but there might be deviations from the expected behaviour.
-My testing environment uses the built-in [Arduino WifiEsp library](https://github.com/bportaluri/WiFiEsp) and also the newer [WiFiEspAT library](https://github.com/jandrassy/WiFiEspAT).
+
+My testing environment uses the [WifiEsp library](https://github.com/bportaluri/WiFiEsp) and also the newer [WiFiEspAT library](https://github.com/jandrassy/WiFiEspAT).
 
 ## The Future
 
@@ -86,6 +85,8 @@ Certificates are stored in the ESP's filesystem with LittleFS. To add a certific
 
 In the following table, the list of supported AT commands is given. In the comment, only a difference between this implementation and the original Espressif's AT command firmware is given. The commands are implemented according to the Espressif's documentation, including the command order. Please refer to the [Espressif's documentation](https://www.espressif.com/sites/default/files/documentation/4a-esp8266_at_instruction_set_en.pdf) for further information.
 
+AT commands with _DEF and _CUR have (as in the standard AT firmware) an undocumented version without _DEF/CUR for backward compatibility (and forward too since AT 2 doesn't use _DEF/CUR). The command without _DEF/CUR behaves as _CUR for query and as _DEF for set (stores the parameters to the flash).
+
 | Command | Description |
 | - | - |
 | [**Basic AT Commands**](https://docs.espressif.com/projects/esp-at/en/latest/AT_Command_Set/Basic_AT_Commands.html#basic-at-commands) |  |
@@ -94,24 +95,24 @@ In the following table, the list of supported AT commands is given. In the comme
 | AT+GMR | Check version information. |
 | ATE | Configure AT commands echoing. |
 | AT+RESTORE | Restore factory default settings of the module. |
-| AT+UART, AT+UART_CUR | Current UART configuration, not saved in flash. |
+| AT+UART_CUR | Current UART configuration, not saved in flash. |
 | AT+UART_DEF | Default UART configuration, saved in flash. |
 | AT+SYSRAM | Query current remaining heap size and minimum heap size. |
 | [**Wi-Fi AT Commands**](https://docs.espressif.com/projects/esp-at/en/latest/AT_Command_Set/Wi-Fi_AT_Commands.html#wi-fi-at-commandss) |  |
 | AT+CWMODE | Set the Wi-Fi mode (Station/SoftAP/Station+SoftAP). |
-| AT+CWJAP, AT+CWJAP_CUR | Connect to an AP, parameter &lt;pci_en&gt; not implemented |
+| AT+CWJAP_CUR | Connect to an AP, parameter &lt;pci_en&gt; not implemented |
 | AT+CWJAP_DEF | Connect to AP, saved to flash. Parameter &lt;pci_en&gt; not implemented |
 | AT+CWLAPOPT | Set the configuration for the command AT+CWLAP. |
 | AT+CWLAP | List available APs. |
 | AT+CWQAP | Disconnect from an AP. |
-| AT+CWSAP, AT+CWSAP_CUR | Start SoftAP, parameter &lt;ecn&gt; is not used. WPA_WPA2_PSK is used, if &lt;pwd&gt; is not empty. |
+| AT+CWSAP_CUR | Start SoftAP, parameter &lt;ecn&gt; is not used. WPA_WPA2_PSK is used, if &lt;pwd&gt; is not empty. |
 | AT+CWSAP_DEF | Connect to AP, saved to flash. Parameter &lt;ecn&gt; is not used. WPA_WPA2_PSK is used, if &lt;pwd&gt; is not empty. |
-| AT+CWDHCP, AT+CWDHCP_CUR | Enable/disable DHCP - only station mode enabling works. |
+| AT+CWDHCP_CUR | Enable/disable DHCP - only station mode enabling works. |
 | AT+CWDHCP_DEF | Enable/disable DHCP saved to flash - only station mode enabling works. |
 | AT+CWAUTOCONN | Connect to an AP automatically when powered on. |
-| AT+CIPSTA, AT+CIPSTA_CUR | Query/Set the IP address of an ESP station. |
+| AT+CIPSTA_CUR | Query/Set the IP address of an ESP station. |
 | AT+CIPSTA_DEF | Set and/or print current IP address, gateway and network mask, stored in flash. |
-| AT+CIPAP, AT+CIPAP_CUR | Query/Set the current IP address of the SoftAP. |
+| AT+CIPAP_CUR | Query/Set the current IP address of the SoftAP. |
 | AT+CIPAP_DEF | Set and/or print SoftAP IP address, gateway and network mask, stored in flash. |
 | AT+CWHOSTNAME | Query/Set the host name of an ESP Station. |
 | [**TCP/IP AT Commands**](https://docs.espressif.com/projects/esp-at/en/latest/AT_Command_Set/TCP-IP_AT_Commands.html) |  |
@@ -129,7 +130,7 @@ In the following table, the list of supported AT commands is given. In the comme
 | [AT+CIPRECVMODE](https://github.com/JiriBilek/ESP_ATMod#atciprecvmode-atciprecvdata-atciprecvlen-in-ssl-mode) | Query/Set socket receiving mode. |
 | [AT+CIPRECVDATA](https://github.com/JiriBilek/ESP_ATMod#atciprecvmode-atciprecvdata-atciprecvlen-in-ssl-mode) | Obtain socket data in passive receiving mode. |
 | [AT+CIPRECVLEN](https://github.com/JiriBilek/ESP_ATMod#atciprecvmode-atciprecvdata-atciprecvlen-in-ssl-mode) | Obtain socket data length in passive receiving mode. |
-| AT+CIPDNS, AT+CIPDNS_CUR | Query/Set DNS server information. |
+| AT+CIPDNS_CUR | Query/Set DNS server information. |
 | AT+CIPDNS_DEF | Default DNS setting, stored in flash |
 | [AT+CIPSERVER](#atcipserver-atcipservermaxconn-and-atcipsto) | Deletes/Creates TCP Server |
 | AT+CIPSERVERMAXCONN | Set the maximum connections allowed by server |
