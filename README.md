@@ -2,7 +2,7 @@
 
 This firmware comes as an [Arduino esp8266](https://github.com/esp8266/Arduino#arduino-on-esp8266) sketch.
 
-This file refers to version 0.3.4 of the firmware.
+This file refers to version 0.3.5 of the firmware.
 
 ## Purpose
 
@@ -18,7 +18,7 @@ The firmware does not (and likely will not) implement the whole set of AT comman
 
 The major differences are:
 
-~~1. Only the station mode (AT+CWMODE=1) is supported, no AP or mixed mode.~~
+1. The modes supported are: station (AT+CWMODE=1) and AP (AT+CWMODE=2)
 
 2. Only TCP mode (with or without TLS) is supported, no UDP.
 
@@ -32,7 +32,7 @@ New features:
 
 ## Status
 
-The firmware is still in work-in-progress state. It has been tested and is running on my devices but there might be deviations from the expected behaviour.
+The firmware is being used in my projects for more than a year in 24x7 mode.
 My testing environment uses the built-in [Arduino WifiEsp library](https://github.com/bportaluri/WiFiEsp) and also the newer [WiFiEspAT library](https://github.com/jandrassy/WiFiEspAT).
 
 ## The Future
