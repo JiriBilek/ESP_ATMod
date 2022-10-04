@@ -76,6 +76,9 @@ static const commandDef_t commandList[] = {
 	{"+CWLAPOPT", MODE_QUERY_SET, CMD_AT_CWLAPOPT},
 	{"+CWLAP", MODE_EXACT_MATCH, CMD_AT_CWLAP},
 	{"+CWQAP", MODE_EXACT_MATCH, CMD_AT_CWQAP},
+	{"+CWSAP", MODE_QUERY_SET, CMD_AT_CWSAP},
+	{"+CWSAP_CUR", MODE_QUERY_SET, CMD_AT_CWSAP_CUR},
+	{"+CWSAP_DEF", MODE_QUERY_SET, CMD_AT_CWSAP_DEF},
 	{"+CWDHCP", MODE_QUERY_SET, CMD_AT_CWDHCP},
 	{"+CWDHCP_CUR", MODE_QUERY_SET, CMD_AT_CWDHCP_CUR},
 	{"+CWDHCP_DEF", MODE_QUERY_SET, CMD_AT_CWDHCP_DEF},
@@ -83,6 +86,9 @@ static const commandDef_t commandList[] = {
 	{"+CIPSTA", MODE_QUERY_SET, CMD_AT_CIPSTA},
 	{"+CIPSTA_CUR", MODE_QUERY_SET, CMD_AT_CIPSTA_CUR},
 	{"+CIPSTA_DEF", MODE_QUERY_SET, CMD_AT_CIPSTA_DEF},
+	{"+CIPAP", MODE_QUERY_SET, CMD_AT_CIPAP},
+	{"+CIPAP_CUR", MODE_QUERY_SET, CMD_AT_CIPAP_CUR},
+	{"+CIPAP_DEF", MODE_QUERY_SET, CMD_AT_CIPAP_DEF},
 	{"+CWHOSTNAME", MODE_QUERY_SET, CMD_AT_CWHOSTNAME},
 
 	{"+CIPSTATUS", MODE_EXACT_MATCH, CMD_AT_CIPSTATUS},
@@ -121,7 +127,7 @@ static const commandDef_t commandList[] = {
  */
 
 commands_t findCommand(uint8_t *input, uint16_t inpLen);
-String readStringFromBuffer(unsigned char *inpBuf, uint16_t &offset, bool escape);
+String readStringFromBuffer(unsigned char *inpBuf, uint16_t &offset, bool escape, bool allowEmpty = false);
 bool readNumber(unsigned char *inpBuf, uint16_t &offset, uint32_t &output);
 bool readIpAddress(unsigned char *inpBuf, uint16_t &offset, uint32_t &output);
 uint8_t readHex(char c);
@@ -155,9 +161,11 @@ static void cmd_AT_CWJAP(commands_t cmd);
 static void cmd_AT_CWLAPOPT();
 static void cmd_AT_CWLAP();
 static void cmd_AT_CWQAP();
+static void cmd_AT_CWSAP(commands_t cmd);
 static void cmd_AT_CWDHCP(commands_t cmd);
 static void cmd_AT_CWAUTOCONN();
 static void cmd_AT_CIPSTA(commands_t cmd);
+static void cmd_AT_CIPAP(commands_t cmd);
 static void cmd_AT_CWHOSTNAME();
 
 static void cmd_AT_CIPSTATUS();
@@ -247,6 +255,11 @@ void processCommandBuffer(void)
 	else if (cmd == CMD_AT_CWQAP) // AT+CWQAP - Disconnects from the AP
 		cmd_AT_CWQAP();
 
+	// ------------------------------------------------------------------------------------ AT+CWSAP
+	else if (cmd == CMD_AT_CWSAP || cmd == CMD_AT_CWSAP_CUR || cmd == CMD_AT_CWSAP_DEF)
+	  // AT+CWSAP="ssid","pwd",chl,ecn [,max conm, ssid hidden] - Function: to configure the SoftA
+	  cmd_AT_CWSAP(cmd);
+
 	// ------------------------------------------------------------------------------------ AT+CWDHCP
 	else if (cmd == CMD_AT_CWDHCP || cmd == CMD_AT_CWDHCP_CUR || cmd == CMD_AT_CWDHCP_DEF)
 		// AT+CWDHCP=x,y - Enables/Disables DHCP
@@ -260,6 +273,11 @@ void processCommandBuffer(void)
 	else if (cmd == CMD_AT_CIPSTA || cmd == CMD_AT_CIPSTA_CUR || cmd == CMD_AT_CIPSTA_DEF)
 		// AT+CIPSTA - Sets or prints the network configuration
 		cmd_AT_CIPSTA(cmd);
+
+	// ------------------------------------------------------------------------------------ AT+CIPAP
+	else if (cmd == CMD_AT_CIPAP || cmd == CMD_AT_CIPAP_CUR || cmd == CMD_AT_CIPAP_DEF)
+	  // AT+CIPAP - Sets or prints the SoftAP configuration
+	  cmd_AT_CIPAP(cmd);
 
 	// ------------------------------------------------------------------------------------ AT+CWHOSTNAME
 	else if (cmd == CMD_AT_CWHOSTNAME)
@@ -610,10 +628,25 @@ void cmd_AT_CWMODE(commands_t cmd)
 
 		if (readNumber(inputBuffer, offset, mode) && mode <= 3 && inputBufferCnt == offset + 2)
 		{
-			if (mode == 1) // Only MODE 1 is supported
+			if (cmd != CMD_AT_CWMODE_CUR)
+				WiFi.persistent(true);
+
+			if (WiFi.mode((WiFiMode) mode))
 				Serial.printf_P(MSG_OK);
 			else
-				Serial.println(F("ERROR NOT SUPPORTED"));
+				Serial.printf_P(MSG_ERROR);
+
+			WiFi.persistent(false);
+
+			if (mode != WIFI_AP)
+			{
+				setDns();
+				setDhcpMode();
+			}
+			if (mode != WIFI_STA)
+			{
+				applyCipAp();
+			}
 		}
 		else
 			Serial.printf_P(MSG_ERROR);
@@ -838,6 +871,123 @@ void cmd_AT_CWQAP()
 }
 
 /*
+ * AT+CWSAP="ssid","pwd",chl,ecn [,max conm, ssid hidden] - Function: to configure the SoftAP
+ */
+void cmd_AT_CWSAP(commands_t cmd)
+{
+	uint16_t offset = 8; // offset to ? or =
+	if (cmd != CMD_AT_CWSAP)
+		offset += 4;
+
+	if (inputBuffer[offset] == '?' && inputBufferCnt == offset + 3)
+	{
+
+		struct softap_config conf;
+
+		if (cmd != CMD_AT_CWSAP_CUR)
+			wifi_softap_get_config_default(&conf);
+		else
+			wifi_softap_get_config(&conf);
+
+		char ssid[33];
+
+		memcpy(ssid, conf.ssid, conf.ssid_len);
+		ssid[conf.ssid_len] = 0; // Nullterm in case of 32 char ssid
+
+		const char *cmdSuffix = "";
+		if (cmd == CMD_AT_CWSAP_CUR)
+			cmdSuffix = suffix_CUR;
+		else if (cmd == CMD_AT_CWSAP_DEF)
+			cmdSuffix = suffix_DEF;
+
+		Serial.printf_P(PSTR("+CWSAP%s:"), cmdSuffix);
+
+		// +CWSAP_CUR:<ssid>,<pwd>,<chl>,<ecn>,<max conn>,<ssid hidden>
+		Serial.printf_P(PSTR("\"%s\",\"%s\",%d,%d,%d,%d\r\n"), ssid, conf.password,
+				conf.channel, conf.authmode, conf.max_connection, conf.ssid_hidden);
+
+		Serial.printf_P(MSG_OK);
+	}
+	else if (inputBuffer[offset] == '=')
+	{
+		bool error = true;
+
+		do
+		{
+			String ssid;
+			String pwd;
+			uint32_t channel;
+			uint32_t enc;
+			uint32_t max_conn = 4;
+			uint32_t ssid_hidden = 0;
+
+			++offset;
+
+			ssid = readStringFromBuffer(inputBuffer, offset, true);
+			if (ssid.isEmpty() || (inputBuffer[offset] != ','))
+				break;
+
+			++offset;
+
+			pwd = readStringFromBuffer(inputBuffer, offset, true, true);
+
+			++offset;
+
+			if (!(readNumber(inputBuffer, offset, channel) && channel <= 14 && inputBuffer[offset] == ','))
+				break;
+
+			++offset;
+
+			if (!(readNumber(inputBuffer, offset, enc) && enc < AUTH_MAX && enc != AUTH_WEP)) // WEP is not supported
+			  break;
+
+			if (inputBuffer[offset] == ',')
+			{
+				++offset;
+
+				if (!(readNumber(inputBuffer, offset, max_conn) && max_conn <= 4))
+				  break;
+
+				if (inputBuffer[offset] == ',')
+				{
+					++offset;
+
+					if (!(readNumber(inputBuffer, offset, ssid_hidden) && ssid_hidden <= 1))
+					  break;
+				}
+			}
+
+			if (inputBufferCnt != offset + 2)
+				break;
+
+		  if (cmd != CMD_AT_CWSAP_CUR)
+				WiFi.persistent(true);
+
+			error = !WiFi.softAP(ssid.c_str(), nullIfEmpty(pwd), channel, ssid_hidden, max_conn);
+
+			// enc is not used. the ESP8266WiFi library sets WPA_WPA2_PSK
+			// if password is entered and OPEN if password is empty
+
+			WiFi.persistent(false);
+
+		} while (0);
+
+		if (error == 0)
+		{
+			Serial.printf_P(MSG_OK);
+		}
+		else if (error == 1)
+		{
+			Serial.printf_P(MSG_ERROR);
+		}
+	}
+	else
+	{
+		Serial.printf_P(MSG_ERROR);
+	}
+}
+
+/*
  * AT+CWDHCP=x,y - Enables/Disables DHCP
  */
 void cmd_AT_CWDHCP(commands_t cmd)
@@ -1048,6 +1198,120 @@ void cmd_AT_CIPSTA(commands_t cmd)
 	{
 		Serial.printf_P(MSG_ERROR);
 	}
+}
+
+/*
+ * AT+CIPAP - Sets or prints the SoftAP configuration
+ */
+void cmd_AT_CIPAP(commands_t cmd)
+{
+	uint16_t offset = 8;
+
+	if (cmd != CMD_AT_CIPAP)
+		offset += 4;
+
+	if (inputBuffer[offset] == '?' && inputBufferCnt == offset + 3)
+	{
+		ipConfig_t cfg;
+
+		if (cmd == CMD_AT_CIPAP_DEF)
+		{
+			cfg = Settings::getApIpConfig();
+		}
+		else
+		{
+			ip_info info;
+			wifi_get_ip_info(SOFTAP_IF, &info);
+			cfg = {info.ip.addr, info.gw.addr, info.netmask.addr};
+		}
+
+		const char *cmdSuffix = "";
+		if (cmd == CMD_AT_CIPAP_CUR)
+			cmdSuffix = suffix_CUR;
+		else if (cmd == CMD_AT_CIPAP_DEF)
+			cmdSuffix = suffix_DEF;
+
+		if (WiFi.getMode() == WIFI_STA || cfg.ip == 0)
+		{
+			Serial.printf_P(PSTR("+CIPSTA%s:ip:\"0.0.0.0\"\r\n"), cmdSuffix);
+			Serial.printf_P(PSTR("+CIPSTA%s:gateway:\"0.0.0.0\"\r\n"), cmdSuffix);
+			Serial.printf_P(PSTR("+CIPSTA%s:netmask:\"0.0.0.0\"\r\n"), cmdSuffix);
+		}
+		else
+		{
+			Serial.printf_P(PSTR("+CIPAP%s:ip:\"%s\"\r\n"), cmdSuffix, IPAddress(cfg.ip).toString().c_str());
+			Serial.printf_P(PSTR("+CIPAP%s:gateway:\"%s\"\r\n"), cmdSuffix, IPAddress(cfg.gw).toString().c_str());
+			Serial.printf_P(PSTR("+CIPAP%s:netmask:\"%s\"\r\n"), cmdSuffix, IPAddress(cfg.mask).toString().c_str());
+		}
+
+		Serial.printf_P(MSG_OK);
+	}
+	else if (inputBuffer[offset] == '=')
+	{
+		uint8_t error = 1;
+
+		++offset;
+
+		do
+		{
+			ipConfig_t cfg;
+
+			if (!readIpAddress(inputBuffer, offset, cfg.ip))
+				break;
+
+			if (inputBuffer[offset] != ',')
+			{
+				if (inputBufferCnt != offset + 2)
+					break;
+
+				// Only IP address is given, derive gateway and subnet /24
+				if (cfg.ip != 0)
+				{
+					cfg.gw = (cfg.ip & 0x00ffffff) | 0x01000000;
+					cfg.mask = 0x00ffffff;
+				}
+
+				error = 0;
+			}
+			else // read gateway and mask
+			{
+				++offset;
+
+				if (!readIpAddress(inputBuffer, offset, cfg.gw) || inputBuffer[offset] != ',')
+					break;
+
+				++offset;
+
+				if (!readIpAddress(inputBuffer, offset, cfg.mask) || inputBufferCnt != offset + 2)
+					break;
+
+				error = 0;
+			}
+
+			// We got the network configuration
+
+			gsCipApCfg = cfg;
+
+			if (cmd != CMD_AT_CIPAP_CUR)
+			{
+				// Save the network configuration
+				Settings::setApIpConfig(cfg);
+			}
+
+			applyCipAp();
+
+		} while (0);
+
+		if (error == 0)
+			Serial.printf_P(MSG_OK);
+		else if (error == 1)
+			Serial.printf_P(MSG_ERROR);
+	}
+	else
+	{
+		Serial.printf_P(MSG_ERROR);
+	}
+
 }
 
 /*
@@ -2831,7 +3095,7 @@ commands_t findCommand(uint8_t *input, uint16_t inpLen)
  * Read quote delimited string from the buffer, adjust offset according to read data
  * Maximum text length is 100 characters
  */
-String readStringFromBuffer(unsigned char *inpBuf, uint16_t &offset, bool escape)
+String readStringFromBuffer(unsigned char *inpBuf, uint16_t &offset, bool escape, bool allowEmpty)
 {
 	String sRet;
 
@@ -2858,7 +3122,7 @@ String readStringFromBuffer(unsigned char *inpBuf, uint16_t &offset, bool escape
 				break; // Buffer overflow
 		}
 
-		if (inpBuf[offset] == '"' && ps != s)
+		if (inpBuf[offset] == '"' && (ps != s || allowEmpty))
 		{
 			// We got the string
 			sRet.concat(s, ps - s);

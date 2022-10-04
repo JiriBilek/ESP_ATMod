@@ -106,6 +106,20 @@ dnsConfig_t Settings::getDnsConfig()
 	return eeprom.getDnsConfig();
 }
 
+void Settings::setApIpConfig(ipConfig_t apIpCfg)
+{
+	EEPROMData eeprom;
+
+	eeprom.setApIpConfig(apIpCfg);
+}
+
+ipConfig_t Settings::getApIpConfig()
+{
+	EEPROMData eeprom;
+
+	return eeprom.getApIpConfig();
+}
+
 void Settings::setMaximumCertificates(int maximumCertificates)
 {
 	EEPROMData eeprom;
@@ -138,6 +152,7 @@ void Settings::resetData(eepromData_t *dataPtr)
 	dataPtr->dhcpMode = 3; // for AT+CWDHCP command
 	dataPtr->netConfig = ipConfig_t({0, 0, 0});
 	dataPtr->dnsConfig = dnsConfig_t({0, 0});
+	dataPtr->apIpConfig = ipConfig_t({0, 0, 0});
 	dataPtr->maximumCertificates = 5;
 }
 

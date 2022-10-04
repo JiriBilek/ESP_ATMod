@@ -43,6 +43,7 @@ typedef struct
 	uint8_t dhcpMode;
 	ipConfig_t netConfig;
 	dnsConfig_t dnsConfig;
+	ipConfig_t apIpConfig;
 	int maximumCertificates;
 
 	uint32_t crc32;
@@ -59,6 +60,7 @@ public:
 	static SerialConfig getUartConfig();
 	static uint8_t getDhcpMode();
 	static ipConfig_t getNetConfig();
+	static ipConfig_t getApIpConfig();
 	static dnsConfig_t getDnsConfig();
 	static int getMaximumCertificates();
 
@@ -66,6 +68,7 @@ public:
 	static void setUartConfig(SerialConfig config);
 	static void setDhcpMode(uint8_t mode);
 	static void setNetConfig(ipConfig_t netCfg);
+	static void setApIpConfig(ipConfig_t apIpCfg);
 	static void setDnsConfig(dnsConfig_t dnsCfg);
 	static void setMaximumCertificates(int maximumCertificates);
 
@@ -88,6 +91,7 @@ protected:
 		SerialConfig getUartConfig() { return (SerialConfig)(data.uartConfig); }
 		uint8_t getDhcpMode() { return data.dhcpMode; }
 		ipConfig_t getNetConfig() { return data.netConfig; }
+		ipConfig_t getApIpConfig() { return data.apIpConfig; }
 		dnsConfig_t getDnsConfig() { return data.dnsConfig; }
 		int getMaximumCertificates() { return data.maximumCertificates; }
 
@@ -95,6 +99,7 @@ protected:
 		void setUartConfig(SerialConfig config) { data.uartConfig = config; }
 		void setDhcpMode(uint8_t mode) { data.dhcpMode = mode; }
 		void setNetConfig(ipConfig_t netCfg) { data.netConfig = netCfg; }
+		void setApIpConfig(ipConfig_t apIpCfg) { data.apIpConfig = apIpCfg; }
 		void setDnsConfig(dnsConfig_t dnsCfg) { data.dnsConfig = dnsCfg; }
 		void setMaximumCertificates(int maximumCertificates) { data.maximumCertificates = maximumCertificates; }
 
