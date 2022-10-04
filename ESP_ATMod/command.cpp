@@ -566,6 +566,9 @@ void cmd_AT_UART(commands_t cmd)
 
 			error = 0;
 
+			// Last message at the original speed
+			Serial.printf_P(MSG_OK);
+
 			// Restart the serial interface
 
 			Serial.flush();
@@ -581,9 +584,7 @@ void cmd_AT_UART(commands_t cmd)
 
 		} while (0);
 
-		if (error == 0)
-			Serial.printf_P(MSG_OK);
-		else if (error == 1)
+		if (error == 1)
 			Serial.printf_P(MSG_ERROR);
 	}
 	else

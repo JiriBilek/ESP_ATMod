@@ -2,7 +2,7 @@
 
 This firmware comes as an [Arduino esp8266](https://github.com/esp8266/Arduino#arduino-on-esp8266) sketch.
 
-This file refers to version 0.3.4 of the firmware.
+This file refers to version 0.3.5 of the firmware.
 
 ## Purpose
 
@@ -126,7 +126,7 @@ AT commands with _DEF and _CUR have (as in the standard AT firmware) an undocume
 | AT+CIPMUX | Enable/disable the multiple connections mode. Max. 5 conections, only one of them can be TLS |
 | AT+CIPSNTPCFG | Query/Set the time zone and SNTP server. |
 | AT+CIPSNTPTIME | Query the SNTP time. |
-| AT+CIPDINFO | Set ‚Äú+IPD‚Äù message mode. |
+| AT+CIPDINFO | Set ì+IPDî message mode. |
 | [AT+CIPRECVMODE](https://github.com/JiriBilek/ESP_ATMod#atciprecvmode-atciprecvdata-atciprecvlen-in-ssl-mode) | Query/Set socket receiving mode. |
 | [AT+CIPRECVDATA](https://github.com/JiriBilek/ESP_ATMod#atciprecvmode-atciprecvdata-atciprecvlen-in-ssl-mode) | Obtain socket data in passive receiving mode. |
 | [AT+CIPRECVLEN](https://github.com/JiriBilek/ESP_ATMod#atciprecvmode-atciprecvdata-atciprecvlen-in-ssl-mode) | Obtain socket data length in passive receiving mode. |
