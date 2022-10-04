@@ -75,7 +75,7 @@ extern "C"
  * Defines
  */
 
-const char APP_VERSION[] = "0.3.3";
+const char APP_VERSION[] = "0.3.4";
 
 /*
  * Constants
