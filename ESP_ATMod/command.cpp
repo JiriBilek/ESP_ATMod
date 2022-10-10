@@ -721,10 +721,7 @@ void cmd_AT_CWJAP(commands_t cmd)
 
 			++offset;
 
-			pwd = readStringFromBuffer(inputBuffer, offset, true);
-
-			if (pwd.isEmpty())
-				break;
+			pwd = readStringFromBuffer(inputBuffer, offset, true, true);
 
 			if (inputBuffer[offset] == ',')
 			{
