@@ -83,6 +83,12 @@ static const commandDef_t commandList[] = {
 	{"+CWDHCP_CUR", MODE_QUERY_SET, CMD_AT_CWDHCP_CUR},
 	{"+CWDHCP_DEF", MODE_QUERY_SET, CMD_AT_CWDHCP_DEF},
 	{"+CWAUTOCONN", MODE_QUERY_SET, CMD_AT_CWAUTOCONN},
+	{"+CIPSTAMAC", MODE_QUERY_SET, CMD_AT_CIPSTAMAC},
+	{"+CIPSTAMAC_CUR", MODE_QUERY_SET, CMD_AT_CIPSTAMAC_CUR},
+	{"+CIPSTAMAC_DEF", MODE_QUERY_SET, CMD_AT_CIPSTAMAC_DEF},
+	{"+CIPAPMAC", MODE_QUERY_SET, CMD_AT_CIPAPMAC},
+	{"+CIPAPMAC_CUR", MODE_QUERY_SET, CMD_AT_CIPAPMAC_CUR},
+	{"+CIPAPMAC_DEF", MODE_QUERY_SET, CMD_AT_CIPAPMAC_DEF},
 	{"+CIPSTA", MODE_QUERY_SET, CMD_AT_CIPSTA},
 	{"+CIPSTA_CUR", MODE_QUERY_SET, CMD_AT_CIPSTA_CUR},
 	{"+CIPSTA_DEF", MODE_QUERY_SET, CMD_AT_CIPSTA_DEF},
@@ -164,6 +170,7 @@ static void cmd_AT_CWQAP();
 static void cmd_AT_CWSAP(commands_t cmd);
 static void cmd_AT_CWDHCP(commands_t cmd);
 static void cmd_AT_CWAUTOCONN();
+static void cmd_AT_CIPXXMAC(commands_t cmd);
 static void cmd_AT_CIPSTA(commands_t cmd);
 static void cmd_AT_CIPAP(commands_t cmd);
 static void cmd_AT_CWHOSTNAME();
@@ -235,7 +242,7 @@ void processCommandBuffer(void)
 
 	// ------------------------------------------------------------------------------------ AT+CWMODE
 	else if (cmd == CMD_AT_CWMODE || cmd == CMD_AT_CWMODE_CUR || cmd == CMD_AT_CWMODE_DEF)
-		// AT+CWMODE - Sets the Current Wi-Fi mode (only mode 1 implemented)
+		// AT+CWMODE - Sets the Current Wi-Fi mode
 		cmd_AT_CWMODE(cmd);
 
 	// ------------------------------------------------------------------------------------ AT+CWJAP
@@ -268,6 +275,16 @@ void processCommandBuffer(void)
 	// ------------------------------------------------------------------------------------ AT+CWAUTOCONN
 	else if (cmd == CMD_AT_CWAUTOCONN) // AT+CWAUTOCONN - auto connect to AP
 		cmd_AT_CWAUTOCONN();
+
+	// ------------------------------------------------------------------------------------ AT+CIPSTAMAC
+	else if (cmd == CMD_AT_CIPSTAMAC || cmd == CMD_AT_CIPSTAMAC_CUR || cmd == CMD_AT_CIPSTAMAC_DEF)
+		// AT+CIPSTAMAC - Sets or prints the MAC Address of the ESP8266 Station
+		cmd_AT_CIPXXMAC(cmd);
+
+	// ------------------------------------------------------------------------------------ AT+CIPAPMAC
+	else if (cmd == CMD_AT_CIPAPMAC || cmd == CMD_AT_CIPAPMAC_CUR || cmd == CMD_AT_CIPAPMAC_DEF)
+		// AT+CIPAPMAC - Sets or prints the MAC Address of the ESP8266 SoftAP
+		cmd_AT_CIPXXMAC(cmd);
 
 	// ------------------------------------------------------------------------------------ AT+CIPSTA
 	else if (cmd == CMD_AT_CIPSTA || cmd == CMD_AT_CIPSTA_CUR || cmd == CMD_AT_CIPSTA_DEF)
@@ -1083,6 +1100,71 @@ void cmd_AT_CWAUTOCONN()
 	{
 		Serial.printf_P(MSG_ERROR);
 	}
+}
+
+/*
+ * AT+CIPSTAMAC & AT+CIPSAPMAC - Sets or prints a MAC Address
+ */
+void cmd_AT_CIPXXMAC(commands_t cmd)
+{
+	uint8_t iface = STATION_IF;
+	if (cmd == CMD_AT_CIPAPMAC || cmd == CMD_AT_CIPAPMAC_CUR
+			|| cmd == CMD_AT_CIPAPMAC_DEF)
+		iface = SOFTAP_IF;
+	uint16_t offset = (iface == STATION_IF) ? 12 : 11;
+	if (cmd != CMD_AT_CIPSTAMAC && cmd != CMD_AT_CIPAPMAC)
+		offset += 4;
+	if (inputBuffer[offset] == '?' && inputBufferCnt == offset + 3)
+	{
+		String mac = (iface == STATION_IF) ? WiFi.macAddress() : WiFi.softAPmacAddress();
+		const char *cmdSuffix = "";
+		if (cmd == CMD_AT_CIPSTAMAC_CUR || cmd == CMD_AT_CIPAPMAC_CUR)
+			cmdSuffix = suffix_CUR;
+		else if (cmd == CMD_AT_CIPSTAMAC_DEF || cmd == CMD_AT_CIPAPMAC_DEF)
+			cmdSuffix = suffix_DEF;
+		Serial.printf_P(PSTR("+CIP%sMAC%s:\"%s\"\r\n"),
+				(iface == STATION_IF) ? "STA" : "AP", cmdSuffix, mac.c_str());
+		Serial.printf_P(MSG_OK);
+	}
+	else if (inputBuffer[offset] == '=')
+	{
+		uint8_t error = true;
+
+		++offset;
+
+		do
+		{
+			String mac;
+			uint8_t uMac[6];
+
+			mac = readStringFromBuffer(inputBuffer, offset, false);
+
+			if (mac.isEmpty() || mac.length() != 17)
+				break;
+
+			char fmt[40];
+			strcpy_P(fmt, PSTR("%2hhx:%2hhx:%2hhx:%2hhx:%2hhx:%2hhx"));
+			if (sscanf(mac.c_str(), fmt, &uMac[0], &uMac[1], &uMac[2], &uMac[3],
+					&uMac[4], &uMac[5]) != 6)
+				break;
+
+			if (inputBufferCnt != offset + 2)
+				break;
+
+			Serial.println(F("NOT IMPLEMENTED"));
+
+		} while (0);
+
+		if (error == 0)
+			Serial.printf_P(MSG_OK);
+		else if (error == 1)
+			Serial.printf_P(MSG_ERROR);
+	}
+	else
+	{
+		Serial.printf_P(MSG_ERROR);
+	}
+
 }
 
 /*

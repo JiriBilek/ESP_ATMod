@@ -2,7 +2,7 @@
 
 This firmware comes as an [Arduino esp8266](https://github.com/esp8266/Arduino#arduino-on-esp8266) sketch.
 
-This file refers to version 0.3.5 of the firmware.
+This file refers to version 0.3.6 of the firmware.
 
 ## Purpose
 
@@ -110,6 +110,10 @@ AT commands with _DEF and _CUR have (as in the standard AT firmware) an undocume
 | AT+CWDHCP_CUR | Enable/disable DHCP - only station mode enabling works. |
 | AT+CWDHCP_DEF | Enable/disable DHCP saved to flash - only station mode enabling works. |
 | AT+CWAUTOCONN | Connect to an AP automatically when powered on. |
+| AT+CIPSTAMAC_CUR | Sets or prints the MAC Address of the ESP8266 Station. Only query is implemented.
+| AT+CIPSTAMAC_DEF | Sets or prints the MAC Address of the ESP8266 Station stored in flash. Only query is implemented.
+| AT+CIPAPMAC_CUR | Sets or prints the MAC Address of the ESP8266 SoftAP. Only query is implemented.
+| AT+CIPAPMAC_DEF | Sets or prints the MAC Address of the ESP8266 SoftAP stored in flash. Only query is implemented.
 | AT+CIPSTA_CUR | Query/Set the IP address of an ESP station. |
 | AT+CIPSTA_DEF | Set and/or print current IP address, gateway and network mask, stored in flash. |
 | AT+CIPAP_CUR | Query/Set the current IP address of the SoftAP. |
@@ -126,7 +130,7 @@ AT commands with _DEF and _CUR have (as in the standard AT firmware) an undocume
 | AT+CIPMUX | Enable/disable the multiple connections mode. Max. 5 conections, only one of them can be TLS |
 | AT+CIPSNTPCFG | Query/Set the time zone and SNTP server. |
 | AT+CIPSNTPTIME | Query the SNTP time. |
-| AT+CIPDINFO | Set “+IPD” message mode. |
+| AT+CIPDINFO | Set +IPD message mode. |
 | [AT+CIPRECVMODE](https://github.com/JiriBilek/ESP_ATMod#atciprecvmode-atciprecvdata-atciprecvlen-in-ssl-mode) | Query/Set socket receiving mode. |
 | [AT+CIPRECVDATA](https://github.com/JiriBilek/ESP_ATMod#atciprecvmode-atciprecvdata-atciprecvlen-in-ssl-mode) | Obtain socket data in passive receiving mode. |
 | [AT+CIPRECVLEN](https://github.com/JiriBilek/ESP_ATMod#atciprecvmode-atciprecvdata-atciprecvlen-in-ssl-mode) | Obtain socket data length in passive receiving mode. |
