@@ -453,6 +453,23 @@ void cmd_AT_GMR()
 	Serial.printf_P(PSTR("SDK version:%s\r\n"), system_get_sdk_version());
 	Serial.printf_P(PSTR("Compile time:%s %s\r\n"), __DATE__, __TIME__);
 	Serial.printf_P(PSTR("Version ESP_ATMod:%s\r\n"), APP_VERSION);
+
+	/* The Arduino code version is based on file core_version.h
+	 * This file is by default unusable (version number 0) but can be (and maybe is) populated
+	 * while installing the git version (file build_boards_manager_package.sh)
+	 *
+	 * If the file has the default contents, you can recreate it by git command. The idea is as follows,
+	 * for windows you will have to create the file in a text editor and insert the git results manually:
+	 *
+	 * echo #define ARDUINO_ESP8266_GIT_VER 0x`git rev-parse --short=8 HEAD` > core_version.h
+	 * echo #define ARDUINO_ESP8266_GIT_VER `git describe --tags` >> core_version.h
+	 */
+#if (ARDUINO_ESP8266_GIT_VER != 0)
+	{
+		Serial.printf_P(PSTR("Arduino core version:%s\r\n"), __STR(ARDUINO_ESP8266_GIT_DESC));
+	}
+#endif
+
 	Serial.println(F("OK"));
 }
 
