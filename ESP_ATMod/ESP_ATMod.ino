@@ -155,6 +155,10 @@ static bool checkCertificateDuplicatesAndLoad(BearSSL::X509List &importCertList)
  */
 void setup()
 {
+	// Fixes the problem with the core 3.x and autoconnect
+	// For core pre 3.x please comment the next line out otherwise the compilation will fail
+	enableWiFiAtBootTime();
+
 	// Default static net configuration
 	gsCipStaCfg = Settings::getNetConfig();
 
