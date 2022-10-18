@@ -44,6 +44,7 @@
  * 0.3.3: AT+CIPSERVER, AT+CIPSTO, AT+CIPSERVERMAXCONN [J.A]
  * 0.3.4: SoftAP mode AT+CWMODE, AT+CWSAP, AT+CIPAP [J.A]
  * 0.3.6: AT+CIPSTAMAC and AT+CIPAPMAC query only [J.A]
+ * 0.3.6a: Fixed long hostname in AT+CIPSTART, input buffer and string search increased to 200 characters
  *
  * TODO:
  * - Implement AP mode DHCP settings and AT+CWLIF
@@ -76,7 +77,7 @@ extern "C"
  * Defines
  */
 
-const char APP_VERSION[] = "0.3.6";
+const char APP_VERSION[] = "0.3.6a";
 
 /*
  * Constants
