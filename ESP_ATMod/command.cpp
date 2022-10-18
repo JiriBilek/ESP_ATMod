@@ -1512,7 +1512,7 @@ void cmd_AT_CIPSTART()
 
 	uint8_t linkID = 0;
 	clientTypes_t type = TYPE_NONE; // 0 = TCP, 1 = UDP, 2 = SSL
-	char remoteAddr[41];
+	char *remoteAddr;
 	uint32_t remotePort = 0;
 
 	do
@@ -1562,17 +1562,17 @@ void cmd_AT_CIPSTART()
 
 		// Read remote address
 
-		uint8_t pos = 0;
+		remoteAddr = (char*)&inputBuffer[offset];  // the address is a pointer to the input string
 
-		while (pos < sizeof(remoteAddr) - 1 && inputBuffer[offset] != '"' && inputBuffer[offset] >= ' ')
+		while (inputBuffer[offset] != '"' && inputBuffer[offset] > ' ')
 		{
-			remoteAddr[pos++] = inputBuffer[offset++];
+			offset++;
 		}
-		remoteAddr[pos] = 0;
 
 		if (inputBuffer[offset] != '"' || inputBuffer[offset + 1] != ',')
 			break;
 
+		inputBuffer[offset] = 0;  // End of remoteAddress
 		offset += 2;
 
 		// Read remote port
@@ -2942,7 +2942,7 @@ void cmd_AT_CIPSSLCERT()
 void cmd_AT_CIPSSLMFLN()
 {
 	uint8_t error = 1;
-	char remoteSite[41];
+	char *remoteSite;
 	uint32_t remotePort;
 	uint32_t maxLen;
 
@@ -2955,18 +2955,18 @@ void cmd_AT_CIPSSLMFLN()
 
 		// Read remote address
 
-		uint8_t pos = 0;
+		remoteSite = (char*)&inputBuffer[offset];  // the address is a pointer to the input string
 		error = 4;
 
-		while (pos < sizeof(remoteSite) - 1 && inputBuffer[offset] != '"' && inputBuffer[offset] >= ' ')
+		while (inputBuffer[offset] != '"' && inputBuffer[offset] > ' ')
 		{
-			remoteSite[pos++] = inputBuffer[offset++];
+			offset++;
 		}
-		remoteSite[pos] = 0;
 
 		if (inputBuffer[offset] != '"' || inputBuffer[offset + 1] != ',')
 			break;
 
+		inputBuffer[offset] = 0;  // End of remoteAddress
 		offset += 2;
 
 		// Read remote port
@@ -3190,7 +3190,7 @@ commands_t findCommand(uint8_t *input, uint16_t inpLen)
 
 /*
  * Read quote delimited string from the buffer, adjust offset according to read data
- * Maximum text length is 100 characters
+ * Maximum text length is 200 characters
  */
 String readStringFromBuffer(unsigned char *inpBuf, uint16_t &offset, bool escape, bool allowEmpty)
 {
@@ -3198,7 +3198,7 @@ String readStringFromBuffer(unsigned char *inpBuf, uint16_t &offset, bool escape
 
 	if (inpBuf[offset] == '"')
 	{
-		char s[100];
+		char s[200];
 		char *ps = s;
 
 		++offset;

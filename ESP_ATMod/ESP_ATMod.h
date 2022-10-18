@@ -65,7 +65,7 @@ extern client_t clients[5];
 extern const uint8_t SERVERS_COUNT;
 extern WiFiServer servers[];
 
-const uint16_t INPUT_BUFFER_LEN = 100;
+const uint16_t INPUT_BUFFER_LEN = 200;
 
 extern uint8_t inputBuffer[INPUT_BUFFER_LEN]; // Input buffer
 extern uint16_t inputBufferCnt;				  // Number of bytes in inputBuffer
