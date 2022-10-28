@@ -1593,8 +1593,8 @@ void cmd_AT_CIPSTART()
 		{
 			AT_DEBUG_PRINTF("--- linkId=%d, type=%d, addr=%s, port=%d\r\n", linkID, type, remoteAddr, (uint16_t)remotePort);
 
-			// Check if connected to an AP
-			if (!WiFi.isConnected())
+			// Check if connected to an AP or SoftAP is started
+			if (!(WiFi.isConnected() || (WiFi.getMode() & WIFI_AP)))
 			{
 				error = 6;
 				break;
