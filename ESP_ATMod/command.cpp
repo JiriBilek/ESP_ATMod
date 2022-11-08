@@ -697,6 +697,12 @@ void cmd_AT_CWMODE(commands_t cmd)
  */
 void cmd_AT_CWJAP(commands_t cmd)
 {
+	if (WiFi.getMode() == WIFI_AP)
+	{
+		Serial.printf_P(MSG_ERROR);
+		return;
+	}
+
 	uint16_t offset = 8; // offset to ? or =
 	if (cmd != CMD_AT_CWJAP)
 		offset += 4;
@@ -885,6 +891,12 @@ void cmd_AT_CWLAPOPT()
  */
 void cmd_AT_CWLAP()
 {
+	if (WiFi.getMode() == WIFI_AP)
+	{
+		Serial.printf_P(MSG_ERROR);
+		return;
+	}
+
 	// Print found networks with printScanResult once the scan has finished
 	WiFi.scanNetworksAsync(printScanResult);
 	gsFlag_Busy = true;
@@ -907,6 +919,12 @@ void cmd_AT_CWQAP()
  */
 void cmd_AT_CWSAP(commands_t cmd)
 {
+	if (WiFi.getMode() == WIFI_STA)
+	{
+		Serial.printf_P(MSG_ERROR);
+		return;
+	}
+
 	uint16_t offset = 8; // offset to ? or =
 	if (cmd != CMD_AT_CWSAP)
 		offset += 4;
@@ -1189,6 +1207,12 @@ void cmd_AT_CIPXXMAC(commands_t cmd)
  */
 void cmd_AT_CIPSTA(commands_t cmd)
 {
+	if (WiFi.getMode() == WIFI_AP)
+	{
+		Serial.printf_P(MSG_ERROR);
+		return;
+	}
+
 	uint16_t offset = 9;
 
 	if (cmd != CMD_AT_CIPSTA)
@@ -1302,6 +1326,12 @@ void cmd_AT_CIPSTA(commands_t cmd)
  */
 void cmd_AT_CIPAP(commands_t cmd)
 {
+	if (WiFi.getMode() == WIFI_STA)
+	{
+		Serial.printf_P(MSG_ERROR);
+		return;
+	}
+
 	uint16_t offset = 8;
 
 	if (cmd != CMD_AT_CIPAP)
@@ -1420,11 +1450,20 @@ void cmd_AT_CWHOSTNAME()
 
 	if (inputBuffer[offset] == '?' && inputBufferCnt == offset + 3)
 	{
+
+	  // query is enabled in AP mode in standard AT firmware
+
 		Serial.printf_P(PSTR("+CWHOSTNAME:%s\r\n"), WiFi.hostname().c_str());
 		Serial.printf_P(MSG_OK);
 	}
 	else if (inputBuffer[offset] == '=')
 	{
+		if (WiFi.getMode() == WIFI_AP)
+		{
+			Serial.printf_P(MSG_ERROR);
+			return;
+		}
+
 		String hostname = readStringFromBuffer(inputBuffer, ++offset, false);
 
 		if (hostname.isEmpty())
@@ -1610,8 +1649,8 @@ void cmd_AT_CIPSTART()
 		{
 			AT_DEBUG_PRINTF("--- linkId=%d, type=%d, addr=%s, port=%d\r\n", linkID, type, remoteAddr, (uint16_t)remotePort);
 
-			// Check if connected to an AP
-			if (!WiFi.isConnected())
+			// Check if connected to an AP or SoftAP is started
+			if (!(WiFi.isConnected() || (WiFi.getMode() & WIFI_AP)))
 			{
 				error = 6;
 				break;
