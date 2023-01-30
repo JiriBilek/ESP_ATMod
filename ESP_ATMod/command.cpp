@@ -264,8 +264,8 @@ void processCommandBuffer(void)
 
 	// ------------------------------------------------------------------------------------ AT+CWSAP
 	else if (cmd == CMD_AT_CWSAP || cmd == CMD_AT_CWSAP_CUR || cmd == CMD_AT_CWSAP_DEF)
-	  // AT+CWSAP="ssid","pwd",chl,ecn [,max conm, ssid hidden] - Function: to configure the SoftA
-	  cmd_AT_CWSAP(cmd);
+		// AT+CWSAP="ssid","pwd",chl,ecn [,max conm, ssid hidden] - Function: to configure the SoftA
+		cmd_AT_CWSAP(cmd);
 
 	// ------------------------------------------------------------------------------------ AT+CWDHCP
 	else if (cmd == CMD_AT_CWDHCP || cmd == CMD_AT_CWDHCP_CUR || cmd == CMD_AT_CWDHCP_DEF)
@@ -293,8 +293,8 @@ void processCommandBuffer(void)
 
 	// ------------------------------------------------------------------------------------ AT+CIPAP
 	else if (cmd == CMD_AT_CIPAP || cmd == CMD_AT_CIPAP_CUR || cmd == CMD_AT_CIPAP_DEF)
-	  // AT+CIPAP - Sets or prints the SoftAP configuration
-	  cmd_AT_CIPAP(cmd);
+		// AT+CIPAP - Sets or prints the SoftAP configuration
+		cmd_AT_CIPAP(cmd);
 
 	// ------------------------------------------------------------------------------------ AT+CWHOSTNAME
 	else if (cmd == CMD_AT_CWHOSTNAME)
@@ -989,28 +989,28 @@ void cmd_AT_CWSAP(commands_t cmd)
 			++offset;
 
 			if (!(readNumber(inputBuffer, offset, enc) && enc < AUTH_MAX && enc != AUTH_WEP)) // WEP is not supported
-			  break;
+				break;
 
 			if (inputBuffer[offset] == ',')
 			{
 				++offset;
 
 				if (!(readNumber(inputBuffer, offset, max_conn) && max_conn <= 4))
-				  break;
+					break;
 
 				if (inputBuffer[offset] == ',')
 				{
 					++offset;
 
 					if (!(readNumber(inputBuffer, offset, ssid_hidden) && ssid_hidden <= 1))
-					  break;
+						break;
 				}
 			}
 
 			if (inputBufferCnt != offset + 2)
 				break;
 
-		  if (cmd != CMD_AT_CWSAP_CUR)
+			if (cmd != CMD_AT_CWSAP_CUR)
 				WiFi.persistent(true);
 
 			error = !WiFi.softAP(ssid.c_str(), nullIfEmpty(pwd), channel, ssid_hidden, max_conn);
@@ -1451,7 +1451,7 @@ void cmd_AT_CWHOSTNAME()
 	if (inputBuffer[offset] == '?' && inputBufferCnt == offset + 3)
 	{
 
-	  // query is enabled in AP mode in standard AT firmware
+		// query is enabled in AP mode in standard AT firmware
 
 		Serial.printf_P(PSTR("+CWHOSTNAME:%s\r\n"), WiFi.hostname().c_str());
 		Serial.printf_P(MSG_OK);
@@ -1687,9 +1687,9 @@ void cmd_AT_CIPSTART()
 				{
 					static_cast<BearSSL::WiFiClientSecure *>(cli)->setFingerprint(fingerprint);
 				}
-				else if (gsCipSslAuth == 2 && CAcert.getCount() > 0) // certificate chain verification
+				else if (gsCipSslAuth == 2 && CAcert->getCount() > 0) // certificate chain verification
 				{
-					static_cast<BearSSL::WiFiClientSecure *>(cli)->setTrustAnchors(&CAcert);
+					static_cast<BearSSL::WiFiClientSecure *>(cli)->setTrustAnchors(CAcert);
 				}
 				else
 				{
@@ -2093,7 +2093,7 @@ void cmd_AT_CIPSERVER()
 
 		++offset;
 		if (inputBuffer[offset] != '0' && inputBuffer[offset] != '1')
-		  break;
+			break;
 		stop = inputBuffer[offset] == '0';
 		++offset;
 
@@ -2724,7 +2724,7 @@ void cmd_AT_CIPSSLAUTH()
 			{
 				Serial.println(F("fp not valid"));
 			}
-			else if (sslAuth == 2 && CAcert.getCount() == 0)
+			else if (sslAuth == 2 && CAcert->getCount() == 0)
 			{
 				Serial.println(F("CA cert not loaded"));
 			}
@@ -2854,7 +2854,7 @@ void cmd_AT_CIPSSLCERT()
 	// Load certificate
 	if (inputBufferCnt == offset + 2)
 	{
-		if (CAcert.getCount() >= maximumCertificates)
+		if (CAcert->getCount() >= maximumCertificates)
 		{
 			Serial.printf_P(PSTR("Reached the maximum of %d certificates\r\n"), maximumCertificates);
 			Serial.printf_P(MSG_ERROR);
@@ -2880,13 +2880,13 @@ void cmd_AT_CIPSSLCERT()
 	// Print all certificates
 	else if (inputBuffer[offset] == '?' && inputBufferCnt == offset + 3)
 	{
-		if (CAcert.getCount() == 0)
+		if (CAcert->getCount() == 0)
 		{
 			Serial.println(F("+CIPSSLCERT:no certs loaded"));
 		}
 		else
 		{
-			for (size_t i = 0; i < CAcert.getCount(); i++)
+			for (size_t i = 0; i < CAcert->getCount(); i++)
 			{
 				Serial.printf_P(PSTR("+CIPSSLCERT,%d:"), i + 1);
 				printCertificateName(i);
@@ -2907,7 +2907,7 @@ void cmd_AT_CIPSSLCERT()
 			return;
 		}
 
-		if (certNumber > CAcert.getCount())
+		if (certNumber > CAcert->getCount())
 		{
 			Serial.printf_P(PSTR("+CIPSSLCERT,%d:no certificate\r\n"), certNumber);
 			Serial.printf_P(MSG_ERROR);
@@ -2924,7 +2924,7 @@ void cmd_AT_CIPSSLCERT()
 	// Delete specific certificate
 	else if (!memcmp_P(&(inputBuffer[offset]), PSTR("=DELETE,"), 8) && (inputBufferCnt >= 22 && inputBufferCnt <= 25))
 	{
-		if (CAcert.getCount() == 0)
+		if (CAcert->getCount() == 0)
 		{
 			Serial.println(F("+CIPSSLCERT:no certificates"));
 		}
@@ -2933,33 +2933,36 @@ void cmd_AT_CIPSSLCERT()
 			offset = 21;
 			uint32_t certNumberToDelete;
 
-			if (readNumber(inputBuffer, offset, certNumberToDelete) && certNumberToDelete <= CAcert.getCount() && certNumberToDelete != 0)
+			if (readNumber(inputBuffer, offset, certNumberToDelete) && certNumberToDelete <= CAcert->getCount() && certNumberToDelete != 0)
 			{
-				BearSSL::X509List certList;
+				BearSSL::X509List *certList = new BearSSL::X509List();
 
 				// Delete certificate
-				for (size_t i = 0; i < CAcert.getCount(); i++)
+				for (size_t i = 0; i < CAcert->getCount(); i++)
 				{
 					if (certNumberToDelete != (i + 1))
 					{
-						const br_x509_certificate *cert = &(CAcert.getX509Certs()[i]);
-						certList.append(cert->data, cert->data_len);
+						const br_x509_certificate *cert = &(CAcert->getX509Certs()[i]);
+						certList->append(cert->data, cert->data_len);
 					}
 				}
 
-				CAcert = BearSSL::X509List();
+				delete CAcert;
+				CAcert = certList;
+
+/*				CAcert = BearSSL::X509List();
 
 				for (size_t i = 0; i < certList.getCount(); i++)
 				{
 					const br_x509_certificate *cert = &(certList.getX509Certs()[i]);
 					CAcert.append(cert->data, cert->data_len);
 				}
-
+*/
 				Serial.printf_P(PSTR("+CIPSSLCERT,%d:deleted\r\n"), certNumberToDelete);
 				Serial.printf_P(MSG_OK);
 				return;
 			}
-			else if (certNumberToDelete > CAcert.getCount())
+			else if (certNumberToDelete > CAcert->getCount())
 			{
 				Serial.println(F("+CIPSSLCERT=DELETE:no certificate"));
 			}
@@ -3353,7 +3356,7 @@ uint8_t readHex(char c)
  */
 void printCertificateName(uint8_t number)
 {
-	const br_x509_certificate *cert = &(CAcert.getX509Certs()[number]);
+	const br_x509_certificate *cert = &(CAcert->getX509Certs()[number]);
 
 	uint8_t *cnBytes = getCnFromDer(cert->data, cert->data_len);
 
