@@ -96,6 +96,15 @@ static const commandDef_t commandList[] = {
 	{"+CIPAP_CUR", MODE_QUERY_SET, CMD_AT_CIPAP_CUR},
 	{"+CIPAP_DEF", MODE_QUERY_SET, CMD_AT_CIPAP_DEF},
 	{"+CWHOSTNAME", MODE_QUERY_SET, CMD_AT_CWHOSTNAME},
+#ifdef ETHERNET_CLASS
+	{"+CIPETHMAC", MODE_QUERY_SET, CMD_AT_CIPETHMAC},
+	{"+CIPETHMAC_CUR", MODE_QUERY_SET, CMD_AT_CIPETHMAC_CUR},
+	{"+CIPETHMAC_DEF", MODE_QUERY_SET, CMD_AT_CIPETHMAC_DEF},
+	{"+CIPETH", MODE_QUERY_SET, CMD_AT_CIPETH},
+	{"+CIPETH_CUR", MODE_QUERY_SET, CMD_AT_CIPETH_CUR},
+	{"+CIPETH_DEF", MODE_QUERY_SET, CMD_AT_CIPETH_DEF},
+	{"+CEHOSTNAME", MODE_QUERY_SET, CMD_AT_CEHOSTNAME},
+#endif
 
 	{"+CIPSTATUS", MODE_EXACT_MATCH, CMD_AT_CIPSTATUS},
 	{"+CIPDOMAIN", MODE_NO_CHECKING, CMD_AT_CIPDOMAIN},
@@ -175,6 +184,11 @@ static void cmd_AT_CIPXXMAC(commands_t cmd);
 static void cmd_AT_CIPSTA(commands_t cmd);
 static void cmd_AT_CIPAP(commands_t cmd);
 static void cmd_AT_CWHOSTNAME();
+#ifdef ETHERNET_CLASS
+static void cmd_AT_CIPETHMAC(commands_t cmd);
+static void cmd_AT_CIPETH(commands_t cmd);
+static void cmd_AT_CEHOSTNAME();
+#endif
 
 static void cmd_AT_CIPSTATUS();
 static void cmd_AT_CIPDOMAIN();
@@ -310,6 +324,23 @@ void processCommandBuffer(void)
 	// ------------------------------------------------------------------------------------ AT+CIPDOMAIN
 	else if (cmd == CMD_AT_CIPDOMAIN) // AT+CIPDOMAIN - resolves a hostname to IP address with DNS
 		cmd_AT_CIPDOMAIN();
+
+#ifdef ETHERNET_CLASS
+	// ------------------------------------------------------------------------------------ AT+CIPETHMAC
+	else if (cmd == CMD_AT_CIPETHMAC || cmd == CMD_AT_CIPETHMAC_CUR || cmd == CMD_AT_CIPETHMAC_DEF)
+		// AT+CIPETHMAC - Sets or prints the MAC Address of the Ethernet interace
+		cmd_AT_CIPETHMAC(cmd);
+
+	// ------------------------------------------------------------------------------------ AT+CIPETH
+	else if (cmd == CMD_AT_CIPETH || cmd == CMD_AT_CIPETH_CUR || cmd == CMD_AT_CIPETH_DEF)
+		// AT+CIPETH - Sets or prints the Ethernet configuration
+		cmd_AT_CIPETH(cmd);
+
+	// ------------------------------------------------------------------------------------ AT+CEHOSTNAME
+	else if (cmd == CMD_AT_CEHOSTNAME)
+		// AT+CEHOSTNAME - Query/Set the host name of the Ethernet interface
+		cmd_AT_CEHOSTNAME();
+#endif
 
 	// ------------------------------------------------------------------------------------ AT+CIPSTART
 	else if (cmd == CMD_AT_CIPSTART)
@@ -1081,19 +1112,35 @@ void cmd_AT_CWDHCP(commands_t cmd)
 
 		++offset;
 
-		if (readNumber(inputBuffer, offset, mode) && mode <= 2 && inputBuffer[offset] == ',')
+		if (readNumber(inputBuffer, offset, mode) && mode <= 3 && inputBuffer[offset] == ',')
 		{
 			++offset;
 
+			/* The CWDHCP= syntax in AT 1 is strange. It doesn't use CWMODE modes
+			 * but has its own modes 0 AP, 1 STA, 2 both. (CWMODE has 1 STA, 2 AP, 3 both)
+			 * The command sets bits. It doesn't change the DHCP for unspecified modes.
+			 * We extend this by adding mode 3 for Ethernet, without the additional combinations.
+			 * The CWDHCP? returns the bit mask value with AP at bit 1 and STA at bit 2,
+			 * so we store the setting this way in gsCwDhcp. The bit mask is mode + 1.
+			 * We extend the CWDHCP? result with bit 3 for Ethernet DHCP state.
+			 */
+
 			const WiFiMode_t dhcpToMode[3] = {WIFI_AP, WIFI_STA, WIFI_AP_STA};
 
-			if (dhcpToMode[mode] == WiFi.getMode()) // The mode must match the current mode
+			if (mode == 3 || (dhcpToMode[mode] & WiFi.getMode())) // The affected wifi mode must be active
 			{
 				if (readNumber(inputBuffer, offset, en) && en <= 1 && inputBufferCnt == offset + 2)
 				{
-					gsCwDhcp = 1 | en << 1; // Only Station DHCP is supported
-
-					setDhcpMode();
+					if (en) {
+						gsCwDhcp |= (mode + 1);
+					} else {
+						gsCwDhcp &= ~(mode + 1);
+					}
+					if (mode == 3) {
+						configureEthernet();
+					} else {
+						setDhcpMode();
+					}
 
 					if (cmd != CMD_AT_CWDHCP_CUR)
 						Settings::setDhcpMode(gsCwDhcp);
@@ -1300,16 +1347,16 @@ void cmd_AT_CIPSTA(commands_t cmd)
 			}
 
 			// We got the network configuration
+			gsCwDhcp &= ~CWDHCP_STA; // Stop STA DHCP
 
 			if (cmd != CMD_AT_CIPSTA_CUR)
 			{
 				// Save the network configuration
 				Settings::setNetConfig(cfg);
-				Settings::setDhcpMode(1); // Stop DHCP
+				Settings::setDhcpMode(gsCwDhcp);
 			}
 
 			gsCipStaCfg = cfg;
-			gsCwDhcp = 1; // Stop DHCP
 
 			// Reconfigure (stop DHCP and set the static addresses)
 			setDhcpMode();
@@ -1489,6 +1536,223 @@ void cmd_AT_CWHOSTNAME()
 		Serial.printf_P(MSG_ERROR);
 	}
 }
+
+#ifdef ETHERNET_CLASS
+/*
+ * AT+CIPETHMAC - Sets or prints a MAC Address of Ethernet interface
+ */
+void cmd_AT_CIPETHMAC(commands_t cmd)
+{
+	uint16_t offset = 12;
+	if (cmd != CMD_AT_CIPETHMAC)
+		offset += 4;
+	if (inputBuffer[offset] == '?' && inputBufferCnt == offset + 3)
+	{
+		const char *cmdSuffix = "";
+		if (cmd == CMD_AT_CIPETHMAC_CUR)
+			cmdSuffix = suffix_CUR;
+		else if (cmd == CMD_AT_CIPETHMAC_DEF)
+			cmdSuffix = suffix_DEF;
+		Serial.printf_P(PSTR("+CIPETHMAC%s:\"%02X:%02X:%02X:%02X:%02X:%02X\"\r\n"), cmdSuffix,
+				gsCipEthMAC[0], gsCipEthMAC[1], gsCipEthMAC[2], gsCipEthMAC[3], gsCipEthMAC[4], gsCipEthMAC[5]);
+		Serial.printf_P(MSG_OK);
+	}
+	else if (inputBuffer[offset] == '=')
+	{
+		uint8_t error = true;
+
+		++offset;
+
+		do
+		{
+			String mac;
+			uint8_t uMac[6];
+
+			mac = readStringFromBuffer(inputBuffer, offset, false);
+
+			if (mac.isEmpty() || mac.length() != 17)
+				break;
+
+			char fmt[40];
+			strcpy_P(fmt, PSTR("%2hhx:%2hhx:%2hhx:%2hhx:%2hhx:%2hhx"));
+			if (sscanf(mac.c_str(), fmt, &uMac[0], &uMac[1], &uMac[2], &uMac[3],
+					&uMac[4], &uMac[5]) != 6)
+				break;
+
+			if (inputBufferCnt != offset + 2)
+				break;
+
+			error = 0;
+
+			memcpy(gsCipEthMAC, uMac, 6);
+
+			if (cmd != CMD_AT_CIPETH_CUR)
+			{
+				// TODO
+			}
+
+		} while (0);
+
+		if (error == 0)
+			Serial.printf_P(MSG_OK);
+		else if (error == 1)
+			Serial.printf_P(MSG_ERROR);
+	}
+	else
+	{
+		Serial.printf_P(MSG_ERROR);
+	}
+
+}
+
+/*
+ * AT+CIPETH - Sets or prints the network configuration
+ */
+void cmd_AT_CIPETH(commands_t cmd)
+{
+
+	uint16_t offset = 9;
+
+	if (cmd != CMD_AT_CIPETH)
+		offset += 4;
+
+	if (inputBuffer[offset] == '?' && inputBufferCnt == offset + 3)
+	{
+		ipConfig_t cfg;
+
+		if (cmd == CMD_AT_CIPETH_DEF)
+		{
+			cfg = Settings::getEthIpConfig();
+		}
+		else
+		{
+			cfg = {Ethernet.localIP(), Ethernet.gatewayIP(), Ethernet.subnetMask()};
+		}
+
+		const char *cmdSuffix = "";
+		if (cmd == CMD_AT_CIPETH_CUR)
+			cmdSuffix = suffix_CUR;
+		else if (cmd == CMD_AT_CIPETH_DEF)
+			cmdSuffix = suffix_DEF;
+
+		if (Ethernet.status() != WL_CONNECTED || cfg.ip == 0)
+		{
+			Serial.printf_P(PSTR("+CIPETH%s:ip:\"0.0.0.0\"\r\n"), cmdSuffix);
+			Serial.printf_P(PSTR("+CIPETH%s:gateway:\"0.0.0.0\"\r\n"), cmdSuffix);
+			Serial.printf_P(PSTR("+CIPETH%s:netmask:\"0.0.0.0\"\r\n"), cmdSuffix);
+		}
+		else
+		{
+			Serial.printf_P(PSTR("+CIPETH%s:ip:\"%s\"\r\n"), cmdSuffix, IPAddress(cfg.ip).toString().c_str());
+			Serial.printf_P(PSTR("+CIPETH%s:gateway:\"%s\"\r\n"), cmdSuffix, IPAddress(cfg.gw).toString().c_str());
+			Serial.printf_P(PSTR("+CIPETH%s:netmask:\"%s\"\r\n"), cmdSuffix, IPAddress(cfg.mask).toString().c_str());
+		}
+		Serial.printf_P(MSG_OK);
+	}
+	else if (inputBuffer[offset] == '=')
+	{
+		uint8_t error = 1;
+
+		++offset;
+
+		do
+		{
+			ipConfig_t cfg;
+
+			if (!readIpAddress(inputBuffer, offset, cfg.ip))
+				break;
+
+			if (inputBuffer[offset] != ',')
+			{
+				if (inputBufferCnt != offset + 2)
+					break;
+
+				// Only IP address is given, derive gateway and subnet /24
+				if (cfg.ip != 0)
+				{
+					cfg.gw = (cfg.ip & 0x00ffffff) | 0x01000000;
+					cfg.mask = 0x00ffffff;
+				}
+
+				error = 0;
+			}
+			else // read gateway and mask
+			{
+				++offset;
+
+				if (!readIpAddress(inputBuffer, offset, cfg.gw) || inputBuffer[offset] != ',')
+					break;
+
+				++offset;
+
+				if (!readIpAddress(inputBuffer, offset, cfg.mask) || inputBufferCnt != offset + 2)
+					break;
+
+				error = 0;
+			}
+
+			// We got the network configuration
+			gsCwDhcp &= ~CWDHCP_ETH; // Stop Ethernet DHCP
+
+			if (cmd != CMD_AT_CIPETH_CUR)
+			{
+				// Save the network configuration
+				Settings::setEthIpConfig(cfg);
+				Settings::setDhcpMode(gsCwDhcp);
+			}
+
+			gsCipEthCfg = cfg;
+
+			// Reconfigure (stop DHCP and set the static addresses)
+			configureEthernet();
+
+		} while (0);
+
+		if (error == 0)
+			Serial.printf_P(MSG_OK);
+		else if (error == 1)
+			Serial.printf_P(MSG_ERROR);
+	}
+	else
+	{
+		Serial.printf_P(MSG_ERROR);
+	}
+}
+
+void cmd_AT_CEHOSTNAME()
+{
+	uint16_t offset = 13; // offset to ? or =
+
+	if (inputBuffer[offset] == '?' && inputBufferCnt == offset + 3)
+	{
+
+		// query is enabled in AP mode in standard AT firmware
+
+		Serial.printf_P(PSTR("+CEHOSTNAME:%s\r\n"), Ethernet.hostname().c_str());
+		Serial.printf_P(MSG_OK);
+	}
+	else if (inputBuffer[offset] == '=')
+	{
+		String hostname = readStringFromBuffer(inputBuffer, ++offset, false);
+
+		if (hostname.isEmpty())
+		{
+			Serial.printf_P(MSG_ERROR);
+			return;
+		}
+
+		Ethernet.hostname(hostname);
+		if (Ethernet.hostname() == hostname)
+			Serial.printf_P(MSG_OK);
+		else
+			Serial.printf_P(MSG_ERROR);
+	}
+	else
+	{
+		Serial.printf_P(MSG_ERROR);
+	}
+}
+#endif
 
 /*
  * AT+CIPSTATUS - Gets the Connection Status
@@ -1737,7 +2001,7 @@ void cmd_AT_CIPSTART()
 			AT_DEBUG_PRINTF("--- linkId=%d, type=%d, addr=%s, port=%d\r\n", linkID, type, remoteAddr, (uint16_t)remotePort);
 
 			// Check if connected to an AP or SoftAP is started
-			if (!(WiFi.isConnected() || (WiFi.getMode() & WIFI_AP)))
+			if (!(WiFi.isConnected() || (WiFi.getMode() & WIFI_AP) || gsEthConnected))
 			{
 				error = 6;
 				break;
@@ -3121,7 +3385,7 @@ void cmd_AT_CIPSSLMFLN()
 			break;
 
 		// Check if connected to an AP
-		if (!WiFi.isConnected())
+		if (!WiFi.isConnected() || gsEthConnected)
 		{
 			error = 6;
 			break;

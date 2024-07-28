@@ -49,6 +49,7 @@
  * 0.4.0: Arduino ESP8266 Core 3.1.1 
  * 0.4.0a: AT+CIPSTATUS lists SoftAP TCP connections [J.A]
  * 0.4.0b: AT+CIPDOMAIN implementation [J.A]
+ * 0.5.0: support Ethernet AT+CIPETH, AT+CIPETHMAC, AT+CEHOSTNAME and modified AT+CWDHCP [J.A]
  *
  * TODO:
  * - Implement AP mode DHCP settings and AT+CWLIF
@@ -76,6 +77,10 @@ extern "C"
 #include "settings.h"
 #include "debug.h"
 #include "asnDecode.h"
+
+#ifdef ETHERNET_CLASS
+ETHERNET_CLASS Ethernet(ETHERNET_CS);
+#endif
 
 /*
  * Defines
@@ -132,17 +137,21 @@ uint16_t PemCertificateCount;	// Number of chars read
 bool gsEchoEnabled = true;			// command ATE
 uint8_t gsCipMux = 0;				// command AT+CIPMUX
 uint8_t gsCipdInfo = 0;				// command AT+CIPDINFO
-uint8_t gsCwDhcp = 3;				// command AT+CWDHCP_CUR
+uint8_t gsCwDhcp = CWDHCP_AP | CWDHCP_STA;	// command AT+CWDHCP
 bool gsFlag_Connecting = false;		// Connecting in progress
 bool gsFlag_Busy = false;			// Command is busy other commands will be ignored
 int8_t gsLinkIdReading = -1;		// Link id where the data is read
 bool gsCertLoading = false;			// AT+CIPSSLCERT in progress
 bool gsWasConnected = false;		// Connection flag for AT+CIPSTATUS
+bool gsEthConnected = false;		// track eth state for +ETH_ messages
+IPAddress gsEthLastIP;				// for +ETH_GOT_IP message
 uint8_t gsCipSslAuth = 0;			// command AT+CIPSSLAUTH: 0 = none, 1 = fingerprint, 2 = certificate chain
 uint8_t gsCipRecvMode = 0;			// command AT+CIPRECVMODE
 ipConfig_t gsCipStaCfg = {0, 0, 0}; // command AT+CIPSTA
 dnsConfig_t gsCipDnsCfg = {0, 0};	// command AT+CIPDNS
 ipConfig_t gsCipApCfg = {0, 0, 0}; // command AT+CIPAP
+ipConfig_t gsCipEthCfg = {0, 0, 0};	// command AT+CIPETH
+uint8_t gsCipEthMAC[6] = {0, 0, 0, 0, 0, 0};	// command AT+CIPETHMAC
 uint16_t gsCipSslSize = 16384;		// command AT+CIPSSLSIZE
 bool gsSTNPEnabled = true;			// command AT+CIPSNTPCFG
 int8_t gsSTNPTimezone = 0;			// command AT+CIPSNTPCFG
@@ -193,6 +202,16 @@ void setup()
 	uint32_t baudrate = Settings::getUartBaudRate();
 	SerialConfig config = Settings::getUartConfig();
 	Serial.begin(baudrate, config);
+
+#ifdef ETHERNET_CLASS
+	SPI.begin();
+	SPI.setClockDivider(SPI_CLOCK_DIV4);
+	SPI.setBitOrder(MSBFIRST);
+	SPI.setDataMode(SPI_MODE0);
+
+	gsCipEthCfg = Settings::getEthIpConfig();
+	configureEthernet();
+#endif
 
 	// Initialization of variables
 	inputBufferCnt = 0;
@@ -442,6 +461,30 @@ void loop()
 				}
 			}
 		}
+#ifdef ETHERNET_CLASS
+		if (gsEthConnected != netif_is_up(Ethernet.getNetIf()))
+		{
+			gsEthConnected = netif_is_up(Ethernet.getNetIf());
+			if (gsEthConnected)
+			{
+				Serial.println(F("+ETH_CONNECTED"));
+			}
+			else
+			{
+				Serial.println(F("+ETH_DISCONNECTED"));
+			}
+		}
+		if (Ethernet.localIP().isSet() && gsEthLastIP != Ethernet.localIP())
+		{
+			gsEthLastIP = Ethernet.localIP();
+			if (gsEthLastIP.isSet())
+			{
+				Serial.print(F("+ETH_GOT_IP=\""));
+				Serial.print(gsEthLastIP);
+				Serial.println('"');
+			}
+		}
+#endif
 	}
 
 	// Read the serial port into the input or send buffer
@@ -732,7 +775,7 @@ void DeleteClient(uint8_t index)
  */
 void setDhcpMode()
 {
-	if (gsCwDhcp & 2)
+	if (gsCwDhcp & CWDHCP_STA)
 	{
 		WiFi.config(0, 0, 0); // Enable Station DHCP
 	}
@@ -750,6 +793,46 @@ void setDhcpMode()
 			wifi_station_dhcpc_stop();
 		}
 	}
+}
+
+void configureEthernet()
+{
+#ifdef ETHERNET_CLASS
+	bool begin = false;
+
+	if (gsCwDhcp & CWDHCP_ETH)
+	{
+		Ethernet.end();
+		Ethernet.config(0, 0, 0); // Enable Ethernet DHCP
+		begin = true;
+	}
+	else
+	{
+		if (gsCipEthCfg.ip != 0 && gsCipEthCfg.gw != 0 && gsCipEthCfg.mask != 0)
+		{
+			// Configure the network
+			Ethernet.end();
+			Ethernet.config(gsCipEthCfg.ip, gsCipEthCfg.gw, gsCipEthCfg.mask);
+			setDns();
+			begin = true;
+		}
+		else
+		{
+			dhcp_stop((netif*) Ethernet.getNetIf());
+		}
+	}
+	if (begin) {
+		uint8_t* mac = nullptr;
+		if (gsCipEthMAC[0] != 0 || memcmp(gsCipEthMAC, gsCipEthMAC + 1, 5)) { // all zeros test
+			mac = gsCipEthMAC;
+		}
+		if (Ethernet.begin(mac)) {
+			if (mac == nullptr) {
+				Ethernet.macAddress(gsCipEthMAC);
+			}
+		}
+	}
+#endif
 }
 
 /*
