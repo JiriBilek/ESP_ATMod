@@ -46,6 +46,7 @@
  * 0.3.6: AT+CIPSTAMAC and AT+CIPAPMAC query only [J.A]
  * 0.3.6a: Fixed long hostname in AT+CIPSTART, input buffer and string search increased to 200 characters
  * 0.3.6b: Checking the appropriate mode for some commands [J.A]
+ * 0.4.0: Arduino ESP8266 Core 3.1.1 
  *
  * TODO:
  * - Implement AP mode DHCP settings and AT+CWLIF
@@ -78,7 +79,7 @@ extern "C"
  * Defines
  */
 
-const char APP_VERSION[] = "0.3.6b";
+const char APP_VERSION[] = "0.4.0";
 
 /*
  * Constants
@@ -116,7 +117,7 @@ uint16_t dataRead = 0; // Number of bytes read from the input to a send buffer
 
 uint8_t fingerprint[20]; // SHA-1 certificate fingerprint for TLS connections
 bool fingerprintValid;
-BearSSL::X509List CAcert; // CA certificate for TLS validation
+BearSSL::X509List *CAcert; // CA certificates for TLS validation
 size_t maximumCertificates;
 
 char *PemCertificate = nullptr; // Buffer for loading a certificate
@@ -157,6 +158,10 @@ static bool checkCertificateDuplicatesAndLoad(BearSSL::X509List &importCertList)
  */
 void setup()
 {
+	// Fixes the problem with the core 3.x and autoconnect
+	// For core pre 3.x please comment the next line out otherwise the compilation will fail
+	enableWiFiAtBootTime();
+
 	// Default static net configuration
 	gsCipStaCfg = Settings::getNetConfig();
 
@@ -212,6 +217,9 @@ void setup()
 	// Default maximum certificates
 	maximumCertificates = Settings::getMaximumCertificates();
 
+	// Initialize certificate store
+	CAcert = new BearSSL::X509List();
+
 	// Load certificates from LittleFS
 	if (LittleFS.begin())
 	{
@@ -224,7 +232,7 @@ void setup()
 			// Get filename
 			String filename = dir.fileName();
 
-			size_t originalCertCount = CAcert.getCount();
+			size_t originalCertCount = CAcert->getCount();
 
 			// Check if maximum certificates has not been reached yet
 			if (originalCertCount >= maximumCertificates)
@@ -274,7 +282,7 @@ void setup()
 							Serial.println(F("\nTried to load already existing certificate"));
 							Serial.printf_P(MSG_ERROR);
 						}
-						else if (CAcert.getCount() == originalCertCount)
+						else if (CAcert->getCount() == originalCertCount)
 						{
 							Serial.printf_P(PSTR("\nFailed to add %s to the certificates list"), filename.c_str());
 							Serial.printf_P(MSG_ERROR);
@@ -410,7 +418,8 @@ void loop()
 				break;
 			if (servers[i].status() == CLOSED)
 				continue;
-			WiFiClient cli = servers[i].available();
+			// WiFiClient cli = servers[i].available();  // Use for older cores where the function accept() doesn't exist
+			WiFiClient cli = servers[i].accept();
 			if (!cli)
 				continue;
 			clients[freeLinkId].client = new WiFiClient(cli);
@@ -503,7 +512,7 @@ void loop()
 							// Process the certificate
 							PemCertificate[PemCertificatePos] = '\0';
 
-							size_t originalCertCount = CAcert.getCount();
+							size_t originalCertCount = CAcert->getCount();
 
 							// Append certificate to seperate X509List
 							BearSSL::X509List importCertList;
@@ -527,7 +536,7 @@ void loop()
 								Serial.println(F("Tried to load already existing certificate"));
 								Serial.printf_P(MSG_ERROR);
 							}
-							else if (CAcert.getCount() == (originalCertCount + 1))
+							else if (CAcert->getCount() == (originalCertCount + 1))
 							{
 								Serial.printf_P(MSG_OK);
 							}
@@ -895,9 +904,9 @@ bool checkCertificateDuplicatesAndLoad(BearSSL::X509List &importCertList)
 {
 	const br_x509_certificate *importedCert = &(importCertList.getX509Certs()[0]);
 
-	for (size_t i = 0; i < CAcert.getCount(); i++)
+	for (size_t i = 0; i < CAcert->getCount(); i++)
 	{
-		const br_x509_certificate *cert = &(CAcert.getX509Certs()[i]);
+		const br_x509_certificate *cert = &(CAcert->getX509Certs()[i]);
 		if (!memcmp(importedCert->data, cert->data, importedCert->data_len))
 		{
 			return true;
@@ -905,7 +914,7 @@ bool checkCertificateDuplicatesAndLoad(BearSSL::X509List &importCertList)
 	}
 
 	// Certificate is not a duplicate
-	CAcert.append(importedCert->data, importedCert->data_len);
+	CAcert->append(importedCert->data, importedCert->data_len);
 
 	return false;
 }
