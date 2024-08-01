@@ -44,6 +44,8 @@
  * 0.3.3: AT+CIPSERVER, AT+CIPSTO, AT+CIPSERVERMAXCONN [J.A]
  * 0.3.4: SoftAP mode AT+CWMODE, AT+CWSAP, AT+CIPAP [J.A]
  * 0.3.6: AT+CIPSTAMAC and AT+CIPAPMAC query only [J.A]
+ * 0.3.6a: Fixed long hostname in AT+CIPSTART, input buffer and string search increased to 200 characters
+ * 0.3.6b: Checking the appropriate mode for some commands [J.A]
  * 0.4.0: Arduino ESP8266 Core 3.1.1 
  *
  * TODO:
