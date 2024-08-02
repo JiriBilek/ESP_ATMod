@@ -1489,15 +1489,22 @@ void cmd_AT_CWHOSTNAME()
  */
 void cmd_AT_CIPSTATUS()
 {
+	/* Early AT firmware versions could do only STA and one TCP connection, but now with SoftAP
+	 * and multiple connections support the STA status and the list of TCP connections are two
+	 * independent informations. It is not possible to know which of the TCP connections use STA
+	 * so the STA statuses 3 and 4 can't be evaluated for STA only.
+	 */
+
 	wl_status_t status = WiFi.status();
+	bool statusPrinted = false;
 
 	if (status != WL_CONNECTED)
 	{
-		Serial.println(F("STATUS:5\r\n\r\nOK"));
+		Serial.println(F("STATUS:5"));
+		statusPrinted = true;
 	}
-	else
+//	else  <-- no else. we have to list SoftAP TCP connections too
 	{
-		bool statusPrinted = false;
 		uint8_t maxCli = 0; // Maximum client number
 		if (gsCipMux == 1)
 			maxCli = 4;
@@ -1530,9 +1537,8 @@ void cmd_AT_CIPSTATUS()
 
 			Serial.printf_P(PSTR("STATUS:%c\r\n"), stat);
 		}
-
-		Serial.printf_P(MSG_OK);
 	}
+	Serial.printf_P(MSG_OK);
 }
 
 /*
