@@ -47,6 +47,7 @@
  * 0.3.6a: Fixed long hostname in AT+CIPSTART, input buffer and string search increased to 200 characters
  * 0.3.6b: Checking the appropriate mode for some commands [J.A]
  * 0.4.0: Arduino ESP8266 Core 3.1.1 
+ * 0.4.0a: AT+CIPSTATUS lists SoftAP TCP connections [J.A]
  *
  * TODO:
  * - Implement AP mode DHCP settings and AT+CWLIF
@@ -79,7 +80,7 @@ extern "C"
  * Defines
  */
 
-const char APP_VERSION[] = "0.4.0";
+const char APP_VERSION[] = "0.4.0a";
 
 /*
  * Constants
