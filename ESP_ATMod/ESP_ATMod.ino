@@ -48,6 +48,7 @@
  * 0.3.6b: Checking the appropriate mode for some commands [J.A]
  * 0.4.0: Arduino ESP8266 Core 3.1.1 
  * 0.4.0a: AT+CIPSTATUS lists SoftAP TCP connections [J.A]
+ * 0.4.0b: AT+CIPDOMAIN implementation [J.A]
  *
  * TODO:
  * - Implement AP mode DHCP settings and AT+CWLIF
@@ -80,7 +81,7 @@ extern "C"
  * Defines
  */
 
-const char APP_VERSION[] = "0.4.0a";
+const char APP_VERSION[] = "0.4.0b";
 
 /*
  * Constants
