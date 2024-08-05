@@ -1489,50 +1489,56 @@ void cmd_AT_CWHOSTNAME()
  */
 void cmd_AT_CIPSTATUS()
 {
+	/* Early AT firmware versions could do only STA and one TCP connection, but now with SoftAP
+	 * and multiple connections support the STA status and the list of TCP connections are two
+	 * independent informations. It is not possible to know which of the TCP connections use STA
+	 * so the STA statuses 3 and 4 can't be evaluated for STA only.
+	 */
+
 	wl_status_t status = WiFi.status();
+	bool statusPrinted = false;
 
 	if (status != WL_CONNECTED)
 	{
-		Serial.println(F("STATUS:5\r\n\r\nOK"));
+		Serial.println(F("STATUS:5"));
+		statusPrinted = true;
 	}
-	else
+	
+	//	We have to list SoftAP TCP connections, too
+	uint8_t maxCli = 0; // Maximum client number
+	if (gsCipMux == 1)
+		maxCli = 4;
+
+	for (uint8_t i = 0; i <= maxCli; ++i)
 	{
-		bool statusPrinted = false;
-		uint8_t maxCli = 0; // Maximum client number
-		if (gsCipMux == 1)
-			maxCli = 4;
-
-		for (uint8_t i = 0; i <= maxCli; ++i)
+		WiFiClient *cli = clients[i].client;
+		if (cli != nullptr && cli->connected())
 		{
-			WiFiClient *cli = clients[i].client;
-			if (cli != nullptr && cli->connected())
+			if (!statusPrinted)
 			{
-				if (!statusPrinted)
-				{
-					Serial.println(F("STATUS:3"));
-					statusPrinted = true;
-				}
-
-				const char types_text[3][4] = {"TCP", "UDP", "SSL"};
-				Serial.printf_P(PSTR("+CIPSTATUS:%d,\"%s\",\"%s\",%d,%d,0\r\n"), i, types_text[clients[i].type],
-								cli->remoteIP().toString().c_str(), cli->remotePort(), cli->localPort());
+				Serial.println(F("STATUS:3"));
+				statusPrinted = true;
 			}
+
+			const char types_text[3][4] = {"TCP", "UDP", "SSL"};
+			Serial.printf_P(PSTR("+CIPSTATUS:%d,\"%s\",\"%s\",%d,%d,0\r\n"), i, types_text[clients[i].type],
+							cli->remoteIP().toString().c_str(), cli->remotePort(), cli->localPort());
 		}
-
-		if (!statusPrinted)
-		{
-			char stat;
-
-			if (gsWasConnected)
-				stat = '4';
-			else
-				stat = '2';
-
-			Serial.printf_P(PSTR("STATUS:%c\r\n"), stat);
-		}
-
-		Serial.printf_P(MSG_OK);
 	}
+
+	if (!statusPrinted)
+	{
+		char stat;
+
+		if (gsWasConnected)
+			stat = '4';
+		else
+			stat = '2';
+
+		Serial.printf_P(PSTR("STATUS:%c\r\n"), stat);
+	}
+
+	Serial.printf_P(MSG_OK);
 }
 
 /*
