@@ -44,6 +44,7 @@ typedef struct
 	ipConfig_t netConfig;
 	dnsConfig_t dnsConfig;
 	ipConfig_t apIpConfig;
+	ipConfig_t ethIpConfig;
 	int maximumCertificates;
 
 	uint32_t crc32;
@@ -61,6 +62,7 @@ public:
 	static uint8_t getDhcpMode();
 	static ipConfig_t getNetConfig();
 	static ipConfig_t getApIpConfig();
+	static ipConfig_t getEthIpConfig();
 	static dnsConfig_t getDnsConfig();
 	static int getMaximumCertificates();
 
@@ -69,6 +71,7 @@ public:
 	static void setDhcpMode(uint8_t mode);
 	static void setNetConfig(ipConfig_t netCfg);
 	static void setApIpConfig(ipConfig_t apIpCfg);
+	static void setEthIpConfig(ipConfig_t ethIpCfg);
 	static void setDnsConfig(dnsConfig_t dnsCfg);
 	static void setMaximumCertificates(int maximumCertificates);
 
@@ -92,6 +95,7 @@ protected:
 		uint8_t getDhcpMode() { return data.dhcpMode; }
 		ipConfig_t getNetConfig() { return data.netConfig; }
 		ipConfig_t getApIpConfig() { return data.apIpConfig; }
+		ipConfig_t getEthIpConfig() { return data.ethIpConfig; }
 		dnsConfig_t getDnsConfig() { return data.dnsConfig; }
 		int getMaximumCertificates() { return data.maximumCertificates; }
 
@@ -100,6 +104,7 @@ protected:
 		void setDhcpMode(uint8_t mode) { data.dhcpMode = mode; }
 		void setNetConfig(ipConfig_t netCfg) { data.netConfig = netCfg; }
 		void setApIpConfig(ipConfig_t apIpCfg) { data.apIpConfig = apIpCfg; }
+		void setEthIpConfig(ipConfig_t ethIpCfg) { data.ethIpConfig = ethIpCfg; }
 		void setDnsConfig(dnsConfig_t dnsCfg) { data.dnsConfig = dnsCfg; }
 		void setMaximumCertificates(int maximumCertificates) { data.maximumCertificates = maximumCertificates; }
 
