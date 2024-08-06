@@ -98,6 +98,7 @@ static const commandDef_t commandList[] = {
 	{"+CWHOSTNAME", MODE_QUERY_SET, CMD_AT_CWHOSTNAME},
 
 	{"+CIPSTATUS", MODE_EXACT_MATCH, CMD_AT_CIPSTATUS},
+	{"+CIPDOMAIN", MODE_NO_CHECKING, CMD_AT_CIPDOMAIN},
 	{"+CIPSTART", MODE_NO_CHECKING, CMD_AT_CIPSTART},
 	{"+CIPSSLSIZE", MODE_QUERY_SET, CMD_AT_CIPSSLSIZE},
 	{"+CIPSEND", MODE_NO_CHECKING, CMD_AT_CIPSEND},
@@ -176,6 +177,7 @@ static void cmd_AT_CIPAP(commands_t cmd);
 static void cmd_AT_CWHOSTNAME();
 
 static void cmd_AT_CIPSTATUS();
+static void cmd_AT_CIPDOMAIN();
 static void cmd_AT_CIPSTART();
 static void cmd_AT_CIPSSLSIZE();
 static void cmd_AT_CIPSEND();
@@ -304,6 +306,10 @@ void processCommandBuffer(void)
 	// ------------------------------------------------------------------------------------ AT+CIPSTATUS
 	else if (cmd == CMD_AT_CIPSTATUS) // AT+CIPSTATUS - Gets the Connection Status
 		cmd_AT_CIPSTATUS();
+
+	// ------------------------------------------------------------------------------------ AT+CIPDOMAIN
+	else if (cmd == CMD_AT_CIPDOMAIN) // AT+CIPDOMAIN - resolves a hostname to IP address with DNS
+		cmd_AT_CIPDOMAIN();
 
 	// ------------------------------------------------------------------------------------ AT+CIPSTART
 	else if (cmd == CMD_AT_CIPSTART)
@@ -1539,6 +1545,81 @@ void cmd_AT_CIPSTATUS()
 	}
 
 	Serial.printf_P(MSG_OK);
+}
+
+/*
+ * AT+CIPDOMAIN - resolves a hostname to IP address with DNS
+ */
+void cmd_AT_CIPDOMAIN()
+{
+	uint8_t error = 1; // 1 = generic error, 0 = ok
+	uint16_t offset = 12;
+
+	// Parse the input
+	char *hostname;
+
+	do
+	{
+		if (inputBuffer[offset] != '=')
+			break;
+
+		offset += 1;
+
+		error = 2;
+
+		if (inputBuffer[offset] != '"')
+			break;
+
+		offset += 1;
+
+		hostname = (char*)&inputBuffer[offset];  // the hostname is a pointer to the input string
+
+		while (inputBuffer[offset] != '"' && inputBuffer[offset] > ' ')
+		{
+			offset++;
+		}
+
+		if (inputBuffer[offset] != '"' || offset + 3 != inputBufferCnt)
+			break;
+
+		inputBuffer[offset] = 0;  // End of remoteAddress
+
+		error = 0;
+
+	} while (0);
+
+	if (!error)
+	{
+		do
+		{
+			error = 100;
+
+			IPAddress remoteIP;
+			uint16_t _timeout = 15000;
+			if (WiFi.hostByName(hostname, remoteIP, _timeout))
+			{
+				Serial.print(F("+CIPDOMAIN:"));
+				Serial.println(remoteIP);
+
+				Serial.printf_P(MSG_OK);
+
+				error = 0;
+				break;
+			}
+
+
+		} while (0);
+	}
+
+	if (error > 0)
+	{
+		if (error == 100)
+			Serial.println(F("DNS Fail"));
+		else if (error == 2)
+			Serial.println(F("IP ERROR")); // as the standard AT 1 fw
+
+		Serial.printf_P(MSG_ERROR);
+	}
 }
 
 /*
