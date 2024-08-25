@@ -119,6 +119,7 @@ AT commands with _DEF and _CUR have (as in the standard AT firmware) an undocume
 | AT+CWHOSTNAME | Query/Set the host name of an ESP Station. |
 | [**TCP/IP AT Commands**](https://docs.espressif.com/projects/esp-at/en/latest/AT_Command_Set/TCP-IP_AT_Commands.html) |  |
 | AT+CIPSTATUS | Obtain the TCP/UDP/SSL connection status and information. |
+| AT+CIPDOMAIN | Resolve a Domain Name. |
 | AT+CIPSTART |Establish TCP connection, or SSL connection. Only one TLS connection at a time. |
 | [AT+CIPSSLSIZE](https://github.com/JiriBilek/ESP_ATMod#atcipsslsize---set-the-tls-receiver-buffer-size) | Change the size of the receiver buffer (512, 1024, 2048 or 4096 bytes) |
 | AT+CIPSEND |  Send data in the normal transmission mode or Wi-Fi passthrough mode. |
