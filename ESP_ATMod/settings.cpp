@@ -113,11 +113,25 @@ void Settings::setApIpConfig(ipConfig_t apIpCfg)
 	eeprom.setApIpConfig(apIpCfg);
 }
 
+void Settings::setEthIpConfig(ipConfig_t ethIpCfg)
+{
+	EEPROMData eeprom;
+
+	eeprom.setEthIpConfig(ethIpCfg);
+}
+
 ipConfig_t Settings::getApIpConfig()
 {
 	EEPROMData eeprom;
 
 	return eeprom.getApIpConfig();
+}
+
+ipConfig_t Settings::getEthIpConfig()
+{
+	EEPROMData eeprom;
+
+	return eeprom.getEthIpConfig();
 }
 
 void Settings::setMaximumCertificates(int maximumCertificates)
@@ -153,6 +167,7 @@ void Settings::resetData(eepromData_t *dataPtr)
 	dataPtr->netConfig = ipConfig_t({0, 0, 0});
 	dataPtr->dnsConfig = dnsConfig_t({0, 0});
 	dataPtr->apIpConfig = ipConfig_t({0, 0, 0});
+	dataPtr->ethIpConfig = ipConfig_t({0, 0, 0});
 	dataPtr->maximumCertificates = 5;
 }
 

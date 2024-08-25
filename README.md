@@ -2,7 +2,7 @@
 
 This firmware comes as an [Arduino esp8266](https://github.com/esp8266/Arduino#arduino-on-esp8266) sketch.
 
-This file refers to version 0.4.0 of the firmware.
+This file refers to version 0.5.0 of the firmware.
 
 ## Purpose
 
@@ -105,8 +105,8 @@ AT commands with _DEF and _CUR have (as in the standard AT firmware) an undocume
 | AT+CWQAP | Disconnect from an AP. |
 | AT+CWSAP_CUR | Start SoftAP, parameter &lt;ecn&gt; is not used. WPA_WPA2_PSK is used, if &lt;pwd&gt; is not empty. |
 | AT+CWSAP_DEF | Connect to AP, saved to flash. Parameter &lt;ecn&gt; is not used. WPA_WPA2_PSK is used, if &lt;pwd&gt; is not empty. |
-| AT+CWDHCP_CUR | Enable/disable DHCP - only station mode enabling works. |
-| AT+CWDHCP_DEF | Enable/disable DHCP saved to flash - only station mode enabling works. |
+| AT+CWDHCP_CUR | Enable/disable DHCP - SoftAP DHCP server enabling is not immplemented. |
+| AT+CWDHCP_DEF | Enable/disable DHCP saved to flash - SoftAP DHCP server enabling is not immplemented. |
 | AT+CWAUTOCONN | Connect to an AP automatically when powered on. |
 | AT+CIPSTAMAC_CUR | Sets or prints the MAC Address of the ESP8266 Station. Only query is implemented.
 | AT+CIPSTAMAC_DEF | Sets or prints the MAC Address of the ESP8266 Station stored in flash. Only query is implemented.
@@ -148,6 +148,12 @@ AT commands with _DEF and _CUR have (as in the standard AT firmware) an undocume
 | [AT+CIPSSLMFLN](https://github.com/JiriBilek/ESP_ATMod#atcipsslmfln---checks-if-the-given-site-supports-the-mfln-tls-extension) | Check if the site supports Maximum Fragment Length Negotiation (MFLN). |
 | [AT+CIPSSLSTA](https://github.com/JiriBilek/ESP_ATMod#atcipsslsta---checks-the-status-of-the-mfln-negotiation) | Prints the MFLN status of a connection. |
 | [AT+SNTPTIME](https://github.com/JiriBilek/ESP_ATMod#atsystime---returns-the-current-time-utc) | Get SNTP time. |
+| [**New Ethernet AT Commands**](https://docs.espressif.com/projects/esp-at/en/latest/esp32/AT_Command_Set/Ethernet_AT_Commands.html) |  |
+| AT+CIPETHMAC_CUR | Sets or prints the MAC Address of the Ethernet interface. |
+| AT+CIPETHMAC_DEF | Sets or prints the MAC Address of the Ethernet interface stored in flash. Save to flash is not implemented. |
+| AT+CIPETH_CUR | Query/Set the IP address of the Ethernet interface. |
+| AT+CIPETH_DEF | Set and/or print current IP address, gateway and network mask, stored in flash. |
+| AT+CEHOSTNAME | Query/Set the host name of the Ethernet interface. |
 
 ## Changed Commands
 
@@ -186,6 +192,12 @@ In standard AT firmware 1.7 executing `AT+CIPSERVER=1,<port>` again even if the 
 In standard AT firmware 1.7 executing AT+CIPSERVER=0 stops the one server. Here it stops the first one. Executing `AT+CIPSERVER=0,<port>` stops the server listening on `<port>`.
 
 CIPSERVERMAXCONN and CIPSTO are global settings, They apply to all servers.
+
+### **AT+CWDHCP**
+
+In standard AT firmware AT_CWDHCP enables/disables the DHCP client for STA (mode 0) and starts or stops the DHCP server for SoftAP (mode 1). In ESP_ATMod the SoftAP DHCP server is always enabled. The AT+CWDHCP command is not implemented for SoftAP.
+
+For Ethernet support, the AT+CWDHCP command is enhanced. The Ethernet DHCP client is enabled/disabled with mode 3. For AT+CWDHCP?, state of the Ethernet DHCP client is returned in third bit.
 
 ## New Commands
 
@@ -561,3 +573,9 @@ OK
 ```
 
 If the current time is unknown, an error message is returned.
+
+### **AT+CIPETH, AT+CIPETHMAC, AT+CEHOSTNAME**
+
+These commands support use of the Ethernet interface as in standard AT firmware version 2 and newer.
+
+These commands for the Ethernet interface are analogous to AT+CIPSTA, AT+CIPSTAMAC and AT+CWHOSTNAME commands.

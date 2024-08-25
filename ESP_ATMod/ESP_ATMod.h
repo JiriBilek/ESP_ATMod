@@ -22,6 +22,15 @@
 
 #include <ESP8266WiFi.h>
 
+//#define ETHERNET_CLASS LwipIntfDevPatch<Wiznet5500>
+#define ETHERNET_CS 5
+
+#ifdef ETHERNET_CLASS
+#include "LwipIntfDevPatch.h"
+#include <utility/w5500.h>
+extern ETHERNET_CLASS Ethernet;
+#endif
+
 /*
  * Types
  */
@@ -56,6 +65,9 @@ typedef struct
 	uint32_t dns2;
 } dnsConfig_t;
 
+const uint8_t CWDHCP_AP  = 1;
+const uint8_t CWDHCP_STA = 2;
+const uint8_t CWDHCP_ETH = 4;
 /*
  * Globals
  */
@@ -93,11 +105,14 @@ extern bool gsFlag_Busy;		// Command is busy other commands ignored
 extern int8_t gsLinkIdReading;	// Link id for which are the data read
 extern bool gsCertLoading;		// AT+CIPSSLCERT in progress
 extern bool gsWasConnected;		// Connection flag for AT+CIPSTATUS
+extern bool gsEthConnected;		// track eth state for +ETH_ messages
 extern uint8_t gsCipSslAuth;	// command AT+CIPSSLAUTH: 0 = none, 1 = fingerprint, 2 = certificate chain
 extern uint8_t gsCipRecvMode;	// command AT+CIPRECVMODE
 extern ipConfig_t gsCipStaCfg;	// command AT+CIPSTA_CUR
 extern dnsConfig_t gsCipDnsCfg; // command AT+CIPDNS
 extern ipConfig_t gsCipApCfg;	// command AT+CIPAP_CUR
+extern ipConfig_t gsCipEthCfg;	// command AT+CIPETH
+extern uint8_t gsCipEthMAC[6];	// command AT+CIPETHMAC
 extern uint16_t gsCipSslSize;	// command AT+CIPSSLSIZE
 extern bool gsSTNPEnabled;		// command AT+CIPSNTPCFG
 extern int8_t gsSTNPTimezone;	// command AT+CIPSNTPCFG
@@ -116,6 +131,7 @@ extern const uint16_t MAX_PEM_CERT_LENGTH;
 
 void DeleteClient(uint8_t index);
 void setDhcpMode();
+void configureEthernet();
 void setDns();
 bool applyCipAp();
 int SendData(int clientIndex, int maxSize);
