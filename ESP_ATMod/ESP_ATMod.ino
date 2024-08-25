@@ -86,7 +86,7 @@ ETHERNET_CLASS Ethernet(ETHERNET_CS);
  * Defines
  */
 
-const char APP_VERSION[] = "0.4.0b";
+const char APP_VERSION[] = "0.5.0";
 
 /*
  * Constants
